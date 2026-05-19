@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "237584074828",
+    "project_id": "com-example-controlherba-b07af",
+    "storage_bucket": "com-example-controlherba-b07af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237584074828:android:7970bbfd4e476ca0338ce9",
+        "android_client_info": {
+          "package_name": "com.example.controlherbal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3Znfh5uYNYkFsNNdaZEYX2vwdRdu4pwU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
