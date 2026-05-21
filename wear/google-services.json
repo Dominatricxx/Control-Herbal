@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:741809372236:android:16c6ad844b4e865774c8e9",
         "android_client_info": {
-          "package_name": "com.example.controlherbal"
+          "package_name": "com.example.controlherbal.wear"
         }
       },
       "oauth_client": [],

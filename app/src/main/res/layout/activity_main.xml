@@ -12,25 +12,54 @@
         android:orientation="vertical">
 
         <!-- Título y estado de conexión -->
-        <TextView
-            android:layout_width="wrap_content"
+
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Control Herbal"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#2E7D32" />
+            android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btnMenu"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Abrir menú"
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                app:tint="#2E7D32" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="8dp"
+                android:layout_toEndOf="@id/btnMenu"
+                android:text="Control Herbal"
+                android:textColor="#2E7D32"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_alignParentEnd="true"
+                android:contentDescription="Logo de la aplicación"
+                android:src="@mipmap/ic_launcher_round" />
+        </RelativeLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Estado BLE:"
+                android:text="Estado Conexión:"
                 android:textSize="16sp" />
 
             <TextView
@@ -47,10 +76,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="CONECTAR AL DISPOSITIVO"
-            android:backgroundTint="#2E7D32" />
+            android:backgroundTint="#2E7D32"
+            android:text="CONECTAR AL DISPOSITIVO" />
 
         <!-- Tarjeta de datos ambientales -->
+        <TextView
+            android:id="@+id/tvAlerta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="#E0E0E0"
+            android:gravity="center"
+            android:padding="12dp"
+            android:text="Esperando datos..."
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvLastUpdate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="Última actualización: --"
+            android:textSize="12sp" />
+
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -83,6 +133,7 @@
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:text="🌡️ Temperatura:" />
+
                     <TextView
                         android:id="@+id/tvTemp"
                         android:layout_width="0dp"
@@ -96,6 +147,7 @@
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:text="💧 Humedad:" />
+
                     <TextView
                         android:id="@+id/tvHum"
                         android:layout_width="0dp"
@@ -109,6 +161,7 @@
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:text="☀️ Luz solar:" />
+
                     <TextView
                         android:id="@+id/tvLuz"
                         android:layout_width="0dp"
@@ -122,6 +175,7 @@
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:text="⚠️ IRH:" />
+
                     <TextView
                         android:id="@+id/tvIRH"
                         android:layout_width="0dp"
@@ -150,7 +204,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🔮 Predicción"
+                    android:text="🌱 Predicción"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -165,6 +219,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="⏰ Sequía estimada:" />
+
                     <TextView
                         android:id="@+id/tvSeq"
                         android:layout_width="0dp"
@@ -184,7 +239,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="🏖️ Sombra necesaria:" />
+                        android:text="🌥️ Sombra necesaria:" />
+
                     <TextView
                         android:id="@+id/tvSomb"
                         android:layout_width="0dp"
@@ -205,39 +261,52 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="📋 Acción:" />
+
                     <TextView
                         android:id="@+id/tvAccion"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="--"
-                        android:textStyle="bold"
-                        android:textColor="#E65100" />
+                        android:textColor="#E65100"
+                        android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
         <!-- Indicador visual de alerta -->
-        <TextView
-            android:id="@+id/tvAlerta"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="center"
-            android:padding="12dp"
-            android:text="Esperando datos..."
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:background="#E0E0E0" />
 
         <!-- Última actualización -->
-        <TextView
-            android:id="@+id/tvLastUpdate"
+
+        <!-- Tarjeta de gráficas en tiempo real -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="center"
-            android:text="Última actualización: --"
-            android:textSize="12sp" />
+            android:layout_height="300dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="📈 Evolución de sensores"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/lineChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
     </LinearLayout>
 </ScrollView>
