@@ -1,0 +1,152 @@
+package com.example.controlherbal
+
+import android.graphics.Color
+import android.os.Bundle
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import com.example.controlherbal.database.SensorDatabase
+import com.example.controlherbal.database.SensorReading
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.material.navigation.NavigationView
+import androidx.core.view.GravityCompat
+import android.content.Intent
+
+class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var tvTitle: TextView
+    private lateinit var tvAvgTemp: TextView
+    private lateinit var tvAvgHum: TextView
+    private lateinit var tvAvgLuz: TextView
+    private lateinit var tvAvgIRH: TextView
+    private lateinit var lineChart: LineChart
+    private lateinit var databaseLocal: SensorDatabase
+    private val ioScope = CoroutineScope(Dispatchers.IO)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_history_drawer)
+
+        drawerLayout = findViewById(R.id.drawer_layout)
+        val navView: NavigationView = findViewById(R.id.nav_view)
+        navView.setNavigationItemSelectedListener(this)
+
+        val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+        
+        // Configurar botón de menú
+        val btnMenu: android.widget.ImageButton = findViewById(R.id.btnMenu)
+        btnMenu.setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        // Lógica para ocultar la opción actual del menú
+        val menu = navView.menu
+        when(type) {
+            "DIARIO" -> menu.findItem(R.id.nav_daily).isVisible = false
+            "SEMANAL" -> menu.findItem(R.id.nav_weekly).isVisible = false
+            "MENSUAL" -> menu.findItem(R.id.nav_monthly).isVisible = false
+        }
+
+        tvTitle = findViewById(R.id.tvHistoryTitle)
+        val tvHeaderTitle: TextView = findViewById(R.id.tvHeaderTitle)
+        
+        tvAvgTemp = findViewById(R.id.tvAvgTemp)
+        tvAvgHum = findViewById(R.id.tvAvgHum)
+        tvAvgLuz = findViewById(R.id.tvAvgLuz)
+        tvAvgIRH = findViewById(R.id.tvAvgIRH)
+        
+        lineChart = findViewById(R.id.historyChart)
+        databaseLocal = SensorDatabase.getInstance(this)
+
+        tvHeaderTitle.text = "Registro $type"
+        tvTitle.text = "Análisis Detallado"
+
+        loadHistoryData(type)
+    }
+
+    override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_main -> {
+                val intent = Intent(this, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                startActivity(intent)
+            }
+            R.id.nav_daily -> {
+                val intent = Intent(this, HistoryActivity::class.java)
+                intent.putExtra("HISTORY_TYPE", "DIARIO")
+                startActivity(intent)
+            }
+            R.id.nav_weekly -> {
+                val intent = Intent(this, HistoryActivity::class.java)
+                intent.putExtra("HISTORY_TYPE", "SEMANAL")
+                startActivity(intent)
+            }
+            R.id.nav_monthly -> {
+                val intent = Intent(this, HistoryActivity::class.java)
+                intent.putExtra("HISTORY_TYPE", "MENSUAL")
+                startActivity(intent)
+            }
+        }
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
+    }
+
+    private fun loadHistoryData(type: String) {
+        ioScope.launch {
+            val endTime = System.currentTimeMillis()
+            val startTime = when (type) {
+                "DIARIO" -> endTime - (24 * 3600 * 1000L)
+                "SEMANAL" -> endTime - (7 * 24 * 3600 * 1000L)
+                "MENSUAL" -> endTime - (30 * 24 * 3600 * 1000L)
+                else -> endTime - (24 * 3600 * 1000L)
+            }
+
+            val readings = databaseLocal.sensorDao().getLast2000Asc()
+            val filteredReadings = readings.filter { it.timestamp in startTime..endTime }
+
+            withContext(Dispatchers.Main) {
+                if (filteredReadings.isNotEmpty()) {
+                    calculateAverages(filteredReadings)
+                    drawHistoryChart(filteredReadings)
+                }
+            }
+        }
+    }
+
+    private fun calculateAverages(readings: List<SensorReading>) {
+        val avgTemp = readings.map { it.temperature }.average()
+        val avgHum = readings.map { it.humidity }.average()
+        val avgLuz = readings.map { it.light }.average()
+        val avgIRH = readings.map { it.irh }.average()
+
+        tvAvgTemp.text = String.format("%.1f °C", avgTemp)
+        tvAvgHum.text = String.format("%.1f %%", avgHum)
+        tvAvgLuz.text = String.format("%.1f %%", avgLuz)
+        tvAvgIRH.text = String.format("%.1f", avgIRH)
+    }
+
+    private fun drawHistoryChart(readings: List<SensorReading>) {
+        val tempEntries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.temperature.toFloat()) }
+        val humEntries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.humidity.toFloat()) }
+
+        val tempSet = LineDataSet(tempEntries, "Temperatura").apply {
+            color = Color.RED
+            setDrawCircles(false)
+        }
+        val humSet = LineDataSet(humEntries, "Humedad").apply {
+            color = Color.BLUE
+            setDrawCircles(false)
+        }
+
+        lineChart.data = LineData(tempSet, humSet)
+        lineChart.invalidate()
+    }
+}

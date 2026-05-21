@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.example.controlherbal" />
-                  <option name="mobileSdkAppId" value="1:237584074828:android:7970bbfd4e476ca0338ce9" />
-                  <option name="projectId" value="com-example-controlherba-b07af" />
-                  <option name="projectNumber" value="237584074828" />
+                  <option name="mobileSdkAppId" value="1:741809372236:android:16c6ad844b4e865774c8e9" />
+                  <option name="projectId" value="controlherbal-97558" />
+                  <option name="projectNumber" value="741809372236" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
