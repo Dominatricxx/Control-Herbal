@@ -11,6 +11,7 @@ kotlin = "2.3.21"
 composeBom = "2026.02.01"
 firebaseAi = "17.+"
 firebaseDatabase = "21.0.0"
+tensorflowLite = "2.16.1"
 ksp = "2.2.10-2.0.2"
 googleGmsGoogleServices = "4.4.4"
 appcompat = "1.7.1"
@@ -46,6 +47,7 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tensorflowLite" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
