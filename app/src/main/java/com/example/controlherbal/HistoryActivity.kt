@@ -18,6 +18,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.navigation.NavigationView
 import androidx.core.view.GravityCompat
 import android.content.Intent
+import android.view.View
 
 class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -41,13 +42,10 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
 
         val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
         
-        // Configurar botón de menú
-        val btnMenu: android.widget.ImageButton = findViewById(R.id.btnMenu)
-        btnMenu.setOnClickListener {
+        findViewById<View>(R.id.btnMenu).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
-        // Lógica para ocultar la opción actual del menú
         val menu = navView.menu
         when(type) {
             "DIARIO" -> menu.findItem(R.id.nav_daily).isVisible = false
@@ -109,28 +107,23 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 else -> endTime - (24 * 3600 * 1000L)
             }
 
-            val readings = databaseLocal.sensorDao().getLast2000Asc()
-            val filteredReadings = readings.filter { it.timestamp in startTime..endTime }
+            val filteredReadings = databaseLocal.sensorDao().getReadingsBetween(startTime, endTime)
 
-            withContext(Dispatchers.Main) {
-                if (filteredReadings.isNotEmpty()) {
-                    calculateAverages(filteredReadings)
+            if (filteredReadings.isNotEmpty()) {
+                val avgTemp = filteredReadings.map { it.temperature }.average()
+                val avgHum = filteredReadings.map { it.humidity }.average()
+                val avgLuz = filteredReadings.map { it.light }.average()
+                val avgIRH = filteredReadings.map { it.irh }.average()
+
+                withContext(Dispatchers.Main) {
+                    tvAvgTemp.text = String.format("%.1f °C", avgTemp)
+                    tvAvgHum.text = String.format("%.1f %%", avgHum)
+                    tvAvgLuz.text = String.format("%.1f %%", avgLuz)
+                    tvAvgIRH.text = String.format("%.1f", avgIRH)
                     drawHistoryChart(filteredReadings)
                 }
             }
         }
-    }
-
-    private fun calculateAverages(readings: List<SensorReading>) {
-        val avgTemp = readings.map { it.temperature }.average()
-        val avgHum = readings.map { it.humidity }.average()
-        val avgLuz = readings.map { it.light }.average()
-        val avgIRH = readings.map { it.irh }.average()
-
-        tvAvgTemp.text = String.format("%.1f °C", avgTemp)
-        tvAvgHum.text = String.format("%.1f %%", avgHum)
-        tvAvgLuz.text = String.format("%.1f %%", avgLuz)
-        tvAvgIRH.text = String.format("%.1f", avgIRH)
     }
 
     private fun drawHistoryChart(readings: List<SensorReading>) {

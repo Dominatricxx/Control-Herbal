@@ -5,9 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "sensor_readings")
 data class SensorReading(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val timestamp: Long,          // milliseconds
+    @PrimaryKey val timestamp: Long,
     val temperature: Double,
     val humidity: Double,
     val light: Int,

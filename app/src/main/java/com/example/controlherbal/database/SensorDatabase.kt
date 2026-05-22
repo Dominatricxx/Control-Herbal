@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [SensorReading::class], version = 1, exportSchema = false)
+@Database(entities = [SensorReading::class], version = 2, exportSchema = false)
 abstract class SensorDatabase : RoomDatabase() {
     abstract fun sensorDao(): SensorDao
 
@@ -19,7 +19,9 @@ abstract class SensorDatabase : RoomDatabase() {
                     context.applicationContext,
                     SensorDatabase::class.java,
                     "sensor_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

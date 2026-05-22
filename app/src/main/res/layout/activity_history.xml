@@ -17,10 +17,11 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
+    <!-- Tarjeta de datos promediados rediseñada -->
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="4dp"
         android:layout_marginBottom="16dp">
 
@@ -28,77 +29,112 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="20dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="📊 Datos promediados"
+                android:textColor="#2E7D32"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
             <GridLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="16dp"
                 android:columnCount="2"
-                android:rowCount="4">
+                android:alignmentMode="alignMargins">
 
-                <TextView
+                <!-- Temperatura Media -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_columnWeight="1"
-                    android:text="🌡️ Temperatura media:" />
+                    android:layout_marginBottom="16dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🌡️ Temperatura media"
+                        android:textSize="14sp"
+                        android:textColor="#757575" />
+                    <TextView
+                        android:id="@+id/tvAvgTemp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="-- °C"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="#212121" />
+                </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvAvgTemp"
+                <!-- Humedad Media -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_columnWeight="1"
-                    android:text="-- °C"
-                    android:textStyle="bold" />
+                    android:layout_marginBottom="16dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💧 Humedad media"
+                        android:textSize="14sp"
+                        android:textColor="#757575" />
+                    <TextView
+                        android:id="@+id/tvAvgHum"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="-- %"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="#212121" />
+                </LinearLayout>
 
-                <TextView
+                <!-- Luz Solar Media -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_columnWeight="1"
-                    android:text="💧 Humedad media:" />
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="☀️ Luz solar media"
+                        android:textSize="14sp"
+                        android:textColor="#757575" />
+                    <TextView
+                        android:id="@+id/tvAvgLuz"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="-- %"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="#212121" />
+                </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvAvgHum"
+                <!-- IRH Medio -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_columnWeight="1"
-                    android:text="-- %"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:text="☀️ Luz solar media:" />
-
-                <TextView
-                    android:id="@+id/tvAvgLuz"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:text="-- %"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:text="⚠️ IRH medio:" />
-
-                <TextView
-                    android:id="@+id/tvAvgIRH"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:text="--"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚠️ IRH medio"
+                        android:textSize="14sp"
+                        android:textColor="#757575" />
+                    <TextView
+                        android:id="@+id/tvAvgIRH"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="--"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="#D32F2F" />
+                </LinearLayout>
             </GridLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -107,7 +143,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="4dp">
 
         <com.github.mikephil.charting.charts.LineChart
