@@ -89,7 +89,8 @@
             android:text="Esperando datos..."
             android:textSize="16sp"
             android:textStyle="bold"
-            android:background="@android:color/transparent"/>
+            android:background="@drawable/rounded_background"
+            android:backgroundTint="#E0E0E0"/>
 
         <TextView
             android:id="@+id/tvLastUpdate"

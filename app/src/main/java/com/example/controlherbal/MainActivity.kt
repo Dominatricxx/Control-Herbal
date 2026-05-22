@@ -1,20 +1,27 @@
 package com.example.controlherbal
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.example.controlherbal.logic.PredictiveTheorem
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.XAxis
@@ -22,31 +29,23 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.google.android.material.navigation.NavigationView
+import com.google.firebase.database.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.*
-
-import androidx.drawerlayout.widget.DrawerLayout
-import com.google.android.material.navigation.NavigationView
-import androidx.core.view.GravityCompat
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
-import android.os.Build
-import androidx.core.app.NotificationCompat
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
 import org.tensorflow.lite.Interpreter
 import java.nio.channels.FileChannel
+import java.text.SimpleDateFormat
+import java.util.*
+import com.example.controlherbal.ai.HerbalAI
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     companion object {
         private const val TAG = "Control Herbal"
+        private const val LEARNING_THRESHOLD = 20 // Aprender cada 20 nuevos registros
     }
 
     private lateinit var drawerLayout: DrawerLayout
@@ -69,9 +68,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var lastAlertState = 0 
 
     private lateinit var databaseLocal: SensorDatabase
+    private lateinit var herbalAI: HerbalAI
     private val ioScope = CoroutineScope(Dispatchers.IO)
     private var lastChartUpdate: Long = 0
     private var tflite: Interpreter? = null
+    private var lastReading: SensorReading? = null
+    private var readingsSinceLastLearning = 0
 
     private fun loadModel() {
         try {
@@ -84,23 +86,41 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             tflite = Interpreter(modelBuffer)
             Log.d(TAG, "IA: Modelo cargado exitosamente")
         } catch (e: Exception) {
-            Log.e(TAG, "IA: Modelo no encontrado. Usando lógica base.")
+            Log.e(TAG, "IA: Modelo no encontrado. Usando lógica base de Arduino.")
         }
     }
 
-    private fun predictWithAI(temp: Double, hum: Double, luz: Int): Pair<Double, Double> {
+    private fun performAnalysis(temp: Double, hum: Double, luz: Int): PredictiveTheorem.AnalysisResult {
+        var deltaTemp = 0.0
+        var deltaHum = 0.0
+        var deltaLuz = 0.0
+
+        lastReading?.let { prev ->
+            val dt = (System.currentTimeMillis() - prev.timestamp) / 3600000.0 // hours
+            if (dt > 0.001) {
+                deltaTemp = (temp - prev.temperature) / dt
+                deltaHum = (hum - prev.humidity) / dt
+                deltaLuz = (luz - prev.light) / dt
+            }
+        }
+
+        val result = PredictiveTheorem.analyze(temp, hum, luz, deltaTemp, deltaHum, deltaLuz)
+        
+        // REFINAMIENTO POR IA (Machine Learning)
+        val irhAI = herbalAI.predictRefinedIRH(temp, hum, luz)
+        // El IRH final es una mezcla equilibrada entre la lógica base y lo aprendido por la IA
+        val finalIrh = (result.irh + irhAI) / 2.0
+        
+        // Si hay modelo TFLite, también lo incluimos en el promedio
         if (tflite != null) {
             val input = arrayOf(floatArrayOf(temp.toFloat(), hum.toFloat(), luz.toFloat()))
             val output = arrayOf(floatArrayOf(0f))
             tflite?.run(input, output)
-            val irhIA = output[0][0].toDouble()
-            val seqIA = 12.0 - (irhIA / 10.0)
-            return Pair(seqIA.coerceIn(1.0, 12.0), 6.0)
+            val irhTFLite = output[0][0].toDouble()
+            return result.copy(irh = (finalIrh + irhTFLite) / 2.0)
         }
-        val factorRiesgo = (temp * 0.4) + ((100 - hum) * 0.3) + (luz * 0.3)
-        val seqIA = 12.0 - (factorRiesgo / 10.0)
-        val sombIA = if (luz > 80) 2.0 else 6.0
-        return Pair(seqIA.coerceIn(1.0, 12.0), sombIA.coerceIn(1.0, 12.0))
+        
+        return result.copy(irh = finalIrh)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -136,9 +156,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         databaseLocal = SensorDatabase.getInstance(this)
+        herbalAI = HerbalAI(this)
 
         ioScope.launch {
             loadModel()
+            // Obtener el último registro de la BD para tener deltas iniciales
+            val readings = databaseLocal.sensorDao().getLast2000Asc()
+            if (readings.isNotEmpty()) {
+                lastReading = readings.last()
+            }
             withContext(Dispatchers.Main) {
                 startFirebaseListener()
                 loadDataAndDrawChart()
@@ -212,17 +238,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val temp = snapshot.child("temp").getValue(Double::class.java) ?: 0.0
                     val hum = snapshot.child("hum").getValue(Double::class.java) ?: 0.0
                     val luz = snapshot.child("luz").getValue(Int::class.java) ?: 0
-                    val irh = snapshot.child("irh").getValue(Double::class.java) ?: 0.0
-                    val seq = snapshot.child("seq").getValue(Double::class.java) ?: 0.0
-                    val somb = snapshot.child("somb").getValue(Double::class.java) ?: 0.0
-                    val accion = snapshot.child("acc").getValue(String::class.java) ?: "Sin datos"
-                    val causa = snapshot.child("cau").getValue(String::class.java) ?: "Evaluando..."
-
+                    
+                    // Usamos la lógica de Arduino adaptada a la App
                     ioScope.launch {
-                        val prediccionIA = predictWithAI(temp, hum, luz)
-                        val seqRef = (seq + prediccionIA.first) / 2
+                        val result = performAnalysis(temp, hum, luz)
                         withContext(Dispatchers.Main) {
-                            updateUIAndSave(temp, hum, luz, irh, seqRef, somb, accion, causa)
+                            updateUIAndSave(temp, hum, luz, result.irh, result.seq, result.somb, result.recommendation, "")
                         }
                     }
                 }
@@ -241,43 +262,55 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvHum.text = String.format("%.1f %%", hum)
         tvLuz.text = "$luz %"
         tvIRH.text = String.format("%.1f", irh)
-        tvSeq.text = if (seq > 0) String.format("%.1f h", seq) else "Sin riesgo"
-        tvSomb.text = if (somb > 0) String.format("%.1f h", somb) else "Sin necesidad"
+        tvSeq.text = if (seq < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format("%.1f h", seq) else "Sin riesgo"
+        tvSomb.text = if (somb < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format("%.1f h", somb) else "Sin necesidad"
         tvAccion.text = accion
-        tvCausa.text = "Causa: $causa"
+        // Causa ya está incluida en la recomendación de Arduino, la ocultamos o limpiamos si viene vacía
+        tvCausa.text = if (causa.isNotEmpty()) "Causa: $causa" else ""
         tvLastUpdate.text = "Última actualización: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())}"
 
+        // Umbrales de alerta según Arduino (IRH_ADVERTENCIA = 50, IRH_RIESGO = 75)
         when {
-            irh > 75 -> {
+            irh >= PredictiveTheorem.IRH_RIESGO -> {
                 tvAlerta.text = "⚠️ ¡RIESGO CRÍTICO!"
-                tvAlerta.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
+                tvAlerta.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.holo_red_dark))
                 tvAlerta.setTextColor(Color.WHITE)
                 if (lastAlertState != 2) {
-                    sendNotification("🚨 RIESGO CRÍTICO", "Acción: $accion")
+                    sendNotification("🚨 RIESGO CRÍTICO", accion)
                     lastAlertState = 2
                 }
             }
-            irh > 25 -> {
+            irh >= PredictiveTheorem.IRH_ADVERTENCIA -> {
                 tvAlerta.text = "⚠️ ADVERTENCIA"
-                tvAlerta.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
+                tvAlerta.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
                 tvAlerta.setTextColor(Color.BLACK)
                 if (lastAlertState != 1) {
-                    sendNotification("⚠️ Advertencia", "Acción: $accion")
+                    sendNotification("⚠️ Advertencia", accion)
                     lastAlertState = 1
                 }
             }
             else -> {
                 tvAlerta.text = "✅ Condiciones óptimas"
-                tvAlerta.setBackgroundColor(Color.TRANSPARENT)
+                tvAlerta.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
                 tvAlerta.setTextColor(Color.BLACK)
                 lastAlertState = 0
             }
         }
 
         val reading = SensorReading(System.currentTimeMillis(), temp, hum, luz, irh, seq, somb, accion)
+        lastReading = reading
         ioScope.launch {
             databaseLocal.sensorDao().insert(reading)
             databaseLocal.sensorDao().pruneData()
+            
+            // Ciclo de Auto-aprendizaje (Machine Learning)
+            readingsSinceLastLearning++
+            if (readingsSinceLastLearning >= LEARNING_THRESHOLD) {
+                readingsSinceLastLearning = 0
+                val history = databaseLocal.sensorDao().getLast2000Asc()
+                herbalAI.performSelfLearning(history)
+            }
+
             val curr = System.currentTimeMillis()
             if (curr - lastChartUpdate >= 30000) {
                 lastChartUpdate = curr
@@ -301,12 +334,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val hE = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.humidity.toFloat()) }
         val lE = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.light.toFloat()) }
 
-        val tS = LineDataSet(tE, "Temp").apply { color = Color.RED; setDrawCircles(false) }
-        val hS = LineDataSet(hE, "Hum").apply { color = Color.BLUE; setDrawCircles(false) }
-        val lS = LineDataSet(lE, "Luz").apply { color = Color.YELLOW; setDrawCircles(false) }
+        val tS = LineDataSet(tE, "Temp").apply { color = Color.RED; setDrawCircles(false); lineWidth = 2f }
+        val hS = LineDataSet(hE, "Hum").apply { color = Color.BLUE; setDrawCircles(false); lineWidth = 2f }
+        val lS = LineDataSet(lE, "Luz").apply { color = Color.YELLOW; setDrawCircles(false); lineWidth = 2f }
 
         lineChart.apply {
             data = LineData(tS, hS, lS)
+            description.isEnabled = false
             xAxis.position = XAxis.XAxisPosition.BOTTOM
             xAxis.valueFormatter = object : ValueFormatter() {
                 private val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
