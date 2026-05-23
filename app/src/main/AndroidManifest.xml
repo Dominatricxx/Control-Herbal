@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.controlherbal"
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permisos Wi-Fi e Internet -->
@@ -11,6 +12,7 @@
 
     <application
         android:allowBackup="true"
+        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -30,5 +32,8 @@
             android:name=".HistoryActivity"
             android:label="Historial de Sensores"
             android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".PlantSetupActivity"
+            android:label="Configuracion de Planta" />
     </application>
 </manifest>

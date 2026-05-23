@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Control Herbal</string>
+    <string name="setup_title">Configura tu Planta</string>
+    <string name="plant_name_hint">Nombre de tu planta</string>
+    <string name="plant_type_label">Tipo de planta</string>
+    <string name="environment_label">Ambiente de cuidado</string>
+    <string name="btn_start_care">COMENZAR CUIDADO</string>
 </resources>

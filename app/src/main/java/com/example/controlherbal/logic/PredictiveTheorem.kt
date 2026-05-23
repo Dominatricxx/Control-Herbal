@@ -58,19 +58,15 @@ object PredictiveTheorem {
     }
 
     fun generarRecomendacion(temp: Double, hum: Double, luz: Int): String {
-        val estresH = calcularEstresHumedad(hum)
-        val estresT = calcularEstresTemperatura(temp)
-        val estresL = calcularEstresLuz(luz)
-
         return when {
             hum > HUM_ALTA_MEDIA -> "⚠️ HUMEDAD CRÍTICA (>90%): Riesgo de hongos. Aumente ventilación drásticamente, suspenda riego."
             temp > TEMP_CRITICO_ALTA -> "🔥 TEMPERATURA EXTREMA (>40°C): Estrés térmico severo. Proporcione sombra inmediata y riego abundante."
             luz > LUZ_EXCESIVA -> "☀️ LUZ EXTREMA (>90%): Necesita sombra urgente. Mueva la planta o coloque malla sombra."
             hum < HUM_OPTIMA_MIN -> "💧 BAJA HUMEDAD (<25%): Riesgo de deshidratación. Aumente riego o añada mulch para retener humedad."
             temp < TEMP_OPTIMA_MIN -> "❄️ TEMPERATURA BAJA (<7°C): Proteja del frío, cubra la planta o trasládela al interior."
-            hum > HUM_OPTIMA_MAX && hum <= HUM_ALTA_MEDIA -> "💦 EXCESO DE HUMEDAD (75-90%): Mejore ventilación o reduzca riego para evitar hongos."
-            temp > TEMP_OPTIMA_MAX && temp <= TEMP_CRITICO_ALTA -> "🌡️ ESTRÉS POR CALOR (30-40°C): Aumente riego y proporcione sombra parcial."
-            luz > LUZ_OPTIMA_MAX && luz <= LUZ_ALTA -> "☀️ EXCESO DE LUZ (65-80%): Considere sombra parcial o mover la planta a un lugar menos iluminado."
+            hum in (HUM_OPTIMA_MAX + 0.01)..HUM_ALTA_MEDIA -> "💦 EXCESO DE HUMEDAD (75-90%): Mejore ventilación o reduzca riego para evitar hongos."
+            temp in (TEMP_OPTIMA_MAX + 0.01)..TEMP_CRITICO_ALTA -> "🌡️ ESTRÉS POR CALOR (30-40°C): Aumente riego y proporcione sombra parcial."
+            luz in (LUZ_OPTIMA_MAX + 1)..LUZ_ALTA -> "☀️ EXCESO DE LUZ (65-80%): Considere sombra parcial o mover la planta a un lugar menos iluminado."
             else -> "✅ Condiciones saludables. Mantenga el cuidado actual."
         }
     }
