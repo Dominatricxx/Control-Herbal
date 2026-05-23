@@ -1,5 +1,6 @@
 package com.example.controlherbal
 
+import com.example.controlherbal.R
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.TextView

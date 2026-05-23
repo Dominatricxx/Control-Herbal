@@ -29,6 +29,7 @@
                 app:tint="#2E7D32" />
 
             <TextView
+                android:id="@+id/tvMainTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
@@ -47,6 +48,32 @@
                 android:contentDescription="Logo de la aplicación"
                 android:src="@mipmap/ic_launcher_round" />
         </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutPlantInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="56dp"
+            android:visibility="gone">
+            <TextView
+                android:id="@+id/tvPlantNameAndEmoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mi Planta 🌻"
+                android:textSize="16sp"
+                android:textColor="#616161"
+                android:textStyle="italic"/>
+            <TextView
+                android:id="@+id/tvEnvironmentEmoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="☀️ Luz"
+                android:textSize="14sp"
+                android:textColor="#757575"/>
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
