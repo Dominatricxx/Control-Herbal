@@ -39,6 +39,9 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 
@@ -77,4 +80,8 @@ dependencies {
 
     // Corrutinas
     implementation(libs.kotlinx.coroutines.android)
+
+    // Glide para GIFs
+    implementation(libs.glide)
+    ksp(libs.glide.compiler)
 }

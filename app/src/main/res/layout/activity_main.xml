@@ -65,8 +65,9 @@
             android:id="@+id/layoutPlantInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp"
+            android:orientation="vertical"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
             android:gravity="center"
             android:visibility="gone">
             <TextView
@@ -74,17 +75,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Mi Planta 🌻"
-                android:textSize="16sp"
-                android:textColor="#616161"
-                android:textStyle="italic"/>
-            <TextView
-                android:id="@+id/tvEnvironmentEmoji"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="☀️ Luz"
-                android:textSize="14sp"
-                android:textColor="#757575"/>
+                android:textSize="18sp"
+                android:textColor="#2E7D32"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:lineSpacingExtra="4dp"/>
         </LinearLayout>
 
         <LinearLayout
@@ -109,14 +105,33 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btnConnect"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:backgroundTint="#2E7D32"
-            app:cornerRadius="28dp"
-            android:text="CONECTAR AL DISPOSITIVO" />
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <Button
+                android:id="@+id/btnConnect"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="50dp"
+                android:backgroundTint="#2E7D32"
+                app:cornerRadius="28dp"
+                android:text="CONECTAR AL DISPOSITIVO" />
+
+            <ImageView
+                android:id="@+id/ivGrowthPlant"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/gif_planta"
+                android:visibility="gone"
+                android:elevation="15dp"
+                android:scaleType="centerInside"
+                android:contentDescription="Cargando planta" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/tvAlerta"

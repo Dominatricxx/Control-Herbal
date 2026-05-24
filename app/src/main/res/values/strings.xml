@@ -5,4 +5,11 @@
     <string name="plant_type_label">Tipo de planta</string>
     <string name="environment_label">Ambiente de cuidado</string>
     <string name="btn_start_care">COMENZAR CUIDADO</string>
+    <string name="other_option_title">Selecciona una opción</string>
+    <string name="manual_registration">Registro Manual</string>
+    <string name="camera_identification">Identificar con Cámara</string>
+    <string name="camera_permission_denied">Permiso de cámara denegado</string>
+    <string name="ai_identifying">Identificando planta con IA&#8230;</string>
+    <string name="offline_identification">Buscando en base de datos local...</string>
+    <string name="manual_input_hint">Escribe el tipo de planta</string>
 </resources>
