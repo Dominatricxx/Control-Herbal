@@ -1,25 +1,25 @@
 package com.example.controlherbal
 
-import com.example.controlherbal.R
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.drawerlayout.widget.DrawerLayout
-import com.google.android.material.navigation.NavigationView
-import androidx.core.view.GravityCompat
-import android.content.Intent
-import android.view.View
 
 class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -32,6 +32,7 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     private lateinit var lineChart: LineChart
     private lateinit var databaseLocal: SensorDatabase
     private val ioScope = CoroutineScope(Dispatchers.IO)
+    private var currentPlant: Plant? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,7 +69,16 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         tvHeaderTitle.text = "Registro $type"
         tvTitle.text = "Análisis Detallado"
 
-        loadHistoryData(type)
+        ioScope.launch {
+            val plant = databaseLocal.plantDao().getSelectedPlant()
+            currentPlant = plant
+            val plantCount = databaseLocal.plantDao().getPlantCount()
+            
+            withContext(Dispatchers.Main) {
+                navView.menu.findItem(R.id.nav_plants).isVisible = plantCount >= 2
+                loadHistoryData(type)
+            }
+        }
     }
 
     override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
@@ -93,12 +103,19 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 intent.putExtra("HISTORY_TYPE", "MENSUAL")
                 startActivity(intent)
             }
+            R.id.nav_plants -> {
+                // Volver a MainActivity para cambiar de planta
+                val intent = Intent(this, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                startActivity(intent)
+            }
         }
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
 
     private fun loadHistoryData(type: String) {
+        val plantId = currentPlant?.id ?: return
         ioScope.launch {
             val endTime = System.currentTimeMillis()
             val startTime = when (type) {
@@ -108,7 +125,7 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 else -> endTime - (24 * 3600 * 1000L)
             }
 
-            val filteredReadings = databaseLocal.sensorDao().getReadingsBetween(startTime, endTime)
+            val filteredReadings = databaseLocal.sensorDao().getReadingsBetween(plantId, startTime, endTime)
 
             if (filteredReadings.isNotEmpty()) {
                 val avgTemp = filteredReadings.map { it.temperature }.average()

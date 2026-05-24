@@ -13,10 +13,14 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -24,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.example.controlherbal.ai.HerbalAI
+import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
 import com.example.controlherbal.logic.PredictiveTheorem
@@ -69,6 +74,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var tvPlantNameAndEmoji: TextView? = null
     private var tvEnvironmentEmoji: TextView? = null
     private var layoutPlantInfo: View? = null
+    private lateinit var btnAddPlant: ImageButton
 
     private lateinit var databaseFirebase: DatabaseReference
     private val CHANNEL_ID = "herbal_alerts_channel"
@@ -87,23 +93,43 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var tflite: Interpreter? = null
     private var lastReading: SensorReading? = null
     private var readingsSinceLastLearning = 0
+    private var currentPlant: Plant? = null
+    
+    // Bandera crítica para controlar el estado de vinculación
+    private var isLinkingInProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val prefs = getSharedPreferences("PlantPrefs", Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("setup_complete", false)) {
-            val intent = Intent(this, PlantSetupActivity::class.java)
-            startActivity(intent)
-            finish()
-            return
-        }
+        databaseLocal = SensorDatabase.getInstance(this)
+        herbalAI = HerbalAI(this)
 
+        ioScope.launch {
+            val plant = databaseLocal.plantDao().getSelectedPlant()
+            val plantCount = databaseLocal.plantDao().getPlantCount()
+            
+            withContext(Dispatchers.Main) {
+                if (plant == null) {
+                    val intent = Intent(this@MainActivity, PlantSetupActivity::class.java)
+                    startActivity(intent)
+                    finish()
+                } else {
+                    currentPlant = plant
+                    initializeUI()
+                    updateMenuVisibility(plantCount)
+                    setupFirebase()
+                }
+            }
+        }
+    }
+
+    private fun initializeUI() {
         setContentView(R.layout.activity_main_drawer)
 
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
+        colorDeleteMenuItem(navView)
 
         findViewById<View>(R.id.btnMenu).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
@@ -112,6 +138,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navView.menu.findItem(R.id.nav_main).isVisible = false
 
         tvConnectionState = findViewById(R.id.tvConnectionState)
+        tvConnectionState.text = "Desincronizado"
+        tvConnectionState.setTextColor(Color.RED)
+
         tvTemp = findViewById(R.id.tvTemp)
         tvHum = findViewById(R.id.tvHum)
         tvLuz = findViewById(R.id.tvLuz)
@@ -120,36 +149,44 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvSomb = findViewById(R.id.tvSomb)
         tvAccion = findViewById(R.id.tvAccion)
         tvCausa = findViewById(R.id.tvCausa)
+        
         tvAlerta = findViewById(R.id.tvAlerta)
+        tvAlerta.text = "Esperando datos..."
+        tvAlerta.backgroundTintList = ColorStateList.valueOf(Color.LTGRAY)
+        tvAlerta.setTextColor(Color.BLACK)
+
         tvLastUpdate = findViewById(R.id.tvLastUpdate)
         lineChart = findViewById(R.id.lineChart)
+        
         btnConnect = findViewById(R.id.btnConnect)
+        btnConnect.text = "VINCULAR DISPOSITIVO"
+        btnConnect.isEnabled = true
+
         tvPlantNameAndEmoji = findViewById(R.id.tvPlantNameAndEmoji)
         tvEnvironmentEmoji = findViewById(R.id.tvEnvironmentEmoji)
         layoutPlantInfo = findViewById(R.id.layoutPlantInfo)
+        btnAddPlant = findViewById(R.id.btnAddPlant)
 
         showPlantInfo()
 
-        btnConnect.setOnClickListener { startFirebaseListener() }
+        btnAddPlant.setOnClickListener {
+            val intent = Intent(this, PlantSetupActivity::class.java)
+            startActivity(intent)
+        }
 
-        databaseLocal = SensorDatabase.getInstance(this)
-        herbalAI = HerbalAI(this)
-
-        try {
-            databaseFirebase = FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/").getReference("sensor")
-            databaseFirebase.keepSynced(true)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error initializing Firebase: ${e.message}")
+        btnConnect.setOnClickListener { 
+            startFirebaseListener() 
         }
 
         ioScope.launch {
             loadModel()
-            val readings = databaseLocal.sensorDao().getLast2000Asc()
-            if (readings.isNotEmpty()) {
-                lastReading = readings.last()
+            currentPlant?.let { plant ->
+                val readings = databaseLocal.sensorDao().getLast2000Asc(plant.id)
+                if (readings.isNotEmpty()) {
+                    lastReading = readings.last()
+                }
             }
             withContext(Dispatchers.Main) {
-                startFirebaseListener()
                 loadDataAndDrawChart()
             }
         }
@@ -157,12 +194,36 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         requestNotificationPermission()
     }
 
+    private fun colorDeleteMenuItem(navView: NavigationView) {
+        val menu = navView.menu
+        val deleteItem = menu.findItem(R.id.nav_delete_plant)
+        val s = SpannableString(deleteItem.title)
+        s.setSpan(ForegroundColorSpan(Color.RED), 0, s.length, 0)
+        deleteItem.title = s
+    }
+
+    private fun updateMenuVisibility(plantCount: Int) {
+        val navView: NavigationView = findViewById(R.id.nav_view)
+        navView.menu.findItem(R.id.nav_plants).isVisible = plantCount >= 2
+    }
+
+    private fun setupFirebase() {
+        try {
+            databaseFirebase = FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/").getReference("sensor")
+            databaseFirebase.keepSynced(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing Firebase: ${e.message}")
+        }
+    }
+
     private fun loadModel() {
         try {
             val assetFileDescriptor = assets.openFd("herbal_model.tflite")
             val inputStream = java.io.FileInputStream(assetFileDescriptor.fileDescriptor)
             val fileChannel = inputStream.channel
-            val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, assetFileDescriptor.startOffset, assetFileDescriptor.declaredLength)
+            val startOffset = assetFileDescriptor.startOffset
+            val declaredLength = assetFileDescriptor.declaredLength
+            val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
             tflite = Interpreter(modelBuffer)
         } catch (e: Exception) {
             Log.e(TAG, "TFLite model not found.")
@@ -198,70 +259,87 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun showPlantInfo() {
-        val prefs = getSharedPreferences("PlantPrefs", Context.MODE_PRIVATE)
-        val name = prefs.getString("plant_name", "")
-        val type = prefs.getString("plant_type", "")
-        val environment = prefs.getString("plant_environment", "")
-
-        if (!name.isNullOrEmpty()) {
+        currentPlant?.let { plant ->
             layoutPlantInfo?.visibility = View.VISIBLE
-            val typeEmoji = type?.split(" ")?.lastOrNull() ?: ""
-            val envEmoji = when (environment) {
+            val typeEmoji = plant.type.split(" ").lastOrNull() ?: ""
+            val envEmoji = when (plant.environment) {
                 "Luz" -> "☀️"
                 "Sombra" -> "🌥️"
                 "Híbrido" -> "⛅"
                 else -> ""
             }
-            tvPlantNameAndEmoji?.text = String.format("%s %s", name, typeEmoji)
-            tvEnvironmentEmoji?.text = String.format(" - %s %s", environment, envEmoji)
+            tvPlantNameAndEmoji?.text = String.format("%s %s", plant.name, typeEmoji)
+            tvEnvironmentEmoji?.text = String.format(" - %s %s", plant.environment, envEmoji)
         }
     }
 
     private fun startFirebaseListener() {
+        // REQUISITO: Marcar el inicio de vinculación para bloquear estados prematuros
+        isLinkingInProgress = true
+        
+        // REQUISITO: Estado visual de conexión en proceso
         tvConnectionState.text = "Conectando..."
         tvConnectionState.setTextColor(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
-        btnConnect.text = "Vinculando..."
+        
+        // REQUISITO: Botón indicando el proceso de vinculación
+        btnConnect.text = "Vinculando a ESP-32..."
         btnConnect.isEnabled = false
+        
+        // REQUISITO: Forzar el recuadro de alerta a un estado neutro
+        tvAlerta.text = "Esperando datos..."
+        tvAlerta.backgroundTintList = ColorStateList.valueOf(Color.LTGRAY)
+        tvAlerta.setTextColor(Color.BLACK)
 
         databaseFirebase.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 handler.removeCallbacks(syncTimeoutRunnable)
                 handler.postDelayed(syncTimeoutRunnable, 5000)
                 
-                if (isDisconnected) {
-                    isDisconnected = false
-                    val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    nm.cancel(SYNC_NOTIFICATION_ID)
-                }
-
                 if (snapshot.exists()) {
                     val deviceName = snapshot.child("deviceName").getValue(String::class.java) ?: "ESP-32"
-                    val bootCount = snapshot.child("boot").getValue(Int::class.java) ?: 0
                     
-                    if (lastBootCount != -1 && bootCount < lastBootCount) {
-                        Log.d(TAG, "ESP-32 Reboot detected")
-                    }
-                    lastBootCount = bootCount
-
-                    btnConnect.text = String.format("Vinculado a %s", deviceName)
-                    btnConnect.isEnabled = false
-                    
-                    tvConnectionState.text = "Conectado a Firebase"
-                    tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_green_dark))
-                    
-                    val temp = snapshot.child("temp").getValue(Double::class.java) ?: 0.0
-                    val hum = snapshot.child("hum").getValue(Double::class.java) ?: 0.0
-                    val luz = snapshot.child("luz").getValue(Int::class.java) ?: 0
-                    
-                    ioScope.launch {
-                        val result = performAnalysis(temp, hum, luz)
-                        withContext(Dispatchers.Main) {
-                            updateUIAndSave(temp, hum, luz, result.irh, result.seq, result.somb, result.recommendation)
+                    // REQUISITO CRÍTICO: Solo si hay datos reales (temp), salimos del estado de vinculación
+                    if (snapshot.hasChild("temp")) {
+                        isLinkingInProgress = false
+                        
+                        if (isDisconnected) {
+                            isDisconnected = false
+                            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                            nm.cancel(SYNC_NOTIFICATION_ID)
                         }
+
+                        // AHORA SÍ: Podemos decir "Vinculado" y "Conectado"
+                        btnConnect.text = String.format("Vinculado a %s", deviceName)
+                        btnConnect.isEnabled = false
+                        
+                        tvConnectionState.text = "Conectado a Firebase"
+                        tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_green_dark))
+                        
+                        val temp = snapshot.child("temp").getValue(Double::class.java) ?: 0.0
+                        val hum = snapshot.child("hum").getValue(Double::class.java) ?: 0.0
+                        val luz = snapshot.child("luz").getValue(Int::class.java) ?: 0
+                        
+                        ioScope.launch {
+                            val result = performAnalysis(temp, hum, luz)
+                            withContext(Dispatchers.Main) {
+                                updateUIAndSave(temp, hum, luz, result.irh, result.seq, result.somb, result.recommendation)
+                            }
+                        }
+                    } else {
+                        // Existe el dispositivo pero no ha enviado datos aún: Mantener estados de espera
+                        btnConnect.text = String.format("Vinculando a %s...", deviceName)
+                        tvConnectionState.text = "Conectando..."
+                        tvAlerta.text = "Esperando datos..."
                     }
+                } else {
+                    // Firebase no encuentra el nodo: Mantener estados de espera
+                    btnConnect.text = "Vinculando a ESP-32..."
+                    tvConnectionState.text = "Conectando..."
+                    tvAlerta.text = "Esperando datos..."
                 }
             }
             override fun onCancelled(error: DatabaseError) {
+                isLinkingInProgress = false
                 tvConnectionState.text = "Error de conexión"
                 tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_red_dark))
                 btnConnect.text = "CONECTAR AL DISPOSITIVO"
@@ -271,6 +349,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun updateUIAndSave(temp: Double, hum: Double, luz: Int, irh: Double, seq: Double, somb: Double, accion: String) {
+        // SEGURIDAD: Si aún estamos vinculando, bloqueamos cualquier actualización del recuadro tvAlerta
+        if (isLinkingInProgress) return
+
         val locale = Locale.getDefault()
         tvTemp.text = String.format(locale, "%.1f °C", temp)
         tvHum.text = String.format(locale, "%.1f %%", hum)
@@ -279,6 +360,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvSeq.text = if (seq < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", seq) else "Sin riesgo"
         tvSomb.text = if (somb < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", somb) else "Sin necesidad"
         tvAccion.text = accion
+        tvAccion.setTextColor(ContextCompat.getColor(this, R.color.green_herbal))
         tvCausa.text = ""
         tvLastUpdate.text = String.format("Última actualización: %s", SimpleDateFormat("HH:mm:ss", locale).format(Date()))
 
@@ -317,21 +399,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
 
-        val reading = SensorReading(System.currentTimeMillis(), temp, hum, luz, irh, seq, somb, accion)
-        lastReading = reading
-        ioScope.launch {
-            databaseLocal.sensorDao().insert(reading)
-            databaseLocal.sensorDao().pruneData()
-            readingsSinceLastLearning++
-            if (readingsSinceLastLearning >= LEARNING_THRESHOLD) {
-                readingsSinceLastLearning = 0
-                val history = databaseLocal.sensorDao().getLast2000Asc()
-                herbalAI.performSelfLearning(history)
-            }
-            val curr = System.currentTimeMillis()
-            if (curr - lastChartUpdate >= 30000) {
-                lastChartUpdate = curr
-                withContext(Dispatchers.Main) { loadDataAndDrawChart() }
+        currentPlant?.let { plant ->
+            val reading = SensorReading(System.currentTimeMillis(), plant.id, temp, hum, luz, irh, seq, somb, accion)
+            lastReading = reading
+            ioScope.launch {
+                databaseLocal.sensorDao().insert(reading)
+                databaseLocal.sensorDao().pruneData(plant.id)
+                readingsSinceLastLearning++
+                if (readingsSinceLastLearning >= LEARNING_THRESHOLD) {
+                    readingsSinceLastLearning = 0
+                    val history = databaseLocal.sensorDao().getLast2000Asc(plant.id)
+                    herbalAI.performSelfLearning(history)
+                }
+                val curr = System.currentTimeMillis()
+                if (curr - lastChartUpdate >= 30000) {
+                    lastChartUpdate = curr
+                    withContext(Dispatchers.Main) { loadDataAndDrawChart() }
+                }
             }
         }
     }
@@ -339,12 +423,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun handleDisconnection() {
         if (!isDisconnected) {
             isDisconnected = true
+            isLinkingInProgress = false
             tvConnectionState.text = "Desincronizado"
             tvConnectionState.setTextColor(Color.RED)
             btnConnect.text = "DESVINCULADO - RECONECTAR"
             btnConnect.isEnabled = true
             tvAlerta.text = "Esperando datos..."
             tvAlerta.backgroundTintList = ColorStateList.valueOf(Color.LTGRAY)
+            tvAlerta.setTextColor(Color.BLACK)
             sendSyncNotification("⚠️ ESP-32 Desconectado", "Se ha perdido la sincronización con el dispositivo.")
         }
     }
@@ -399,11 +485,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun loadDataAndDrawChart() {
-        ioScope.launch {
-            val readings = databaseLocal.sensorDao().getLast2000Asc()
-            withContext(Dispatchers.Main) {
-                if (readings.isNotEmpty()) drawChart(readings)
-                else lineChart.setNoDataText("Esperando datos...")
+        currentPlant?.let { plant ->
+            ioScope.launch {
+                val readings = databaseLocal.sensorDao().getLast2000Asc(plant.id)
+                withContext(Dispatchers.Main) {
+                    if (readings.isNotEmpty()) drawChart(readings)
+                    else lineChart.setNoDataText("Esperando datos...")
+                }
             }
         }
     }
@@ -436,9 +524,82 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_daily -> intent.putExtra("HISTORY_TYPE", "DIARIO")
             R.id.nav_weekly -> intent.putExtra("HISTORY_TYPE", "SEMANAL")
             R.id.nav_monthly -> intent.putExtra("HISTORY_TYPE", "MENSUAL")
+            R.id.nav_plants -> {
+                showPlantsSelectionDialog()
+                return true
+            }
+            R.id.nav_delete_plant -> {
+                showDeletePlantDialog()
+                return true
+            }
         }
         startActivity(intent)
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun showDeletePlantDialog() {
+        val plant = currentPlant ?: return
+        AlertDialog.Builder(this)
+            .setTitle("Eliminar planta")
+            .setMessage("¿Estás seguro de que quieres eliminar a '${plant.name}'? Se perderán todos sus datos.")
+            .setPositiveButton("Eliminar") { _, _ ->
+                deleteCurrentPlant()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun deleteCurrentPlant() {
+        val plantToDelete = currentPlant ?: return
+        ioScope.launch {
+            val db = databaseLocal
+            db.sensorDao().deleteAllByPlantId(plantToDelete.id)
+            db.plantDao().delete(plantToDelete)
+            
+            val remainingPlants = db.plantDao().getAll()
+            if (remainingPlants.isNotEmpty()) {
+                db.plantDao().update(remainingPlants[0].copy(isSelected = true))
+            }
+
+            withContext(Dispatchers.Main) {
+                val intent = Intent(this@MainActivity, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            }
+        }
+    }
+
+    private fun showPlantsSelectionDialog() {
+        ioScope.launch {
+            val plants = databaseLocal.plantDao().getAll()
+            val plantNames = plants.map { "${it.name} ${it.type.split(" ").lastOrNull() ?: ""}" }.toTypedArray()
+            
+            withContext(Dispatchers.Main) {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Mis plantas")
+                    .setItems(plantNames) { _, which ->
+                        val selected = plants[which]
+                        selectPlant(selected)
+                    }
+                    .setPositiveButton("Cerrar", null)
+                    .show()
+            }
+        }
+    }
+
+    private fun selectPlant(plant: Plant) {
+        ioScope.launch {
+            databaseLocal.plantDao().deselectAll()
+            databaseLocal.plantDao().update(plant.copy(isSelected = true))
+            
+            withContext(Dispatchers.Main) {
+                val intent = Intent(this@MainActivity, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            }
+        }
     }
 }

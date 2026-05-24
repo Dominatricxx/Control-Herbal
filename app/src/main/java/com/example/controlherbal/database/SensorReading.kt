@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "sensor_readings")
 data class SensorReading(
     @PrimaryKey val timestamp: Long,
+    val plantId: Int, // Enlazado a la planta específica
     val temperature: Double,
     val humidity: Double,
     val light: Int,
