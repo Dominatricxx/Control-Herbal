@@ -9,18 +9,18 @@ import kotlin.math.exp
 import kotlin.random.Random
 
 /**
- * HerbalAI: Implementación de una Red Neuronal Multicapa (MLP).
- * Arquitectura: 3 Entradas (Temp, Hum, Luz) -> 5 Neuronas Ocultas -> 1 Salida (IRH).
+ * HerbalAI: Implementación de una Red Neuronal Multicapa (MLP) mejorada.
+ * Arquitectura: 3 Entradas (Temp, Hum, Luz) -> 12 Neuronas Ocultas -> 1 Salida (IRH).
  * Utiliza Funciones de Activación Sigmoide y Retropropagación (Backpropagation)
- * para aprendizaje no lineal profundo.
+ * para aprendizaje no lineal profundo optimizado para herbolaria.
  */
 class HerbalAI(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v2", Context.MODE_PRIVATE)
     
-    // Arquitectura: [3 -> 5 -> 1]
+    // Arquitectura expandida para mayor precisión: [3 -> 12 -> 1]
     private val inputSize = 3
-    private val hiddenSize = 5
+    private val hiddenSize = 12
     private val outputSize = 1
     
     // Pesos y Sesgos (Weights and Biases)

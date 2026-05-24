@@ -72,12 +72,23 @@
         android:id="@+id/spinnerPlantType"
         android:layout_width="280dp"
         android:layout_height="48dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="12dp"
         android:background="@drawable/rounded_background"
         android:backgroundTint="#E0E0E0"
         android:gravity="center"
         android:textAlignment="center"
         android:popupBackground="@drawable/spinner_dropdown_background" />
+
+    <Button
+        android:id="@+id/btnSelectSpecificPlant"
+        android:layout_width="280dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="24dp"
+        android:text="Seleccionar Planta"
+        android:visibility="gone"
+        android:backgroundTint="#81C784"
+        android:textColor="#FFFFFF"
+        app:cornerRadius="24dp" />
 
     <TextView
         android:layout_width="match_parent"
