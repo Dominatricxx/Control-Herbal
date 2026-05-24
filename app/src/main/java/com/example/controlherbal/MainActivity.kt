@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var readingsSinceLastLearning = 0
     private var currentPlant: Plant? = null
     
-    // Bandera crítica para controlar el estado de vinculación
+    // BANDERA CRÍTICA DE VINCULACIÓN
     private var isLinkingInProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,6 +129,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
+        
+        // Aplicar color rojo al menú de eliminar planta
         colorDeleteMenuItem(navView)
 
         findViewById<View>(R.id.btnMenu).setOnClickListener {
@@ -262,33 +264,46 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         currentPlant?.let { plant ->
             layoutPlantInfo?.visibility = View.VISIBLE
             val typeEmoji = plant.type.split(" ").lastOrNull() ?: ""
-            val envEmoji = when (plant.environment) {
-                "Luz" -> "☀️"
+            val envText = plant.environment.split(" ").firstOrNull() ?: ""
+            val envEmojiFromStored = plant.environment.split(" ").lastOrNull() ?: ""
+            
+            val envEmoji = when (envText) {
+                "Luz" -> "🌞"
                 "Sombra" -> "🌥️"
                 "Híbrido" -> "⛅"
-                else -> ""
+                else -> envEmojiFromStored
             }
+            
             tvPlantNameAndEmoji?.text = String.format("%s %s", plant.name, typeEmoji)
-            tvEnvironmentEmoji?.text = String.format(" - %s %s", plant.environment, envEmoji)
+            tvEnvironmentEmoji?.text = String.format(" - %s %s", envText, envEmoji)
         }
     }
 
-    private fun startFirebaseListener() {
-        // REQUISITO: Marcar el inicio de vinculación para bloquear estados prematuros
-        isLinkingInProgress = true
+    private fun resetUIForLinking() {
+        // Limpiar datos previos para evitar mostrar información falsa
+        tvTemp.text = "-- °C"
+        tvHum.text = "-- %"
+        tvLuz.text = "-- %"
+        tvIRH.text = "--"
+        tvSeq.text = "-- h"
+        tvSomb.text = "-- h"
+        tvAccion.text = "--"
         
-        // REQUISITO: Estado visual de conexión en proceso
-        tvConnectionState.text = "Conectando..."
-        tvConnectionState.setTextColor(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
-        
-        // REQUISITO: Botón indicando el proceso de vinculación
-        btnConnect.text = "Vinculando a ESP-32..."
-        btnConnect.isEnabled = false
-        
-        // REQUISITO: Forzar el recuadro de alerta a un estado neutro
         tvAlerta.text = "Esperando datos..."
         tvAlerta.backgroundTintList = ColorStateList.valueOf(Color.LTGRAY)
         tvAlerta.setTextColor(Color.BLACK)
+        
+        tvConnectionState.text = "Conectando..."
+        tvConnectionState.setTextColor(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
+    }
+
+    private fun startFirebaseListener() {
+        // ACTIVAR ESTADO DE VINCULACIÓN ESTRICTO
+        isLinkingInProgress = true
+        resetUIForLinking()
+        
+        btnConnect.text = "Vinculando a ESP-32..."
+        btnConnect.isEnabled = false
 
         databaseFirebase.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -298,7 +313,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (snapshot.exists()) {
                     val deviceName = snapshot.child("deviceName").getValue(String::class.java) ?: "ESP-32"
                     
-                    // REQUISITO CRÍTICO: Solo si hay datos reales (temp), salimos del estado de vinculación
+                    // SOLO SALIMOS DEL ESTADO VINCULANDO SI HAY DATOS REALES
                     if (snapshot.hasChild("temp")) {
                         isLinkingInProgress = false
                         
@@ -308,7 +323,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             nm.cancel(SYNC_NOTIFICATION_ID)
                         }
 
-                        // AHORA SÍ: Podemos decir "Vinculado" y "Conectado"
+                        // AHORA SÍ: ESTADO VINCULADO REAL
                         btnConnect.text = String.format("Vinculado a %s", deviceName)
                         btnConnect.isEnabled = false
                         
@@ -326,16 +341,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             }
                         }
                     } else {
-                        // Existe el dispositivo pero no ha enviado datos aún: Mantener estados de espera
+                        // Sigue buscando datos: Mantener estados de espera obligatorios
                         btnConnect.text = String.format("Vinculando a %s...", deviceName)
                         tvConnectionState.text = "Conectando..."
                         tvAlerta.text = "Esperando datos..."
                     }
-                } else {
-                    // Firebase no encuentra el nodo: Mantener estados de espera
-                    btnConnect.text = "Vinculando a ESP-32..."
-                    tvConnectionState.text = "Conectando..."
-                    tvAlerta.text = "Esperando datos..."
                 }
             }
             override fun onCancelled(error: DatabaseError) {
@@ -349,7 +359,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun updateUIAndSave(temp: Double, hum: Double, luz: Int, irh: Double, seq: Double, somb: Double, accion: String) {
-        // SEGURIDAD: Si aún estamos vinculando, bloqueamos cualquier actualización del recuadro tvAlerta
+        // BLOQUEO ABSOLUTO: Si estamos vinculando, ignoramos cualquier intento de diagnóstico
         if (isLinkingInProgress) return
 
         val locale = Locale.getDefault()
@@ -359,8 +369,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvIRH.text = String.format(locale, "%.1f", irh)
         tvSeq.text = if (seq < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", seq) else "Sin riesgo"
         tvSomb.text = if (somb < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", somb) else "Sin necesidad"
+        
         tvAccion.text = accion
         tvAccion.setTextColor(ContextCompat.getColor(this, R.color.green_herbal))
+        
         tvCausa.text = ""
         tvLastUpdate.text = String.format("Última actualización: %s", SimpleDateFormat("HH:mm:ss", locale).format(Date()))
 
@@ -521,9 +533,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
         val intent = Intent(this, HistoryActivity::class.java)
         when (item.itemId) {
-            R.id.nav_daily -> intent.putExtra("HISTORY_TYPE", "DIARIO")
-            R.id.nav_weekly -> intent.putExtra("HISTORY_TYPE", "SEMANAL")
-            R.id.nav_monthly -> intent.putExtra("HISTORY_TYPE", "MENSUAL")
+            R.id.nav_daily -> intent.putExtra("HISTORY_TYPE", "Diario")
+            R.id.nav_weekly -> intent.putExtra("HISTORY_TYPE", "Semanal")
+            R.id.nav_monthly -> intent.putExtra("HISTORY_TYPE", "Mensual")
             R.id.nav_plants -> {
                 showPlantsSelectionDialog()
                 return true
@@ -574,17 +586,33 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun showPlantsSelectionDialog() {
         ioScope.launch {
             val plants = databaseLocal.plantDao().getAll()
-            val plantNames = plants.map { "${it.name} ${it.type.split(" ").lastOrNull() ?: ""}" }.toTypedArray()
             
             withContext(Dispatchers.Main) {
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Mis plantas")
-                    .setItems(plantNames) { _, which ->
-                        val selected = plants[which]
-                        selectPlant(selected)
+                val builder = AlertDialog.Builder(this@MainActivity)
+                val dialogView = layoutInflater.inflate(R.layout.dialog_rounded_list, null)
+                builder.setView(dialogView)
+                
+                val dialog = builder.create()
+                dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+                
+                val listView = dialogView.findViewById<android.widget.ListView>(R.id.dialogListView)
+                val adapter = object : android.widget.ArrayAdapter<Plant>(this@MainActivity, R.layout.item_plant_selection, plants) {
+                    override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                        val view = super.getView(position, convertView, parent) as TextView
+                        val plant = getItem(position)
+                        val typeEmoji = plant?.type?.split(" ")?.lastOrNull() ?: ""
+                        view.text = "${plant?.name} $typeEmoji"
+                        return view
                     }
-                    .setPositiveButton("Cerrar", null)
-                    .show()
+                }
+                
+                listView.adapter = adapter
+                listView.setOnItemClickListener { _, _, position, _ ->
+                    selectPlant(plants[position])
+                    dialog.dismiss()
+                }
+                
+                dialog.show()
             }
         }
     }

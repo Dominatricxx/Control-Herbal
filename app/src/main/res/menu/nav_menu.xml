@@ -6,7 +6,7 @@
             android:title="Panel Principal" />
         <item
             android:id="@+id/nav_plants"
-            android:title="Mis plantas"
+            android:title="Mis plantas 🪴"
             android:visible="false" />
         <item
             android:id="@+id/nav_daily"
@@ -18,11 +18,8 @@
             android:id="@+id/nav_monthly"
             android:title="Registro Mensual" />
     </group>
-    <item android:title="Administración">
-        <menu>
-            <item
-                android:id="@+id/nav_delete_plant"
-                android:title="Eliminar planta actual" />
-        </menu>
-    </item>
+
+    <item
+        android:id="@+id/nav_delete_plant"
+        android:title="Eliminar planta actual" />
 </menu>

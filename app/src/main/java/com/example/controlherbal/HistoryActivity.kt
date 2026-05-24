@@ -3,6 +3,8 @@ package com.example.controlherbal
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -41,6 +43,9 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
+        
+        // Colorear el menú de eliminar planta
+        colorDeleteMenuItem(navView)
 
         val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
         
@@ -81,6 +86,14 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         }
     }
 
+    private fun colorDeleteMenuItem(navView: NavigationView) {
+        val menu = navView.menu
+        val deleteItem = menu.findItem(R.id.nav_delete_plant)
+        val s = SpannableString(deleteItem.title)
+        s.setSpan(ForegroundColorSpan(Color.RED), 0, s.length, 0)
+        deleteItem.title = s
+    }
+
     override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_main -> {
@@ -104,9 +117,13 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 startActivity(intent)
             }
             R.id.nav_plants -> {
-                // Volver a MainActivity para cambiar de planta
                 val intent = Intent(this, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                startActivity(intent)
+            }
+            R.id.nav_delete_plant -> {
+                // Volver a MainActivity para gestionar la eliminación
+                val intent = Intent(this, MainActivity::class.java)
                 startActivity(intent)
             }
         }
