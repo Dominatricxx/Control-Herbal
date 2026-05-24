@@ -31,8 +31,8 @@ class PlantSetupActivity : AppCompatActivity() {
             finish()
         }
 
-        val plantTypes = arrayOf("Girasol 🌻", "Tulipanes 🌷", "Lavanda 🌿", "Suculenta 🌵", "Menta 🍃", "Rosas 🌹", "Otro 🌱")
-        val environments = arrayOf("Luz", "Sombra", "Híbrido")
+        val plantTypes = arrayOf("Girasol 🌻", "Tulipan 🌷", "Lavanda 🌿", "Suculenta 🌵", "Menta 🍃", "Rosas 🌹", "Otro 🌱")
+        val environments = arrayOf("Luz 🌞", "Sombra 🌥️", "Híbrido ⛅")
 
         spinnerPlantType.adapter = ArrayAdapter(this, R.layout.spinner_item, plantTypes)
         spinnerEnvironment.adapter = ArrayAdapter(this, R.layout.spinner_item, environments)
