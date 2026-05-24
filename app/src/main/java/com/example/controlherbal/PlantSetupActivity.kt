@@ -1,6 +1,5 @@
 package com.example.controlherbal
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
@@ -9,6 +8,12 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.controlherbal.database.Plant
+import com.example.controlherbal.database.SensorDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PlantSetupActivity : AppCompatActivity() {
 
@@ -20,12 +25,17 @@ class PlantSetupActivity : AppCompatActivity() {
         val spinnerPlantType = findViewById<Spinner>(R.id.spinnerPlantType)
         val spinnerEnvironment = findViewById<Spinner>(R.id.spinnerEnvironment)
         val btnSavePlant = findViewById<Button>(R.id.btnSavePlant)
+        val btnBack = findViewById<android.widget.ImageButton>(R.id.btnBack)
+
+        btnBack.setOnClickListener {
+            finish()
+        }
 
         val plantTypes = arrayOf("Girasol 🌻", "Tulipanes 🌷", "Lavanda 🌿", "Suculenta 🌵", "Menta 🍃", "Rosas 🌹", "Otro 🌱")
         val environments = arrayOf("Luz", "Sombra", "Híbrido")
 
-        spinnerPlantType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, plantTypes)
-        spinnerEnvironment.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, environments)
+        spinnerPlantType.adapter = ArrayAdapter(this, R.layout.spinner_item, plantTypes)
+        spinnerEnvironment.adapter = ArrayAdapter(this, R.layout.spinner_item, environments)
 
         btnSavePlant.setOnClickListener {
             val name = etPlantName.text.toString().trim()
@@ -37,17 +47,19 @@ class PlantSetupActivity : AppCompatActivity() {
             val type = spinnerPlantType.selectedItem.toString()
             val environment = spinnerEnvironment.selectedItem.toString()
 
-            val prefs = getSharedPreferences("PlantPrefs", Context.MODE_PRIVATE)
-            prefs.edit().apply {
-                putString("plant_name", name)
-                putString("plant_type", type)
-                putString("plant_environment", environment)
-                putBoolean("setup_complete", true)
-                apply()
+            val db = SensorDatabase.getInstance(this)
+            CoroutineScope(Dispatchers.IO).launch {
+                db.plantDao().deselectAll()
+                val plant = Plant(name = name, type = type, environment = environment, isSelected = true)
+                db.plantDao().insert(plant)
+                
+                withContext(Dispatchers.Main) {
+                    val intent = Intent(this@PlantSetupActivity, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                }
             }
-
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
         }
     }
 }
