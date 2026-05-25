@@ -1,7 +1,8 @@
 package com.example.controlherbal
 
 import android.Manifest
-import android.app.AlertDialog
+import androidx.appcompat.app.AlertDialog
+import com.example.controlherbal.R
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -163,8 +164,8 @@ class PlantSetupActivity : AppCompatActivity() {
             }
 
             val type = when {
-                selectedPlantData != null -> "${selectedPlantData!!.name} ${selectedPlantData!!.emoji} (${selectedPlantData!!.scientificName})"
                 customPlantType != null -> customPlantType!!
+                selectedPlantData != null -> "${selectedPlantData!!.name} ${selectedPlantData!!.emoji} (${selectedPlantData!!.scientificName})"
                 else -> {
                     Toast.makeText(this, "Por favor, selecciona un tipo de planta", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
@@ -226,39 +227,56 @@ class PlantSetupActivity : AppCompatActivity() {
     }
 
     private fun showOtherOptionsDialog() {
-        val options = arrayOf(getString(R.string.manual_registration), getString(R.string.camera_identification))
-        AlertDialog.Builder(this)
-            .setTitle(R.string.other_option_title)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> showManualInputDialog()
-                    1 -> checkCameraPermissionAndOpen()
-                }
-            }
-            .setCancelable(false)
-            .show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_options, null)
+        val btnOption1 = dialogView.findViewById<Button>(R.id.btnOption1)
+        val btnOption2 = dialogView.findViewById<Button>(R.id.btnOption2)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnOption1.setOnClickListener {
+            showManualInputDialog()
+            dialog.dismiss()
+        }
+        btnOption2.setOnClickListener {
+            checkCameraPermissionAndOpen()
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
     private fun showManualInputDialog() {
-        val input = EditText(this)
-        input.hint = getString(R.string.manual_input_hint)
-        AlertDialog.Builder(this)
-            .setTitle(R.string.manual_registration)
-            .setView(input)
-            .setPositiveButton("OK") { _, _ ->
-                val text = input.text.toString().trim()
-                if (text.isNotEmpty()) {
-                    customPlantType = "$text 🌿"
-                    selectedPlantData = null
-                    resetEnvironmentSpinner()
-                    Toast.makeText(this, "Tipo configurado: $text", Toast.LENGTH_SHORT).show()
-                }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_input, null)
+        val etInput = dialogView.findViewById<EditText>(R.id.etInput)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+        val btnOk = dialogView.findViewById<Button>(R.id.btnOk)
+        
+        tvTitle.text = getString(R.string.manual_registration)
+        etInput.hint = getString(R.string.manual_input_hint)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnOk.setOnClickListener {
+            val text = etInput.text.toString().trim()
+            if (text.isNotEmpty()) {
+                customPlantType = "$text 🌿"
+                selectedPlantData = null
+                resetEnvironmentSpinner()
+                Toast.makeText(this, "Tipo configurado: $text", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
             }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                spinnerPlantType.setSelection(0)
-                dialog.cancel()
-            }
-            .show()
+        }
+        btnCancel.setOnClickListener {
+            spinnerPlantType.setSelection(0)
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
     private fun checkCameraPermissionAndOpen() {

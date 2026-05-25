@@ -57,17 +57,32 @@ object PredictiveTheorem {
         }
     }
 
-    fun generarRecomendacion(temp: Double, hum: Double, luz: Int): String {
+    fun generarRecomendacion(temp: Double, hum: Double, luz: Int, hoursSinceLastWatering: Double, plantType: String): String {
+        val isCactus = plantType.contains("Suculentas", ignoreCase = true) || plantType.contains("Cactus", ignoreCase = true)
+        val isMedicinal = plantType.contains("Medicinales", ignoreCase = true)
+        
+        // Umbrales de sobre-riego basados en botánica
+        val overWateringThreshold = when {
+            isCactus -> 48.0 // No regar más de una vez cada 2 días en condiciones extremas, idealmente mucho menos
+            isMedicinal -> 8.0 // Las medicinales necesitan ciclos de humedad
+            else -> 4.0 // 4 horas mínimo para cualquier planta
+        }
+
+        if (hoursSinceLastWatering < overWateringThreshold) {
+            return "🛑 AVISO DE SOBRE-RIEGO: La planta fue hidratada hace poco (${String.format("%.1f", hoursSinceLastWatering)}h). El riego constante impide la oxigenación de las raíces (hipoxia) y causa pudrición. ¡Deje que el suelo seque un poco!"
+        }
+
+        val needsWater = hoursSinceLastWatering > 12.0 && hum < HUM_OPTIMA_MIN + 10.0
+        
         return when {
-            hum > HUM_ALTA_MEDIA -> "⚠️ HUMEDAD CRÍTICA (>90%): Riesgo de hongos. Aumente ventilación drásticamente, suspenda riego."
-            temp > TEMP_CRITICO_ALTA -> "🔥 TEMPERATURA EXTREMA (>40°C): Estrés térmico severo. Proporcione sombra inmediata y riego abundante."
-            luz > LUZ_EXCESIVA -> "☀️ LUZ EXTREMA (>90%): Necesita sombra urgente. Mueva la planta o coloque malla sombra."
-            hum < HUM_OPTIMA_MIN -> "💧 BAJA HUMEDAD (<25%): Riesgo de deshidratación. Aumente riego o añada mulch para retener humedad."
-            temp < TEMP_OPTIMA_MIN -> "❄️ TEMPERATURA BAJA (<7°C): Proteja del frío, cubra la planta o trasládela al interior."
-            hum in (HUM_OPTIMA_MAX + 0.01)..HUM_ALTA_MEDIA -> "💦 EXCESO DE HUMEDAD (75-90%): Mejore ventilación o reduzca riego para evitar hongos."
-            temp in (TEMP_OPTIMA_MAX + 0.01)..TEMP_CRITICO_ALTA -> "🌡️ ESTRÉS POR CALOR (30-40°C): Aumente riego y proporcione sombra parcial."
-            luz in (LUZ_OPTIMA_MAX + 1)..LUZ_ALTA -> "☀️ EXCESO DE LUZ (65-80%): Considere sombra parcial o mover la planta a un lugar menos iluminado."
-            else -> "✅ Condiciones saludables. Mantenga el cuidado actual."
+            hum > HUM_ALTA_MEDIA -> "⚠️ HUMEDAD CRÍTICA (>90%): Riesgo de hongos y asfixia. Aumente ventilación, suspenda riego totalmente."
+            temp > TEMP_CRITICO_ALTA -> "🔥 TEMPERATURA EXTREMA (>40°C): Estrés térmico severo. Proporcione sombra inmediata." + (if (needsWater) " Riego urgente para enfriar raíces." else " No riegue si la tierra ya está húmeda.")
+            luz > LUZ_EXCESIVA -> "☀️ LUZ EXTREMA (>90%): Necesita sombra urgente. Mueva la planta para evitar quemaduras foliares."
+            hum < HUM_OPTIMA_MIN -> "💧 BAJA HUMEDAD (<25%): Riesgo de deshidratación. Necesita riego controlado."
+            temp < TEMP_OPTIMA_MIN -> "❄️ TEMPERATURA BAJA (<7°C): El metabolismo se detiene. Proteja del frío y reduzca el riego al mínimo."
+            hum in (HUM_OPTIMA_MAX + 0.01)..HUM_ALTA_MEDIA -> "💦 EXCESO DE HUMEDAD (75-90%): Mejore drenaje o ventilación. El exceso de agua atrae plagas y hongos."
+            temp in (TEMP_OPTIMA_MAX + 0.01)..TEMP_CRITICO_ALTA -> "🌡️ ESTRÉS POR CALOR (30-40°C): Proporcione sombra parcial." + (if (needsWater) " Considere riego ligero al atardecer." else "")
+            else -> "✅ Condiciones saludables. La planta tiene un equilibrio hídrico óptimo."
         }
     }
 
@@ -76,7 +91,9 @@ object PredictiveTheorem {
         val seq: Double,
         val somb: Double,
         val recommendation: String,
-        val urgency: String
+        val urgency: String,
+        val wateringRecommended: Boolean,
+        val nextWateringHours: Double
     )
 
     fun analyze(
@@ -85,11 +102,15 @@ object PredictiveTheorem {
         luz: Int,
         deltaTemp: Double = 0.0,
         deltaHum: Double = 0.0,
-        deltaLuz: Double = 0.0
+        deltaLuz: Double = 0.0,
+        lastWateringTime: Long = 0,
+        plantType: String = ""
     ): AnalysisResult {
         val estresH = calcularEstresHumedad(hum)
         val estresT = calcularEstresTemperatura(temp)
         val estresL = calcularEstresLuz(luz)
+
+        val hoursSinceLastWatering = if (lastWateringTime > 0) (System.currentTimeMillis() - lastWateringTime) / 3600000.0 else 100.0
 
         var tendenciaH = 0.0
         var tendenciaT = 0.0
@@ -106,11 +127,37 @@ object PredictiveTheorem {
         if (deltaLuz > 10.0) tendenciaL = 15.0
         else if (deltaLuz > 5.0) tendenciaL = 8.0
 
+        // Ajuste de IRH según riego reciente
         var irh = (estresH * COEF_HUMEDAD) + (estresT * COEF_TEMP) + (estresL * COEF_LUZ)
+        
+        // Si se regó hace menos de 4 horas, reducimos artificialmente el peso del estrés hídrico
+        // para evitar falsas alarmas mientras el suelo se estabiliza.
+        if (hoursSinceLastWatering < 4.0) {
+            irh *= (hoursSinceLastWatering / 4.0).coerceAtLeast(0.2)
+        }
+
         irh += (tendenciaH * 0.1) + (tendenciaT * 0.1) + (tendenciaL * 0.05)
         irh = irh.coerceIn(0.0, 100.0)
 
-        val recommendation = generarRecomendacion(temp, hum, luz)
+        val recommendation = generarRecomendacion(temp, hum, luz, hoursSinceLastWatering, plantType)
+
+        // Lógica de necesidad de riego basada en agricultura y herbolaria
+        // Factores: Humedad del suelo (simulada por hum ambiental aquí), tiempo, temperatura y tipo
+        val isMedicinal = plantType.contains("Medicinales", ignoreCase = true)
+        val isCactus = plantType.contains("Suculentas", ignoreCase = true) || plantType.contains("Cactus", ignoreCase = true)
+        
+        // Intervalos base recomendados (fuentes: FAO, manuales botánicos)
+        val intervalBase = when {
+            isCactus -> 168.0 // 1 semana aprox
+            isMedicinal -> 48.0 // 2 días
+            else -> 24.0 // Diario base
+        }
+        
+        // Ajuste por calor
+        val adjustedInterval = if (temp > 30.0) intervalBase * 0.7 else intervalBase
+        
+        val wateringRecommended = (hoursSinceLastWatering >= adjustedInterval && hum < 40.0) || (hum < HUM_OPTIMA_MIN)
+        val nextWateringHours = (adjustedInterval - hoursSinceLastWatering).coerceAtLeast(0.0)
 
         val seq = when {
             deltaTemp > 0 && deltaHum < 0 -> {
@@ -137,6 +184,6 @@ object PredictiveTheorem {
             else -> "ÓPTIMA"
         }
 
-        return AnalysisResult(irh, seq, somb, recommendation, urgency)
+        return AnalysisResult(irh, seq, somb, recommendation, urgency, wateringRecommended, nextWateringHours)
     }
 }

@@ -9,5 +9,6 @@ data class Plant(
     val name: String,
     val type: String,
     val environment: String,
-    val isSelected: Boolean = false
+    val isSelected: Boolean = false,
+    val lastWateringTime: Long = 0
 )

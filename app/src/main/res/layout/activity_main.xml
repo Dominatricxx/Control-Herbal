@@ -268,11 +268,23 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Botón de Sistema de Riego -->
+        <Button
+            android:id="@+id/btnWatering"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="#1E88E5"
+            app:cornerRadius="30dp"
+            android:text="REGISTRAR RIEGO 💧"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
         <!-- Tarjeta de predicción rediseñada -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="20dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
 
@@ -290,10 +302,34 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
+                <!-- Riego Recomendado -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/tvWateringRecommended"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Riego recomendado: --"
+                        android:textSize="15sp"
+                        android:textColor="#1E88E5"
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:id="@+id/tvNextWateringTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Próximo riego estimado: --"
+                        android:textSize="13sp"
+                        android:textColor="#757575"
+                        android:layout_marginTop="2dp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
                     android:orientation="horizontal">
                     <TextView
                         android:layout_width="wrap_content"
