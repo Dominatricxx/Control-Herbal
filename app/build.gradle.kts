@@ -80,8 +80,4 @@ dependencies {
 
     // Corrutinas
     implementation(libs.kotlinx.coroutines.android)
-
-    // Glide para GIFs
-    implementation(libs.glide)
-    ksp(libs.glide.compiler)
 }

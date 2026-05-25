@@ -1,6 +1,7 @@
 package com.example.controlherbal
 
 import android.Manifest
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -22,9 +23,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.TextView
-import com.bumptech.glide.Glide
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -76,7 +75,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var tvLastUpdate: TextView
     private lateinit var lineChart: LineChart
     private lateinit var btnConnect: Button
-    private lateinit var ivGrowthPlant: ImageView
     private var tvPlantNameAndEmoji: TextView? = null
     private var layoutPlantInfo: View? = null
     private lateinit var btnAddPlant: ImageButton
@@ -169,8 +167,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         btnConnect = findViewById(R.id.btnConnect)
         btnConnect.text = "VINCULAR DISPOSITIVO"
         btnConnect.isEnabled = true
-        
-        ivGrowthPlant = findViewById<ImageView>(R.id.ivGrowthPlant)
 
         tvPlantNameAndEmoji = findViewById(R.id.tvPlantNameAndEmoji)
         layoutPlantInfo = findViewById(R.id.layoutPlantInfo)
@@ -353,50 +349,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvConnectionState.setTextColor(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
     }
 
-    private fun startGrowthAnimation() {
-        ivGrowthPlant.visibility = View.VISIBLE
-        
-        // Cargar el GIF usando Glide con configuración de animación infinita
-        Glide.with(this)
-            .asGif()
-            .load(R.drawable.gif_planta)
-            .into(ivGrowthPlant)
-        
-        val density = resources.displayMetrics.density
-        // Ajustamos las posiciones para que nazca justo en el borde superior del botón
-        val startY = 60f * density  // Posición bajo el borde (oculto en el "suelo")
-        val endY = -15f * density   // Posición máxima de crecimiento
-
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 2200 // Un poco más lento para que sea orgánico
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-            addUpdateListener { animation ->
-                val progress = animation.animatedValue as Float
-                // Movimiento vertical: emerge del botón y vuelve a entrar
-                ivGrowthPlant.translationY = startY - (progress * (startY - endY))
-                
-                // Efecto de escala opcional para que se vea que "crece" al subir
-                val scale = 0.5f + (progress * 0.5f)
-                ivGrowthPlant.scaleX = scale
-                ivGrowthPlant.scaleY = scale
-            }
-        }
-        ivGrowthPlant.tag = animator
-        animator.start()
-    }
-
-    private fun stopGrowthAnimation() {
-        (ivGrowthPlant.tag as? ValueAnimator)?.cancel()
-        Glide.with(this).clear(ivGrowthPlant)
-        ivGrowthPlant.visibility = View.GONE
-    }
-
     private fun startFirebaseListener() {
+        Log.d("Control Herbal", "Iniciando vinculación")
         // ACTIVAR ESTADO DE VINCULACIÓN ESTRICTO
         isLinkingInProgress = true
         resetUIForLinking()
-        startGrowthAnimation()
         
         btnConnect.text = "Vinculando a ESP-32..."
         btnConnect.isEnabled = false
@@ -412,7 +369,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     // SOLO SALIMOS DEL ESTADO VINCULANDO SI HAY DATOS REALES
                     if (snapshot.hasChild("temp")) {
                         isLinkingInProgress = false
-                        stopGrowthAnimation()
                         
                         if (isDisconnected) {
                             isDisconnected = false
@@ -447,7 +403,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             override fun onCancelled(error: DatabaseError) {
                 isLinkingInProgress = false
-                stopGrowthAnimation()
                 tvConnectionState.text = "Error de conexión"
                 tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_red_dark))
                 btnConnect.text = "CONECTAR AL DISPOSITIVO"
@@ -542,7 +497,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (!isDisconnected) {
             isDisconnected = true
             isLinkingInProgress = false
-            stopGrowthAnimation()
             tvConnectionState.text = "Desincronizado"
             tvConnectionState.setTextColor(Color.RED)
             btnConnect.text = "DESVINCULADO - RECONECTAR"
