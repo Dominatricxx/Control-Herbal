@@ -112,14 +112,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Establecer layout inmediatamente para evitar pantalla en blanco
-        setContentView(R.layout.activity_main_drawer)
         
         try {
             databaseLocal = SensorDatabase.getInstance(this)
             herbalAI = HerbalAI(this)
-
-            initializeUI() // Inicializar vistas (IDs)
 
             ioScope.launch {
                 try {
@@ -132,7 +128,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             startActivity(intent)
                             finish()
                         } else {
+                            setContentView(R.layout.activity_main_drawer)
                             currentPlant = plant
+                            initializeUI()
                             showPlantInfo()
                             updateMenuVisibility(plantCount)
                             setupFirebase()
@@ -430,42 +428,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         // VALIDACIÓN CRÍTICA: Ignorar si faltan sensores para evitar "datos inexistentes"
                         if (snapshot.hasChild("temp") && snapshot.hasChild("hum") && snapshot.hasChild("luz")) {
                             
-                            // Si es el primer dato, salimos del estado de vinculación
-                            if (isLinkingInProgress) {
-                                isLinkingInProgress = false
-                                lastProcessTime = 0 // Asegurar que el primer dato pase el throttling
-                            }
-                            
-                            // THROTTLING: Evitar saturar el emulador
-                            val currentTime = System.currentTimeMillis()
-                            if (currentTime - lastProcessTime < 2000) return
-                            lastProcessTime = currentTime
-
-                            if (isDisconnected) {
-                                isDisconnected = false
-                                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                                nm.cancel(SYNC_NOTIFICATION_ID)
-                            }
-
-                            btnConnect.text = String.format("Vinculado a %s", deviceName)
-                            btnConnect.isEnabled = false
-                            
-                            tvConnectionState.text = "Conectado a Firebase"
-                            tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_green_dark))
-                            
+                            // Si es el primer dato válido, salimos del estado de vinculación
+                            // Solo salimos si los datos NO son los valores por defecto (ej. 0.0)
                             val temp = snapshot.child("temp").getValue(Double::class.java) ?: 0.0
                             val hum = snapshot.child("hum").getValue(Double::class.java) ?: 0.0
                             val luz = snapshot.child("luz").getValue(Int::class.java) ?: 0
                             
-                            ioScope.launch {
-                                try {
-                                    val result = performAnalysis(temp, hum, luz)
-                                    withContext(Dispatchers.Main) {
-                                        updateUIAndSave(temp, hum, luz, result.irh, result.seq, result.somb, result.recommendation, result.wateringRecommended, result.nextWateringHours)
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Analysis error: ${e.message}")
-                                }
+                            if (temp == 0.0 && hum == 0.0 && luz == 0) {
+                                // Datos no válidos todavía, no salir del estado de vinculación
+                                btnConnect.text = String.format("Esperando datos reales...")
+                                return
+                            }
+
+                            if (isLinkingInProgress) {
+                                isLinkingInProgress = false
+                                lastProcessTime = 0
                             }
                         } else {
                             // Nodo incompleto: mantener UI limpia
@@ -504,8 +481,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun updateUIAndSave(temp: Double, hum: Double, luz: Int, irh: Double, seq: Double, somb: Double, accion: String, wateringRecommended: Boolean, nextWateringHours: Double) {
-        // BLOQUEO ABSOLUTO: Si estamos vinculando, ignoramos cualquier intento de diagnóstico
+        // BLOQUEO ABSOLUTO: Si estamos vinculando, NO actualizar interfaz con datos
         if (isLinkingInProgress) return
+        
+        // Verificación extra: si todos los valores son 0, probablemente es un dato fantasma, ignorar
+        if (temp == 0.0 && hum == 0.0 && luz == 0) return
 
         val locale = Locale.getDefault()
         tvTemp.text = String.format(locale, "%.1f °C", temp)
