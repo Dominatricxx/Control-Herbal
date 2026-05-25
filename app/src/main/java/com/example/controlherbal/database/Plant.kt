@@ -10,5 +10,6 @@ data class Plant(
     val type: String,
     val environment: String,
     val isSelected: Boolean = false,
-    val lastWateringTime: Long = 0
+    val lastWateringTime: Long = 0,
+    val pendingSync: Boolean = false
 )
