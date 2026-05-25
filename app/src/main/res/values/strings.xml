@@ -12,4 +12,8 @@
     <string name="ai_identifying">Identificando planta con IA&#8230;</string>
     <string name="offline_identification">Buscando en base de datos local...</string>
     <string name="manual_input_hint">Escribe el tipo de planta</string>
+    <string name="loading_description">Cargando</string>
+    <string name="continue_description">Continuar</string>
+    <string name="splash_plant_description">Icono de planta en pantalla de inicio</string>
+    <string name="splash_title">Control\nHerbal</string>
 </resources>
