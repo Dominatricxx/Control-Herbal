@@ -9,13 +9,17 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingTop="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <!-- Título y encabezado -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
 
             <ImageButton
                 android:id="@+id/btnMenu"
@@ -105,32 +109,19 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Contenedor de Conexión Simplificado y Robusto -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:clipChildren="false"
-            android:clipToPadding="false">
+            android:layout_marginTop="10dp">
 
             <Button
                 android:id="@+id/btnConnect"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="50dp"
+                android:layout_height="60dp"
                 android:backgroundTint="#2E7D32"
-                app:cornerRadius="28dp"
+                app:cornerRadius="30dp"
                 android:text="CONECTAR AL DISPOSITIVO" />
-
-            <ImageView
-                android:id="@+id/ivGrowthPlant"
-                android:layout_width="100dp"
-                android:layout_height="100dp"
-                android:layout_gravity="center_horizontal"
-                android:src="@drawable/gif_planta"
-                android:visibility="gone"
-                android:elevation="15dp"
-                android:scaleType="centerInside"
-                android:contentDescription="Cargando planta" />
         </FrameLayout>
 
         <TextView
