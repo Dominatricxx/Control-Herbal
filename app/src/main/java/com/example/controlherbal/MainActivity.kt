@@ -303,12 +303,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val now = System.currentTimeMillis()
         
         ioScope.launch {
-            val updatedPlant = plant.copy(lastWateringTime = now)
+            val updatedPlant = plant.copy(lastWateringTime = now, pendingSync = true)
             databaseLocal.plantDao().update(updatedPlant)
             currentPlant = updatedPlant
             
+            // Programar sincronización
+            val syncRequest = androidx.work.OneTimeWorkRequestBuilder<com.example.controlherbal.sync.WateringSyncWorker>()
+                .setConstraints(androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build())
+                .build()
+            androidx.work.WorkManager.getInstance(this@MainActivity).enqueue(syncRequest)
+            
             withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "Riego registrado para ${plant.name} 💧", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Riego registrado (se sincronizará en cuanto tengas conexión) 💧", Toast.LENGTH_SHORT).show()
                 // Solo forzar re-análisis si hay una lectura real (no vacía)
                 if (tvTemp.text.isNotEmpty() && tvTemp.text != "--") {
                     lastReading?.let { r ->

@@ -80,4 +80,7 @@ dependencies {
 
     // Corrutinas
     implementation(libs.kotlinx.coroutines.android)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
 }

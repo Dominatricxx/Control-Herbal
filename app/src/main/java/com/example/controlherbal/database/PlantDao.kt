@@ -25,6 +25,9 @@ interface PlantDao {
     @Query("SELECT COUNT(*) FROM plants")
     suspend fun getPlantCount(): Int
 
+    @Query("SELECT * FROM plants WHERE pendingSync = 1")
+    suspend fun getPendingSyncPlants(): List<Plant>
+
     @androidx.room.Delete
     suspend fun delete(plant: Plant)
 }
