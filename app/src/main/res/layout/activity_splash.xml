@@ -2,17 +2,18 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
+    android:background="#E8F5E9"
     android:gravity="center">
 
     <ImageView
         android:id="@+id/ivSplashPlant"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
         android:src="@mipmap/ic_launcher_round"
-        android:contentDescription="Splash Plant" />
+        android:contentDescription="Logo" />
 
     <TextView
+        android:id="@+id/tvSplashTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/ivSplashPlant"
@@ -20,7 +21,15 @@
         android:layout_marginTop="24dp"
         android:text="Control Herbal"
         android:textColor="#2E7D32"
-        android:textSize="28sp"
+        android:textSize="32sp"
         android:textStyle="bold" />
+
+    <ProgressBar
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="64dp"
+        android:indeterminateTint="#2E7D32" />
 
 </RelativeLayout>

@@ -24,6 +24,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -73,8 +74,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var tvCausa: TextView
     private lateinit var tvAlerta: TextView
     private lateinit var tvLastUpdate: TextView
+    private lateinit var tvWateringRecommended: TextView
+    private lateinit var tvNextWateringTime: TextView
     private lateinit var lineChart: LineChart
     private lateinit var btnConnect: Button
+    private lateinit var btnWatering: Button
     private var tvPlantNameAndEmoji: TextView? = null
     private var layoutPlantInfo: View? = null
     private lateinit var btnAddPlant: ImageButton
@@ -102,34 +106,49 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     // BANDERA CRÍTICA DE VINCULACIÓN
     private var isLinkingInProgress = false
 
+    private var lastWateringAlertState = 0 // 0: nada, 1: recomendado, 2: sobre-riego
+
+    private var lastProcessTime: Long = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Establecer layout inmediatamente para evitar pantalla en blanco
+        setContentView(R.layout.activity_main_drawer)
         
-        databaseLocal = SensorDatabase.getInstance(this)
-        herbalAI = HerbalAI(this)
+        try {
+            databaseLocal = SensorDatabase.getInstance(this)
+            herbalAI = HerbalAI(this)
 
-        ioScope.launch {
-            val plant = databaseLocal.plantDao().getSelectedPlant()
-            val plantCount = databaseLocal.plantDao().getPlantCount()
-            
-            withContext(Dispatchers.Main) {
-                if (plant == null) {
-                    val intent = Intent(this@MainActivity, PlantSetupActivity::class.java)
-                    startActivity(intent)
-                    finish()
-                } else {
-                    currentPlant = plant
-                    initializeUI()
-                    updateMenuVisibility(plantCount)
-                    setupFirebase()
+            initializeUI() // Inicializar vistas (IDs)
+
+            ioScope.launch {
+                try {
+                    val plant = databaseLocal.plantDao().getSelectedPlant()
+                    val plantCount = databaseLocal.plantDao().getPlantCount()
+                    
+                    withContext(Dispatchers.Main) {
+                        if (plant == null) {
+                            val intent = Intent(this@MainActivity, PlantSetupActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        } else {
+                            currentPlant = plant
+                            showPlantInfo()
+                            updateMenuVisibility(plantCount)
+                            setupFirebase()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in background init: ${e.message}")
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Critical error in onCreate: ${e.message}")
         }
     }
 
     private fun initializeUI() {
-        setContentView(R.layout.activity_main_drawer)
-
+        // Ya no llamamos a setContentView aquí porque se llamó en onCreate
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
@@ -144,6 +163,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navView.menu.findItem(R.id.nav_main).isVisible = false
 
         tvConnectionState = findViewById(R.id.tvConnectionState)
+        // ... rest of initializeUI stays same ...
         tvConnectionState.text = "Desincronizado"
         tvConnectionState.setTextColor(Color.RED)
 
@@ -162,11 +182,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvAlerta.setTextColor(Color.BLACK)
 
         tvLastUpdate = findViewById(R.id.tvLastUpdate)
+        tvWateringRecommended = findViewById(R.id.tvWateringRecommended)
+        tvNextWateringTime = findViewById(R.id.tvNextWateringTime)
         lineChart = findViewById(R.id.lineChart)
         
         btnConnect = findViewById(R.id.btnConnect)
         btnConnect.text = "VINCULAR DISPOSITIVO"
         btnConnect.isEnabled = true
+
+        btnWatering = findViewById(R.id.btnWatering)
+        btnWatering.setOnClickListener { registerWatering() }
 
         tvPlantNameAndEmoji = findViewById(R.id.tvPlantNameAndEmoji)
         layoutPlantInfo = findViewById(R.id.layoutPlantInfo)
@@ -215,7 +240,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun setupFirebase() {
         try {
             databaseFirebase = FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/").getReference("sensor")
-            databaseFirebase.keepSynced(true)
+            // DESACTIVAR keepSynced para evitar que el primer listener reciba datos obsoletos de la caché local
+            databaseFirebase.keepSynced(false)
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing Firebase: ${e.message}")
         }
@@ -249,18 +275,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
 
-        val result = PredictiveTheorem.analyze(temp, hum, luz, deltaTemp, deltaHum, deltaLuz)
+        val result = PredictiveTheorem.analyze(
+            temp, hum, luz, 
+            deltaTemp, deltaHum, deltaLuz, 
+            currentPlant?.lastWateringTime ?: 0,
+            currentPlant?.type ?: ""
+        )
+        
         val irhAI = herbalAI.predictRefinedIRH(temp, hum, luz)
         var finalIrh = (result.irh + irhAI) / 2.0
         
-        tflite?.let { interpreter ->
-            val input = arrayOf(floatArrayOf(temp.toFloat(), hum.toFloat(), luz.toFloat()))
-            val output = arrayOf(floatArrayOf(0f))
-            interpreter.run(input, output)
-            finalIrh = (finalIrh + output[0][0].toDouble()) / 2.0
+        try {
+            tflite?.let { interpreter ->
+                val input = arrayOf(floatArrayOf(temp.toFloat(), hum.toFloat(), luz.toFloat()))
+                val output = arrayOf(floatArrayOf(0f))
+                interpreter.run(input, output)
+                finalIrh = (finalIrh + output[0][0].toDouble()) / 2.0
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "TFLite inference failed on emulator: ${e.message}")
+            // Mantenemos el IRH de la lógica herbolaria si falla la IA nativa
         }
         
         return result.copy(irh = finalIrh)
+    }
+
+    private fun registerWatering() {
+        val plant = currentPlant ?: return
+        val now = System.currentTimeMillis()
+        
+        ioScope.launch {
+            val updatedPlant = plant.copy(lastWateringTime = now)
+            databaseLocal.plantDao().update(updatedPlant)
+            currentPlant = updatedPlant
+            
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "Riego registrado para ${plant.name} 💧", Toast.LENGTH_SHORT).show()
+                // Solo forzar re-análisis si hay una lectura real (no vacía)
+                if (tvTemp.text.isNotEmpty() && tvTemp.text != "--") {
+                    lastReading?.let { r ->
+                        val res = performAnalysis(r.temperature, r.humidity, r.light)
+                        updateUIAndSave(r.temperature, r.humidity, r.light, res.irh, res.seq, res.somb, res.recommendation, res.wateringRecommended, res.nextWateringHours)
+                    }
+                }
+            }
+        }
     }
 
     private fun showPlantInfo() {
@@ -332,16 +391,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun resetUIForLinking() {
-        // Limpiar datos previos para evitar mostrar información falsa
-        tvTemp.text = "-- °C"
-        tvHum.text = "-- %"
-        tvLuz.text = "-- %"
-        tvIRH.text = "--"
-        tvSeq.text = "-- h"
-        tvSomb.text = "-- h"
-        tvAccion.text = "--"
+        // LIMPIEZA ABSOLUTA: Los campos deben quedar vacíos hasta que lleguen datos reales del ESP-32
+        tvTemp.text = ""
+        tvHum.text = ""
+        tvLuz.text = ""
+        tvIRH.text = ""
+        tvSeq.text = ""
+        tvSomb.text = ""
+        tvAccion.text = ""
+        tvWateringRecommended.text = ""
+        tvNextWateringTime.text = ""
         
-        tvAlerta.text = "Esperando datos..."
+        tvAlerta.text = "Sincronizando..."
         tvAlerta.backgroundTintList = ColorStateList.valueOf(Color.LTGRAY)
         tvAlerta.setTextColor(Color.BLACK)
         
@@ -350,8 +411,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun startFirebaseListener() {
-        Log.d("Control Herbal", "Iniciando vinculación")
-        // ACTIVAR ESTADO DE VINCULACIÓN ESTRICTO
+        Log.d(TAG, "Iniciando vinculación")
         isLinkingInProgress = true
         resetUIForLinking()
         
@@ -360,45 +420,60 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         firebaseListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                handler.removeCallbacks(syncTimeoutRunnable)
-                handler.postDelayed(syncTimeoutRunnable, 5000)
-                
-                if (snapshot.exists()) {
-                    val deviceName = snapshot.child("deviceName").getValue(String::class.java) ?: "ESP-32"
+                try {
+                    handler.removeCallbacks(syncTimeoutRunnable)
+                    handler.postDelayed(syncTimeoutRunnable, 7000) // Un poco más de tiempo para el emulador
                     
-                    // SOLO SALIMOS DEL ESTADO VINCULANDO SI HAY DATOS REALES
-                    if (snapshot.hasChild("temp")) {
-                        isLinkingInProgress = false
+                    if (snapshot.exists()) {
+                        val deviceName = snapshot.child("deviceName").getValue(String::class.java) ?: "ESP-32"
                         
-                        if (isDisconnected) {
-                            isDisconnected = false
-                            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                            nm.cancel(SYNC_NOTIFICATION_ID)
-                        }
-
-                        // AHORA SÍ: ESTADO VINCULADO REAL
-                        btnConnect.text = String.format("Vinculado a %s", deviceName)
-                        btnConnect.isEnabled = false
-                        
-                        tvConnectionState.text = "Conectado a Firebase"
-                        tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_green_dark))
-                        
-                        val temp = snapshot.child("temp").getValue(Double::class.java) ?: 0.0
-                        val hum = snapshot.child("hum").getValue(Double::class.java) ?: 0.0
-                        val luz = snapshot.child("luz").getValue(Int::class.java) ?: 0
-                        
-                        ioScope.launch {
-                            val result = performAnalysis(temp, hum, luz)
-                            withContext(Dispatchers.Main) {
-                                updateUIAndSave(temp, hum, luz, result.irh, result.seq, result.somb, result.recommendation)
+                        // VALIDACIÓN CRÍTICA: Ignorar si faltan sensores para evitar "datos inexistentes"
+                        if (snapshot.hasChild("temp") && snapshot.hasChild("hum") && snapshot.hasChild("luz")) {
+                            
+                            // Si es el primer dato, salimos del estado de vinculación
+                            if (isLinkingInProgress) {
+                                isLinkingInProgress = false
+                                lastProcessTime = 0 // Asegurar que el primer dato pase el throttling
                             }
+                            
+                            // THROTTLING: Evitar saturar el emulador
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastProcessTime < 2000) return
+                            lastProcessTime = currentTime
+
+                            if (isDisconnected) {
+                                isDisconnected = false
+                                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                                nm.cancel(SYNC_NOTIFICATION_ID)
+                            }
+
+                            btnConnect.text = String.format("Vinculado a %s", deviceName)
+                            btnConnect.isEnabled = false
+                            
+                            tvConnectionState.text = "Conectado a Firebase"
+                            tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_green_dark))
+                            
+                            val temp = snapshot.child("temp").getValue(Double::class.java) ?: 0.0
+                            val hum = snapshot.child("hum").getValue(Double::class.java) ?: 0.0
+                            val luz = snapshot.child("luz").getValue(Int::class.java) ?: 0
+                            
+                            ioScope.launch {
+                                try {
+                                    val result = performAnalysis(temp, hum, luz)
+                                    withContext(Dispatchers.Main) {
+                                        updateUIAndSave(temp, hum, luz, result.irh, result.seq, result.somb, result.recommendation, result.wateringRecommended, result.nextWateringHours)
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Analysis error: ${e.message}")
+                                }
+                            }
+                        } else {
+                            // Nodo incompleto: mantener UI limpia
+                            btnConnect.text = String.format("Sincronizando %s...", deviceName)
                         }
-                    } else {
-                        // Sigue buscando datos: Mantener estados de espera obligatorios
-                        btnConnect.text = String.format("Vinculando a %s...", deviceName)
-                        tvConnectionState.text = "Conectando..."
-                        tvAlerta.text = "Esperando datos..."
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "onDataChange error: ${e.message}")
                 }
             }
             override fun onCancelled(error: DatabaseError) {
@@ -407,6 +482,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 tvConnectionState.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_red_dark))
                 btnConnect.text = "CONECTAR AL DISPOSITIVO"
                 btnConnect.isEnabled = true
+                resetUIForLinking()
             }
         }
         
@@ -415,11 +491,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onStop() {
         super.onStop()
-        firebaseListener?.let { databaseFirebase.removeEventListener(it) }
+        try {
+            firebaseListener?.let { listener ->
+                if (::databaseFirebase.isInitialized) {
+                    databaseFirebase.removeEventListener(listener)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing listener: ${e.message}")
+        }
         firebaseListener = null
     }
 
-    private fun updateUIAndSave(temp: Double, hum: Double, luz: Int, irh: Double, seq: Double, somb: Double, accion: String) {
+    private fun updateUIAndSave(temp: Double, hum: Double, luz: Int, irh: Double, seq: Double, somb: Double, accion: String, wateringRecommended: Boolean, nextWateringHours: Double) {
         // BLOQUEO ABSOLUTO: Si estamos vinculando, ignoramos cualquier intento de diagnóstico
         if (isLinkingInProgress) return
 
@@ -431,7 +515,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvSeq.text = if (seq < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", seq) else "Sin riesgo"
         tvSomb.text = if (somb < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", somb) else "Sin necesidad"
         
+        tvWateringRecommended.text = "Riego recomendado: ${if (wateringRecommended) "SÍ" else "No"}"
+        tvWateringRecommended.setTextColor(if (wateringRecommended) Color.RED else Color.parseColor("#1E88E5"))
+        
+        if (nextWateringHours <= 0) {
+            tvNextWateringTime.text = "¡Necesita riego ahora!"
+        } else {
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.MINUTE, (nextWateringHours * 60).toInt())
+            val timeStr = SimpleDateFormat("HH:mm", locale).format(calendar.time)
+            tvNextWateringTime.text = "Próximo riego estimado: $timeStr"
+        }
+        
         tvAccion.text = accion
+        
+        // Notificaciones Push para Riego
+        handleWateringNotifications(wateringRecommended, accion)
+
         tvAccion.setTextColor(ContextCompat.getColor(this, R.color.green_herbal))
         
         tvCausa.text = ""
@@ -490,6 +590,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     withContext(Dispatchers.Main) { loadDataAndDrawChart() }
                 }
             }
+        }
+    }
+
+    private fun handleWateringNotifications(recommended: Boolean, action: String) {
+        if (recommended && lastWateringAlertState != 1) {
+            sendNotification("💧 Riego Recomendado", "Tu planta necesita hidratación según el análisis de la IA.")
+            lastWateringAlertState = 1
+        } else if (action.contains("SOBRE-RIEGO") && lastWateringAlertState != 2) {
+            sendNotification("🛑 Alerta de Sobre-Riego", "¡Cuidado! Estás regando demasiado. Riesgo de asfixia radicular.")
+            lastWateringAlertState = 2
+        } else if (!recommended && !action.contains("SOBRE-RIEGO")) {
+            lastWateringAlertState = 0
         }
     }
 
@@ -613,14 +725,29 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun showDeletePlantDialog() {
         val plant = currentPlant ?: return
-        AlertDialog.Builder(this)
-            .setTitle("Eliminar planta")
-            .setMessage("¿Estás seguro de que quieres eliminar a '${plant.name}'? Se perderán todos sus datos.")
-            .setPositiveButton("Eliminar") { _, _ ->
-                deleteCurrentPlant()
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_confirm, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val tvMessage = dialogView.findViewById<TextView>(R.id.tvMessage)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+        val btnAction = dialogView.findViewById<Button>(R.id.btnAction)
+
+        tvTitle.text = "Eliminar planta"
+        tvMessage.text = "¿Estás seguro de que quieres eliminar a '${plant.name}'? Se perderán todos sus datos."
+        btnAction.text = "Eliminar"
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnAction.setOnClickListener {
+            deleteCurrentPlant()
+            dialog.dismiss()
+        }
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
     private fun deleteCurrentPlant() {
