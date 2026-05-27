@@ -9,21 +9,17 @@ import kotlin.math.exp
 import kotlin.random.Random
 
 /**
- * HerbalAI: Implementación de una Red Neuronal Multicapa (MLP) mejorada.
- * Arquitectura: 3 Entradas (Temp, Hum, Luz) -> 12 Neuronas Ocultas -> 1 Salida (IRH).
- * Utiliza Funciones de Activación Sigmoide y Retropropagación (Backpropagation)
- * para aprendizaje no lineal profundo optimizado para herbolaria.
+ * HerbalAI: Implementación de una Red Neuronal Multicapa (MLP).
+ * Arquitectura Actualizada: 4 Entradas (Temp, HumAmb, Luz, Soil) -> 12 Neuronas Ocultas -> 1 Salida (IRH).
  */
 class HerbalAI(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v2", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v3", Context.MODE_PRIVATE)
     
-    // Arquitectura expandida para mayor precisión: [3 -> 12 -> 1]
-    private val inputSize = 3
+    private val inputSize = 4
     private val hiddenSize = 12
     private val outputSize = 1
     
-    // Pesos y Sesgos (Weights and Biases)
     private var weightsInputHidden = Array(inputSize) { FloatArray(hiddenSize) }
     private var weightsHiddenOutput = FloatArray(hiddenSize)
     private var biasHidden = FloatArray(hiddenSize)
@@ -40,13 +36,14 @@ class HerbalAI(context: Context) {
     private fun sigmoidDeriv(x: Float): Float = x * (1f - x)
 
     /**
-     * Inferencia (Feed-forward): Calcula el IRH basado en la red neuronal.
+     * Inferencia (Feed-forward): Calcula el IRH basado en los 4 parámetros.
      */
-    fun predictRefinedIRH(temp: Double, hum: Double, luz: Int): Double {
+    fun predictRefinedIRH(temp: Double, hum: Double, luz: Int, soil: Double): Double {
         val input = floatArrayOf(
-            PredictiveTheorem.calcularEstresTemperatura(temp).toFloat() / 100f,
-            PredictiveTheorem.calcularEstresHumedad(hum).toFloat() / 100f,
-            PredictiveTheorem.calcularEstresLuz(luz).toFloat() / 100f
+            PredictiveTheorem.calcularEstresVariable(temp, 20.0, 30.0).toFloat() / 100f,
+            PredictiveTheorem.calcularEstresVariable(hum, 40.0, 70.0).toFloat() / 100f,
+            PredictiveTheorem.calcularEstresVariable(luz.toDouble(), 30.0, 80.0).toFloat() / 100f,
+            PredictiveTheorem.calcularEstresVariable(soil, 30.0, 70.0).toFloat() / 100f
         )
 
         // Capa Oculta
@@ -69,25 +66,22 @@ class HerbalAI(context: Context) {
         return irhResult.toDouble().coerceIn(0.0, 100.0)
     }
 
-    /**
-     * Entrenamiento (Backpropagation): Aprende de los datos históricos.
-     */
     fun performSelfLearning(history: List<SensorReading>) {
         if (history.size < 15) return
 
-        Log.d(TAG, "Entrenando Red Neuronal MLP con ${history.size} registros...")
+        Log.d(TAG, "Entrenando Red Neuronal con ${history.size} registros y 4 parámetros...")
 
-        repeat(100) { // Épocas de entrenamiento
+        repeat(100) {
             for (reading in history) {
-                // Preprocesamiento (Normalización 0-1)
                 val input = floatArrayOf(
-                    PredictiveTheorem.calcularEstresTemperatura(reading.temperature).toFloat() / 100f,
-                    PredictiveTheorem.calcularEstresHumedad(reading.humidity).toFloat() / 100f,
-                    PredictiveTheorem.calcularEstresLuz(reading.light).toFloat() / 100f
+                    PredictiveTheorem.calcularEstresVariable(reading.temperature, 20.0, 30.0).toFloat() / 100f,
+                    PredictiveTheorem.calcularEstresVariable(reading.humidity, 40.0, 70.0).toFloat() / 100f,
+                    PredictiveTheorem.calcularEstresVariable(reading.light.toDouble(), 30.0, 80.0).toFloat() / 100f,
+                    PredictiveTheorem.calcularEstresVariable(reading.soilMoisture, 30.0, 70.0).toFloat() / 100f
                 )
                 val target = reading.irh.toFloat() / 100f
 
-                // --- 1. Feed-forward ---
+                // Feed-forward
                 val hiddenLayer = FloatArray(hiddenSize)
                 for (j in 0 until hiddenSize) {
                     var act = biasHidden[j]
@@ -99,7 +93,7 @@ class HerbalAI(context: Context) {
                 for (j in 0 until hiddenSize) outputAct += hiddenLayer[j] * weightsHiddenOutput[j]
                 val output = sigmoid(outputAct)
 
-                // --- 2. Backpropagation ---
+                // Backpropagation
                 val outputError = target - output
                 val outputDelta = outputError * sigmoidDeriv(output)
 
@@ -109,7 +103,7 @@ class HerbalAI(context: Context) {
                     hiddenDeltas[j] = hiddenError * sigmoidDeriv(hiddenLayer[j])
                 }
 
-                // --- 3. Actualización de Pesos ---
+                // Update Weights
                 for (j in 0 until hiddenSize) {
                     weightsHiddenOutput[j] += learningRate * outputDelta * hiddenLayer[j]
                     biasOutput += learningRate * outputDelta
@@ -122,12 +116,11 @@ class HerbalAI(context: Context) {
         }
 
         saveWeights()
-        Log.d(TAG, "Ciclo de Deep Learning completado. Pesos actualizados.")
+        Log.d(TAG, "Aprendizaje 4-parámetros completado.")
     }
 
     private fun loadWeights() {
         if (!prefs.contains("initialized")) {
-            // Inicialización Xavier/Glorot aleatoria
             for (i in 0 until inputSize) {
                 for (j in 0 until hiddenSize) weightsInputHidden[i][j] = Random.nextFloat() * 2f - 1f
             }
