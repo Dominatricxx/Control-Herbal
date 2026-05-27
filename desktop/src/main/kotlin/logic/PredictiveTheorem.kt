@@ -1,10 +1,9 @@
-package com.example.controlherbal.logic
+package logic
 
 import kotlin.math.abs
 
 object PredictiveTheorem {
 
-    // Rangos por tipo de planta (basados en Arduino-Herbal-Mini)
     data class Range(
         val tempMin: Double, val tempMax: Double,
         val humMin: Double, val humMax: Double,
@@ -18,7 +17,6 @@ object PredictiveTheorem {
         "Sombra" to Range(15.0, 25.0, 40.0, 60.0, 10, 40, 50.0, 80.0)
     )
 
-    // Coeficientes IRH actualizados (Arduino)
     const val COEF_HUM_AMB = 0.25
     const val COEF_TEMP = 0.25
     const val COEF_LUZ = 0.15
@@ -28,13 +26,6 @@ object PredictiveTheorem {
     const val IRH_ADVERTENCIA = 50.0
     const val IRH_RIESGO = 75.0
     const val IRH_CRITICO = 100.0
-
-    // Constantes de optimización para la UI
-    const val TEMP_OPTIMA_MIN = 18.0
-    const val TEMP_OPTIMA_MAX = 28.0
-    const val HUM_OPTIMA_MIN = 40.0
-    const val HUM_OPTIMA_MAX = 70.0
-    const val LUZ_OPTIMA_MAX = 80
 
     const val PREDICCION_MIN_HORAS = 2.0
     const val PREDICCION_MAX_HORAS = 6.0
@@ -77,7 +68,7 @@ object PredictiveTheorem {
         if (temp < r.tempMin) return "❄️ Ambiente frío, proteja la planta del clima"
         if (luz < r.luzMin) return "🌑 Poca luz detectada, acerque la planta a una ventana"
         
-        return "✅ Condiciones óptimas. El equilibrio hídrico y ambiental es saludable."
+        return "✅ Condiciones óptimas"
     }
 
     data class AnalysisResult(
@@ -123,17 +114,14 @@ object PredictiveTheorem {
         if (deltaSoil < -2.0) tendS = 15.0
         else if (deltaSoil > 5.0) tendS = 5.0
 
-        // Cálculo IRH unificado con Arduino
         var irh = (estresH * COEF_HUM_AMB) + (estresT * COEF_TEMP) + (estresL * COEF_LUZ) + (estresS * COEF_SUELO)
         irh += (tendH * 0.05) + (tendT * 0.05) + (tendL * 0.05) + (tendS * 0.1)
         irh = irh.coerceIn(0.0, 100.0)
 
         val recommendation = generarRecomendacion(temp, hum, luz, soil, plantType)
 
-        // Lógica de riego basada primordialmente en humedad de suelo
         val wateringRecommended = soil < r.soilMin || (soil < r.soilMin + 5.0 && deltaSoil < -1.0)
         
-        // Estimación de próximo riego (proporcional al estrés de suelo)
         val nextWateringHours = if (wateringRecommended) 0.0 else {
             val h = (soil - r.soilMin) / (abs(deltaSoil) + 0.1)
             h.coerceIn(0.0, 48.0)

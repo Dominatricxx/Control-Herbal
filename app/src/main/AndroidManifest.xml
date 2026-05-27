@@ -42,5 +42,9 @@
         <activity
             android:name=".PlantSetupActivity"
             android:label="Configuracion de Planta" />
+        <activity
+            android:name=".ComparisonActivity"
+            android:label="Comparador de Plantas"
+            android:parentActivityName=".MainActivity" />
     </application>
 </manifest>

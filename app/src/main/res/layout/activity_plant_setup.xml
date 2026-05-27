@@ -51,63 +51,72 @@
         app:boxCornerRadiusTopEnd="28dp"
         app:boxCornerRadiusBottomStart="28dp"
         app:boxCornerRadiusBottomEnd="28dp"
+        app:hintEnabled="true"
+        app:hintAnimationEnabled="true"
         android:layout_marginBottom="16dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etPlantName"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             android:inputType="textCapSentences"
-            android:gravity="center" />
+            android:gravity="center"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:textAlignment="center" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/plant_type_label"
-        android:layout_marginBottom="8dp"
-        android:textColor="#757575"
-        android:gravity="center" />
-
-    <Spinner
-        android:id="@+id/spinnerPlantType"
-        android:layout_width="280dp"
-        android:layout_height="48dp"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/rounded_background"
-        android:backgroundTint="#E0E0E0"
-        android:gravity="center"
-        android:textAlignment="center"
-        android:popupBackground="@drawable/spinner_dropdown_background" />
+        android:hint="@string/plant_type_label"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        app:boxCornerRadiusTopStart="28dp"
+        app:boxCornerRadiusTopEnd="28dp"
+        app:boxCornerRadiusBottomStart="28dp"
+        app:boxCornerRadiusBottomEnd="28dp"
+        android:layout_marginBottom="16dp">
+        <AutoCompleteTextView
+            android:id="@+id/spinnerPlantType"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:inputType="none"
+            android:gravity="center"
+            android:textAlignment="center"
+            android:padding="16dp"
+            android:popupBackground="@drawable/spinner_dropdown_background" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <Button
         android:id="@+id/btnSelectSpecificPlant"
-        android:layout_width="280dp"
-        android:layout_height="48dp"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
         android:layout_marginBottom="24dp"
         android:text="Seleccionar Planta"
         android:visibility="gone"
         android:backgroundTint="#81C784"
         android:textColor="#FFFFFF"
-        app:cornerRadius="24dp" />
+        app:cornerRadius="28dp" />
 
-    <TextView
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/environment_label"
-        android:layout_marginBottom="8dp"
-        android:textColor="#757575"
-        android:gravity="center" />
-
-    <Spinner
-        android:id="@+id/spinnerEnvironment"
-        android:layout_width="280dp"
-        android:layout_height="48dp"
-        android:layout_marginBottom="48dp"
-        android:background="@drawable/rounded_background"
-        android:backgroundTint="#E0E0E0"
-        android:gravity="center"
-        android:textAlignment="center"
-        android:popupBackground="@drawable/spinner_dropdown_background" />
+        android:hint="@string/environment_label"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        app:boxCornerRadiusTopStart="28dp"
+        app:boxCornerRadiusTopEnd="28dp"
+        app:boxCornerRadiusBottomStart="28dp"
+        app:boxCornerRadiusBottomEnd="28dp"
+        android:layout_marginBottom="48dp">
+        <AutoCompleteTextView
+            android:id="@+id/spinnerEnvironment"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:inputType="none"
+            android:gravity="center"
+            android:textAlignment="center"
+            android:padding="16dp"
+            android:popupBackground="@drawable/spinner_dropdown_background" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <Button
         android:id="@+id/btnSavePlant"

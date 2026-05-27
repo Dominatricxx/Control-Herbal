@@ -28,8 +28,8 @@ import kotlinx.coroutines.withContext
 class PlantSetupActivity : AppCompatActivity() {
 
     private lateinit var etPlantName: EditText
-    private lateinit var spinnerPlantType: Spinner
-    private lateinit var spinnerEnvironment: Spinner
+    private lateinit var spinnerPlantType: AutoCompleteTextView
+    private lateinit var spinnerEnvironment: AutoCompleteTextView
     private lateinit var btnSelectSpecificPlant: Button
     private var selectedPlantData: PredefinedPlant? = null
     private var customPlantType: String? = null
@@ -103,6 +103,9 @@ class PlantSetupActivity : AppCompatActivity() {
         }
     }
 
+    private var categories: List<String> = emptyList()
+    private var environments: List<String> = emptyList()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_plant_setup)
@@ -116,17 +119,20 @@ class PlantSetupActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener { finish() }
 
-        val categories = mutableListOf("Seleccionar Categoría...")
-        categories.addAll(plantCategories.keys)
-        categories.add("Otro 🌱")
+        val categoryList = mutableListOf("Seleccionar Categoría...")
+        categoryList.addAll(plantCategories.keys)
+        categoryList.add("Otro 🌱")
+        categories = categoryList
 
-        val environments = arrayOf("Luz 🌞", "Sombra 🌥️", "Híbrido ⛅")
+        environments = listOf("Luz 🌞", "Sombra 🌥️", "Híbrido ⛅")
 
-        spinnerPlantType.adapter = ArrayAdapter(this, R.layout.spinner_item, categories)
-        spinnerEnvironment.adapter = ArrayAdapter(this, R.layout.spinner_item, environments)
+        val adapterType = ArrayAdapter(this, R.layout.spinner_item, categories)
+        spinnerPlantType.setAdapter(adapterType)
 
-        spinnerPlantType.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+        val adapterEnv = ArrayAdapter(this, R.layout.spinner_item, environments)
+        spinnerEnvironment.setAdapter(adapterEnv)
+
+        spinnerPlantType.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
                 val selected = categories[position]
                 currentCategory = selected
                 when {
@@ -144,8 +150,6 @@ class PlantSetupActivity : AppCompatActivity() {
                         showPlantSelectionDialog(selected)
                     }
                 }
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         btnSelectSpecificPlant.setOnClickListener {
@@ -172,7 +176,7 @@ class PlantSetupActivity : AppCompatActivity() {
                 }
             }
             
-            val environment = spinnerEnvironment.selectedItem.toString()
+            val environment = spinnerEnvironment.text.toString()
 
             savePlantAndFinish(name, type, environment)
         }
@@ -180,21 +184,30 @@ class PlantSetupActivity : AppCompatActivity() {
 
     private fun showPlantSelectionDialog(category: String) {
         val plants = plantCategories[category] ?: return
-        val plantNames = plants.map { "${it.name} ${it.emoji}" }.toTypedArray()
+        val plantNames = plants.map { "${it.name} ${it.emoji}" }
 
-        AlertDialog.Builder(this)
-            .setTitle("Selecciona ${category.split(" ").first()}")
-            .setItems(plantNames) { _, which ->
-                val plant = plants[which]
-                selectPredefinedPlant(plant, category)
-            }
-            .setCancelable(false)
-            .setNegativeButton("Cancelar") { _, _ -> 
-                if (selectedPlantData == null) {
-                    spinnerPlantType.setSelection(0)
-                }
-            }
-            .show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_rounded_list, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        tvTitle.text = "Selecciona ${category.split(" ").first()}"
+        
+        val listView = dialogView.findViewById<ListView>(R.id.dialogListView)
+        val adapter = ArrayAdapter(this, R.layout.item_plant_selection, plantNames)
+        listView.adapter = adapter
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        listView.setOnItemClickListener { _, _, which, _ ->
+            val plant = plants[which]
+            selectPredefinedPlant(plant, category)
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun selectPredefinedPlant(plant: PredefinedPlant, category: String) {
@@ -214,7 +227,7 @@ class PlantSetupActivity : AppCompatActivity() {
         val environments = arrayOf("Luz 🌞", "Sombra 🌥️", "Híbrido ⛅")
         val envIndex = environments.indexOf(plant.environment)
         if (envIndex >= 0) {
-            spinnerEnvironment.setSelection(envIndex)
+            spinnerEnvironment.setText(environments[envIndex], false)
         }
         spinnerEnvironment.isEnabled = false
         spinnerEnvironment.alpha = 0.6f
@@ -223,7 +236,9 @@ class PlantSetupActivity : AppCompatActivity() {
     private fun resetEnvironmentSpinner() {
         spinnerEnvironment.isEnabled = true
         spinnerEnvironment.alpha = 1.0f
-        spinnerEnvironment.setSelection(0)
+        if (environments.isNotEmpty()) {
+            spinnerEnvironment.setText(environments[0], false)
+        }
     }
 
     private fun showOtherOptionsDialog() {
@@ -273,7 +288,9 @@ class PlantSetupActivity : AppCompatActivity() {
             }
         }
         btnCancel.setOnClickListener {
-            spinnerPlantType.setSelection(0)
+            if (categories.isNotEmpty()) {
+                spinnerPlantType.setText(categories[0], false)
+            }
             dialog.dismiss()
         }
         dialog.show()
@@ -329,7 +346,7 @@ class PlantSetupActivity : AppCompatActivity() {
                     
                     if (result.contains("No es una planta", ignoreCase = true)) {
                         Toast.makeText(this@PlantSetupActivity, "No se detectó una planta.", Toast.LENGTH_LONG).show()
-                        spinnerPlantType.setSelection(0)
+                        spinnerPlantType.setText(categories[0], false)
                     } else {
                         // Intentar extraer ambiente para auto-configurar
                         if (result.contains("| Ambiente:")) {
@@ -340,7 +357,7 @@ class PlantSetupActivity : AppCompatActivity() {
                             val environments = arrayOf("Luz", "Sombra", "Híbrido")
                             val envIndex = environments.indexOfFirst { envText.contains(it, ignoreCase = true) }
                             if (envIndex >= 0) {
-                                spinnerEnvironment.setSelection(envIndex)
+                                spinnerEnvironment.setText(environments[envIndex], false)
                                 spinnerEnvironment.isEnabled = false
                                 spinnerEnvironment.alpha = 0.6f
                             }

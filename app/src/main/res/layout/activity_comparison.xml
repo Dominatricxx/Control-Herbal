@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvComparisonTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Comparación de Plantas"
+            android:textColor="#2E7D32"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnSelectPlant1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="Planta 1"
+                android:backgroundTint="#2E7D32"
+                android:textSize="12sp"
+                app:cornerRadius="8dp" />
+
+            <Button
+                android:id="@+id/btnSelectPlant2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="Planta 2"
+                android:backgroundTint="#2E7D32"
+                android:textSize="12sp"
+                app:cornerRadius="8dp" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="400dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:layout_marginBottom="8dp">
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <CheckBox android:id="@+id/cbTemp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Temp" android:checked="true" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbHum" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hum" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbSoil" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Suelo" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbLuz" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Luz" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbIRH" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="IRH" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/comparisonChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <!-- Data Plant 1 -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardPlant1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="12dp"
+                android:visibility="invisible">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <TextView android:id="@+id/tvNameP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" android:textColor="#2E7D32"/>
+                    <TextView android:id="@+id/tvTempP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvHumP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvSoilP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvLuzP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvIrhP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" android:textColor="#D32F2F" android:textSize="12sp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Data Plant 2 -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardPlant2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                app:cardCornerRadius="12dp"
+                android:visibility="invisible">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <TextView android:id="@+id/tvNameP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" android:textColor="#1B5E20"/>
+                    <TextView android:id="@+id/tvTempP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvHumP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvSoilP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvLuzP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvIrhP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" android:textColor="#D32F2F" android:textSize="12sp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

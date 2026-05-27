@@ -198,7 +198,7 @@
                             android:textColor="#212121" />
                     </LinearLayout>
 
-                    <!-- Humedad -->
+                    <!-- Humedad Ambiente -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -208,7 +208,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="💧 Humedad"
+                            android:text="💧 Hum. Ambiente"
                             android:textSize="14sp"
                             android:textColor="#757575" />
                         <TextView
@@ -219,6 +219,29 @@
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:textColor="#212121" />
+                    </LinearLayout>
+
+                    <!-- Humedad Tierra (Suelo) -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🪴 Hum. Tierra"
+                            android:textSize="14sp"
+                            android:textColor="#757575" />
+                        <TextView
+                            android:id="@+id/tvSoil"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="-- %"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:textColor="#2E7D32" />
                     </LinearLayout>
 
                     <!-- Luz Solar -->
@@ -248,6 +271,9 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
+                        android:layout_columnSpan="2"
+                        android:gravity="center"
+                        android:layout_marginTop="8dp"
                         android:orientation="vertical">
                         <TextView
                             android:layout_width="wrap_content"
@@ -406,7 +432,7 @@
         <!-- Tarjeta de gráficas -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
-            android:layout_height="300dp"
+            android:layout_height="380dp"
             android:layout_marginTop="20dp"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="16dp"
@@ -427,8 +453,26 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <com.github.mikephil.charting.charts.LineChart
-                    android:id="@+id/lineChart"
+                <!-- Filtros de Gráfica -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:layout_marginBottom="8dp">
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <CheckBox android:id="@+id/cbTemp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Temp" android:checked="true" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbHum" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hum" android:checked="true" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbSoil" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Suelo" android:checked="true" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbLuz" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Luz" android:checked="true" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbIRH" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="IRH" android:checked="true" android:buttonTint="?attr/colorPrimary"/>
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <com.github.mikephil.charting.charts.CombinedChart
+                    android:id="@+id/combinedChart"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
             </LinearLayout>

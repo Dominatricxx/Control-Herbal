@@ -7,5 +7,29 @@
         <item name="colorSecondaryVariant">#4CAF50</item>
         <item name="colorOnSecondary">@color/black</item>
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+
+        <!-- Global Rounded Dialogs and Popups -->
+        <item name="materialAlertDialogTheme">@style/RoundedMaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/RoundedMaterialAlertDialog</item>
+        <item name="popupMenuStyle">@style/RoundedPopupMenu</item>
+        <item name="android:listPopupWindowStyle">@style/RoundedListPopupWindow</item>
+        <item name="listPopupWindowStyle">@style/RoundedListPopupWindow</item>
+    </style>
+
+    <style name="RoundedMaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.ControlHerbal.Dialog.Rounded</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.ControlHerbal.Dialog.Rounded" parent="">
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="RoundedPopupMenu" parent="Widget.MaterialComponents.PopupMenu">
+        <item name="android:popupBackground">@drawable/spinner_dropdown_background</item>
+    </style>
+
+    <style name="RoundedListPopupWindow" parent="Widget.AppCompat.ListPopupWindow">
+        <item name="android:popupBackground">@drawable/spinner_dropdown_background</item>
     </style>
 </resources>

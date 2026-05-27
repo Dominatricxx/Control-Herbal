@@ -13,10 +13,8 @@ import androidx.drawerlayout.widget.DrawerLayout
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
-import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.charts.CombinedChart
+import com.github.mikephil.charting.data.*
 import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,9 +27,15 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     private lateinit var tvTitle: TextView
     private lateinit var tvAvgTemp: TextView
     private lateinit var tvAvgHum: TextView
+    private lateinit var tvAvgSoil: TextView
     private lateinit var tvAvgLuz: TextView
     private lateinit var tvAvgIRH: TextView
-    private lateinit var lineChart: LineChart
+    private lateinit var combinedChart: CombinedChart
+    private lateinit var cbTemp: android.widget.CheckBox
+    private lateinit var cbHum: android.widget.CheckBox
+    private lateinit var cbSoil: android.widget.CheckBox
+    private lateinit var cbLuz: android.widget.CheckBox
+    private lateinit var cbIRH: android.widget.CheckBox
     private lateinit var databaseLocal: SensorDatabase
     private val ioScope = CoroutineScope(Dispatchers.IO)
     private var currentPlant: Plant? = null
@@ -65,10 +69,27 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         
         tvAvgTemp = findViewById(R.id.tvAvgTemp)
         tvAvgHum = findViewById(R.id.tvAvgHum)
+        tvAvgSoil = findViewById(R.id.tvAvgSoil)
         tvAvgLuz = findViewById(R.id.tvAvgLuz)
         tvAvgIRH = findViewById(R.id.tvAvgIRH)
         
-        lineChart = findViewById(R.id.historyChart)
+        combinedChart = findViewById(R.id.combinedChart)
+        cbTemp = findViewById(R.id.cbTemp)
+        cbHum = findViewById(R.id.cbHum)
+        cbSoil = findViewById(R.id.cbSoil)
+        cbLuz = findViewById(R.id.cbLuz)
+        cbIRH = findViewById(R.id.cbIRH)
+
+        val chartListener = android.widget.CompoundButton.OnCheckedChangeListener { _, _ -> 
+            val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+            loadHistoryData(type)
+        }
+        cbTemp.setOnCheckedChangeListener(chartListener)
+        cbHum.setOnCheckedChangeListener(chartListener)
+        cbSoil.setOnCheckedChangeListener(chartListener)
+        cbLuz.setOnCheckedChangeListener(chartListener)
+        cbIRH.setOnCheckedChangeListener(chartListener)
+
         databaseLocal = SensorDatabase.getInstance(this)
 
         tvHeaderTitle.text = "Registro $type"
@@ -81,6 +102,7 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
             
             withContext(Dispatchers.Main) {
                 navView.menu.findItem(R.id.nav_plants).isVisible = plantCount >= 2
+                navView.menu.findItem(R.id.nav_comparison).isVisible = plantCount >= 2
                 loadHistoryData(type)
             }
         }
@@ -120,6 +142,9 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 val intent = Intent(this, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                 startActivity(intent)
+            }
+            R.id.nav_comparison -> {
+                startActivity(Intent(this, ComparisonActivity::class.java))
             }
             R.id.nav_delete_plant -> {
                 // Volver a MainActivity para gestionar la eliminación
@@ -162,19 +187,50 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     }
 
     private fun drawHistoryChart(readings: List<SensorReading>) {
-        val tempEntries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.temperature.toFloat()) }
-        val humEntries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.humidity.toFloat()) }
+        val combinedData = com.github.mikephil.charting.data.CombinedData()
+        val lineData = com.github.mikephil.charting.data.LineData()
 
-        val tempSet = LineDataSet(tempEntries, "Temperatura").apply {
-            color = Color.RED
-            setDrawCircles(false)
+        if (cbTemp.isChecked) {
+            val entries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.temperature.toFloat()) }
+            lineData.addDataSet(LineDataSet(entries, "Temperatura").apply { color = Color.RED; setDrawCircles(false) })
         }
-        val humSet = LineDataSet(humEntries, "Humedad").apply {
-            color = Color.BLUE
-            setDrawCircles(false)
+        if (cbHum.isChecked) {
+            val entries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.humidity.toFloat()) }
+            lineData.addDataSet(LineDataSet(entries, "Humedad").apply { color = Color.BLUE; setDrawCircles(false) })
+        }
+        if (cbSoil.isChecked) {
+            val entries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.soilMoisture.toFloat()) }
+            lineData.addDataSet(LineDataSet(entries, "Suelo").apply { color = Color.parseColor("#2E7D32"); setDrawCircles(false) })
+        }
+        if (cbLuz.isChecked) {
+            val entries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.light.toFloat()) }
+            lineData.addDataSet(LineDataSet(entries, "Luz").apply { color = Color.rgb(255, 215, 0); setDrawCircles(false) })
         }
 
-        lineChart.data = LineData(tempSet, humSet)
-        lineChart.invalidate()
+        combinedData.setData(lineData)
+
+        if (cbIRH.isChecked) {
+            val barEntries = readings.mapIndexed { i, r -> com.github.mikephil.charting.data.BarEntry(i.toFloat(), r.irh.toFloat()) }
+            val barDataSet = com.github.mikephil.charting.data.BarDataSet(barEntries, "IRH").apply {
+                color = Color.argb(150, 211, 47, 47)
+                setDrawValues(false)
+            }
+            combinedData.setData(com.github.mikephil.charting.data.BarData(barDataSet))
+        }
+
+        combinedChart.apply {
+            data = combinedData
+            description.isEnabled = false
+            xAxis.position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+            xAxis.valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                private val sdf = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault())
+                override fun getAxisLabel(v: Float, a: com.github.mikephil.charting.components.AxisBase?): String {
+                    val idx = v.toInt()
+                    return if (idx in readings.indices) sdf.format(java.util.Date(readings[idx].timestamp)) else ""
+                }
+            }
+            axisRight.isEnabled = false
+            invalidate()
+        }
     }
 }

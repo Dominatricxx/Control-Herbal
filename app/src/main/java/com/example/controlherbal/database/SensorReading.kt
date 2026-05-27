@@ -6,10 +6,11 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "sensor_readings")
 data class SensorReading(
     @PrimaryKey val timestamp: Long,
-    val plantId: Int, // Enlazado a la planta específica
+    val plantId: Int,
     val temperature: Double,
     val humidity: Double,
     val light: Int,
+    val soilMoisture: Double, // Nuevo campo
     val irh: Double,
     val seq: Double,
     val somb: Double,

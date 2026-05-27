@@ -9,6 +9,10 @@
             android:title="Mis plantas 🪴"
             android:visible="false" />
         <item
+            android:id="@+id/nav_comparison"
+            android:title="Comparar Plantas 📊"
+            android:visible="false" />
+        <item
             android:id="@+id/nav_daily"
             android:title="Registro Diario" />
         <item

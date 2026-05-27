@@ -13,6 +13,7 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="#2E7D32"
+        android:gravity="center"
         android:layout_marginBottom="16dp" />
 
     <TextView
@@ -21,13 +22,14 @@
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:textColor="#212121"
+        android:gravity="center"
         android:layout_marginBottom="24dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="end">
+        android:gravity="center">
 
         <Button
             android:id="@+id/btnCancel"
