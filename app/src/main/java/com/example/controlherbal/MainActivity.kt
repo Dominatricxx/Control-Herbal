@@ -88,6 +88,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var tvPlantNameAndEmoji: TextView? = null
     private var layoutPlantInfo: View? = null
     private lateinit var btnAddPlant: ImageButton
+    private lateinit var btnResetData: Button
+    private lateinit var btnDeletePlant: Button
 
     private lateinit var databaseFirebase: DatabaseReference
     private val CHANNEL_ID = "herbal_alerts_channel"
@@ -112,6 +114,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     
     // BANDERA CRÍTICA DE VINCULACIÓN
     private var isLinkingInProgress = false
+    private var isFirstPacketAfterLinking = false
 
     private var lastWateringAlertState = 0 // 0: nada, 1: recomendado, 2: sobre-riego
 
@@ -120,7 +123,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // NO llamar a setContentView todavía para evitar el parpadeo blanco/principal
+        //No llamar a setContentView todavía para evitar el parpadeo blanco/principal
         databaseLocal = SensorDatabase.getInstance(this)
         
         ioScope.launch {
@@ -174,9 +177,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
         
-        // Aplicar color rojo al menú de eliminar planta
-        colorDeleteMenuItem(navView)
-
         findViewById<View>(R.id.btnMenu).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
@@ -241,6 +241,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             startActivity(intent)
         }
 
+        btnResetData = findViewById(R.id.btnResetData)
+        btnDeletePlant = findViewById(R.id.btnDeletePlant)
+        
+        btnResetData.setOnClickListener { showResetDataDialog() }
+        btnDeletePlant.setOnClickListener { showDeletePlantDialog() }
+
         btnConnect.setOnClickListener { 
             startFirebaseListener() 
         }
@@ -259,14 +265,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
         createNotificationChannel()
         requestNotificationPermission()
-    }
-
-    private fun colorDeleteMenuItem(navView: NavigationView) {
-        val menu = navView.menu
-        val deleteItem = menu.findItem(R.id.nav_delete_plant)
-        val s = SpannableString(deleteItem.title)
-        s.setSpan(ForegroundColorSpan(Color.RED), 0, s.length, 0)
-        deleteItem.title = s
     }
 
     private fun updateMenuVisibility(plantCount: Int) {
@@ -429,6 +427,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun startFirebaseListener() {
         Log.d(TAG, "Iniciando vinculación...")
         isLinkingInProgress = true
+        isFirstPacketAfterLinking = true
+        isDisconnected = false
         resetUIForLinking()
         
         btnConnect.text = "Vinculando a ESP-32..."
@@ -437,37 +437,64 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         firebaseListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
-                    // Log para depuración: ver qué llega exactamente del ESP-32
-                    Log.d(TAG, "Dato recibido de Firebase: ${snapshot.value}")
-                    
-                    handler.removeCallbacks(syncTimeoutRunnable)
-                    handler.postDelayed(syncTimeoutRunnable, 10000) // 10s de margen
-                    
                     if (snapshot.exists()) {
-                        // Manejo robusto de tipos (Number maneja tanto Double como Long/Int)
+                        val boot = (snapshot.child("boot").value as? Number)?.toInt() ?: -1
+                        
+                        // Detectar si el dato es "fresco" (ha cambiado el ciclo desde la última vez)
+                        val isDataChanging = lastBootCount != -1 && boot != lastBootCount
+
+                        if (isDataChanging) {
+                            handler.removeCallbacks(syncTimeoutRunnable)
+                            handler.postDelayed(syncTimeoutRunnable, 10000)
+                            
+                            if (isDisconnected) {
+                                isDisconnected = false
+                                runOnUiThread {
+                                    tvConnectionState.text = "Sincronizado"
+                                    tvConnectionState.setTextColor(Color.parseColor("#2E7D32"))
+                                    btnConnect.text = "DISPOSITIVO VINCULADO ✅"
+                                }
+                            }
+                        }
+
+                        if (isLinkingInProgress) {
+                            if (isFirstPacketAfterLinking) {
+                                // Primer paquete recibido: lo guardamos pero no damos por terminada la vinculación
+                                // para evitar usar datos "stale" (viejos) de la base de datos de Firebase.
+                                lastBootCount = boot
+                                isFirstPacketAfterLinking = false
+                                runOnUiThread {
+                                    btnConnect.text = "Esperando señal..."
+                                    tvConnectionState.text = "Conectando..."
+                                }
+                                return // No procesamos datos todavía
+                            } else if (boot != lastBootCount) {
+                                // El boot ha cambiado: el dispositivo está enviando datos en vivo
+                                isLinkingInProgress = false
+                                runOnUiThread {
+                                    btnConnect.text = "DISPOSITIVO VINCULADO ✅"
+                                    tvConnectionState.text = "Sincronizado"
+                                    tvConnectionState.setTextColor(Color.parseColor("#2E7D32"))
+                                }
+                            } else {
+                                // Sigue siendo el mismo paquete (posiblemente viejo), esperamos.
+                                return
+                            }
+                        }
+
+                        // A partir de aquí, proceso normal de datos
                         val temp = (snapshot.child("temp").value as? Number)?.toDouble() ?: 0.0
                         val hum = (snapshot.child("hum").value as? Number)?.toDouble() ?: 0.0
                         val luz = (snapshot.child("luz").value as? Number)?.toInt() ?: 0
                         val soil = (snapshot.child("soil").value as? Number)?.toDouble() ?: 0.0
-                        
-                        // Extraer campos de análisis del ESP-32 (Compatibilidad Arduino-Herbal-Mini)
                         val irh = (snapshot.child("irh").value as? Number)?.toDouble() ?: -1.0
                         val seq = (snapshot.child("seq").value as? Number)?.toDouble() ?: -1.0
                         val somb = (snapshot.child("somb").value as? Number)?.toDouble() ?: -1.0
                         val acc = snapshot.child("acc").value as? String ?: ""
-                        
-                        // Estado del dispositivo
-                        val boot = (snapshot.child("boot").value as? Number)?.toInt() ?: -1
                         val sensorsOk = (snapshot.child("sensores_ok").value as? Number)?.toInt() ?: 1
                         
-                        Log.d(TAG, "Procesando: T:$temp, H:$hum, L:$luz, S:$soil, IRH: $irh, Acc: $acc, Boot: $boot")
+                        if (temp == 0.0 && hum == 0.0 && luz == 0 && soil == 0.0) return
 
-                        if (temp == 0.0 && hum == 0.0 && luz == 0 && soil == 0.0) {
-                            Log.w(TAG, "Ignorando datos nulos (0,0,0,0)")
-                            return
-                        }
-
-                        // Detectar reinicio del ESP-32
                         if (lastBootCount != -1 && boot > 0 && boot < lastBootCount) {
                             runOnUiThread {
                                 Toast.makeText(this@MainActivity, "🔄 El dispositivo se ha reiniciado", Toast.LENGTH_SHORT).show()
@@ -483,16 +510,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             }
                         }
 
-                        if (isLinkingInProgress) {
-                            isLinkingInProgress = false
-                            runOnUiThread {
-                                btnConnect.text = "DISPOSITIVO VINCULADO ✅"
-                                tvConnectionState.text = "Sincronizado"
-                                tvConnectionState.setTextColor(Color.parseColor("#2E7D32"))
-                            }
-                        }
-                        
-                        // Delegar al ViewModel con los datos del hardware
                         viewModel.updateFromFirebase(temp, hum, luz, soil, currentPlant, lastReading, irh, seq, somb, acc)
                     } else {
                         Log.e(TAG, "El snapshot no existe en el path 'sensor'")
@@ -778,14 +795,58 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 startActivity(Intent(this, ComparisonActivity::class.java))
                 return true
             }
-            R.id.nav_delete_plant -> {
-                showDeletePlantDialog()
-                return true
-            }
         }
         startActivity(intent)
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun showResetDataDialog() {
+        val plant = currentPlant ?: return
+        val dialogView = layoutInflater.inflate(R.layout.dialog_reset_options, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvResetTitle)
+        tvTitle.text = "Reiniciar de '${plant.name}'"
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogView.findViewById<Button>(R.id.btnReset24h).setOnClickListener {
+            resetData(plant.id, System.currentTimeMillis() - (24 * 3600 * 1000L), System.currentTimeMillis(), false)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<Button>(R.id.btnReset7d).setOnClickListener {
+            resetData(plant.id, System.currentTimeMillis() - (7 * 24 * 3600 * 1000L), System.currentTimeMillis(), false)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<Button>(R.id.btnResetMonth).setOnClickListener {
+            resetData(plant.id, System.currentTimeMillis() - (30 * 24 * 3600 * 1000L), System.currentTimeMillis(), false)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<Button>(R.id.btnResetAll).setOnClickListener {
+            resetData(plant.id, 0, System.currentTimeMillis(), true)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<Button>(R.id.btnCancelReset).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun resetData(plantId: Int, start: Long, end: Long, isAll: Boolean) {
+        ioScope.launch {
+            if (isAll) {
+                databaseLocal.sensorDao().deleteAllByPlantId(plantId)
+            } else {
+                databaseLocal.sensorDao().deleteReadingsBetween(plantId, start, end)
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "Datos eliminados correctamente", Toast.LENGTH_SHORT).show()
+                loadDataAndDrawChart()
+            }
+        }
     }
 
     private fun showDeletePlantDialog() {
@@ -851,11 +912,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 val listView = dialogView.findViewById<android.widget.ListView>(R.id.dialogListView)
                 val adapter = object : android.widget.ArrayAdapter<Plant>(this@MainActivity, R.layout.item_plant_selection, plants) {
                     override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
-                        val view = super.getView(position, convertView, parent) as TextView
-                        val plant = getItem(position)
-                        val typeEmoji = plant?.type?.split(" ")?.lastOrNull() ?: ""
-                        view.text = "${plant?.name} $typeEmoji"
-                        return view
+                        val row = convertView ?: layoutInflater.inflate(R.layout.item_plant_selection, parent, false)
+                        val plant = getItem(position) ?: return row
+
+                        val tvName = row.findViewById<TextView>(R.id.tvItemPlantName)
+                        val tvDetails = row.findViewById<TextView>(R.id.tvItemPlantDetails)
+                        val tvScientific = row.findViewById<TextView>(R.id.tvItemPlantScientific)
+
+                        tvName.text = plant.name
+
+                        val fullType = plant.type
+                        val category = if (fullType.contains("Categoría:")) fullType.substringAfter("Categoría:").substringBefore("|").trim() else ""
+                        val typePart = if (fullType.contains("Tipo:")) fullType.substringAfter("Tipo:").substringBefore("(").trim() else fullType.substringBefore("(")
+                        val scientific = if (fullType.contains("(")) fullType.substringAfter("(").substringBefore(")") else ""
+
+                        tvDetails.text = "${if (category.isNotEmpty()) "$category | " else ""}$typePart | ${plant.environment}"
+                        tvScientific.text = if (scientific.isNotEmpty()) "($scientific)" else ""
+                        tvScientific.visibility = if (scientific.isNotEmpty()) View.VISIBLE else View.GONE
+
+                        return row
                     }
                 }
                 

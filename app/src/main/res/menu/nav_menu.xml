@@ -23,7 +23,4 @@
             android:title="Registro Mensual" />
     </group>
 
-    <item
-        android:id="@+id/nav_delete_plant"
-        android:title="Eliminar planta actual" />
 </menu>

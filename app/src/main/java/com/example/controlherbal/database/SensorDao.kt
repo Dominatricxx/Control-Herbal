@@ -27,4 +27,7 @@ interface SensorDao {
 
     @Query("DELETE FROM sensor_readings WHERE plantId = :plantId")
     suspend fun deleteAllByPlantId(plantId: Int)
+
+    @Query("DELETE FROM sensor_readings WHERE plantId = :plantId AND timestamp BETWEEN :startTime AND :endTime")
+    suspend fun deleteReadingsBetween(plantId: Int, startTime: Long, endTime: Long)
 }

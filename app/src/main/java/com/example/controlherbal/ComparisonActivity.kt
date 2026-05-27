@@ -69,7 +69,6 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
-        colorDeleteMenuItem(navView)
 
         findViewById<View>(R.id.btnMenu).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
@@ -121,14 +120,6 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
         }
     }
 
-    private fun colorDeleteMenuItem(navView: NavigationView) {
-        val menu = navView.menu
-        val deleteItem = menu.findItem(R.id.nav_delete_plant)
-        val s = SpannableString(deleteItem.title)
-        s.setSpan(ForegroundColorSpan(Color.RED), 0, s.length, 0)
-        deleteItem.title = s
-    }
-
     private fun showPlantSelectionDialog(slot: Int) {
         ioScope.launch {
             val plants = databaseLocal.plantDao().getAll()
@@ -142,10 +133,25 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
                 val listView = dialogView.findViewById<ListView>(R.id.dialogListView)
                 val adapter = object : ArrayAdapter<Plant>(this@ComparisonActivity, R.layout.item_plant_selection, plants) {
                     override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
-                        val view = super.getView(position, convertView, parent) as TextView
-                        val plant = getItem(position)
-                        view.text = plant?.name ?: ""
-                        return view
+                        val row = convertView ?: layoutInflater.inflate(R.layout.item_plant_selection, parent, false)
+                        val plant = getItem(position) ?: return row
+
+                        val tvName = row.findViewById<TextView>(R.id.tvItemPlantName)
+                        val tvDetails = row.findViewById<TextView>(R.id.tvItemPlantDetails)
+                        val tvScientific = row.findViewById<TextView>(R.id.tvItemPlantScientific)
+
+                        tvName.text = plant.name
+
+                        val fullType = plant.type
+                        val category = if (fullType.contains("Categoría:")) fullType.substringAfter("Categoría:").substringBefore("|").trim() else ""
+                        val typePart = if (fullType.contains("Tipo:")) fullType.substringAfter("Tipo:").substringBefore("(").trim() else fullType.substringBefore("(")
+                        val scientific = if (fullType.contains("(")) fullType.substringAfter("(").substringBefore(")") else ""
+
+                        tvDetails.text = "${if (category.isNotEmpty()) "$category | " else ""}$typePart | ${plant.environment}"
+                        tvScientific.text = if (scientific.isNotEmpty()) "($scientific)" else ""
+                        tvScientific.visibility = if (scientific.isNotEmpty()) View.VISIBLE else View.GONE
+
+                        return row
                     }
                 }
                 listView.adapter = adapter
@@ -280,7 +286,6 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
             R.id.nav_weekly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra("HISTORY_TYPE", "SEMANAL"))
             R.id.nav_monthly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra("HISTORY_TYPE", "MENSUAL"))
             R.id.nav_plants -> startActivity(Intent(this, MainActivity::class.java))
-            R.id.nav_delete_plant -> startActivity(Intent(this, MainActivity::class.java))
         }
         drawerLayout.closeDrawer(GravityCompat.START)
         return true

@@ -36,6 +36,8 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     private lateinit var cbSoil: android.widget.CheckBox
     private lateinit var cbLuz: android.widget.CheckBox
     private lateinit var cbIRH: android.widget.CheckBox
+    private lateinit var btnResetData: android.widget.Button
+    private lateinit var btnDeletePlant: android.widget.Button
     private lateinit var databaseLocal: SensorDatabase
     private val ioScope = CoroutineScope(Dispatchers.IO)
     private var currentPlant: Plant? = null
@@ -48,9 +50,6 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
         
-        // Colorear el menú de eliminar planta
-        colorDeleteMenuItem(navView)
-
         val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
         
         findViewById<View>(R.id.btnMenu).setOnClickListener {
@@ -90,6 +89,12 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         cbLuz.setOnCheckedChangeListener(chartListener)
         cbIRH.setOnCheckedChangeListener(chartListener)
 
+        btnResetData = findViewById(R.id.btnResetData)
+        btnDeletePlant = findViewById(R.id.btnDeletePlant)
+        
+        btnResetData.setOnClickListener { showResetDataDialog() }
+        btnDeletePlant.setOnClickListener { showDeletePlantDialog() }
+
         databaseLocal = SensorDatabase.getInstance(this)
 
         tvHeaderTitle.text = "Registro $type"
@@ -106,14 +111,6 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 loadHistoryData(type)
             }
         }
-    }
-
-    private fun colorDeleteMenuItem(navView: NavigationView) {
-        val menu = navView.menu
-        val deleteItem = menu.findItem(R.id.nav_delete_plant)
-        val s = SpannableString(deleteItem.title)
-        s.setSpan(ForegroundColorSpan(Color.RED), 0, s.length, 0)
-        deleteItem.title = s
     }
 
     override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
@@ -145,11 +142,6 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
             }
             R.id.nav_comparison -> {
                 startActivity(Intent(this, ComparisonActivity::class.java))
-            }
-            R.id.nav_delete_plant -> {
-                // Volver a MainActivity para gestionar la eliminación
-                val intent = Intent(this, MainActivity::class.java)
-                startActivity(intent)
             }
         }
         drawerLayout.closeDrawer(GravityCompat.START)
@@ -231,6 +223,102 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
             }
             axisRight.isEnabled = false
             invalidate()
+        }
+    }
+
+    private fun showResetDataDialog() {
+        val plant = currentPlant ?: return
+        val dialogView = layoutInflater.inflate(R.layout.dialog_reset_options, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvResetTitle)
+        tvTitle.text = "Reiniciar de '${plant.name}'"
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogView.findViewById<android.widget.Button>(R.id.btnReset24h).setOnClickListener {
+            resetData(plant.id, System.currentTimeMillis() - (24 * 3600 * 1000L), System.currentTimeMillis(), false)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<android.widget.Button>(R.id.btnReset7d).setOnClickListener {
+            resetData(plant.id, System.currentTimeMillis() - (7 * 24 * 3600 * 1000L), System.currentTimeMillis(), false)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<android.widget.Button>(R.id.btnResetMonth).setOnClickListener {
+            resetData(plant.id, System.currentTimeMillis() - (30 * 24 * 3600 * 1000L), System.currentTimeMillis(), false)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<android.widget.Button>(R.id.btnResetAll).setOnClickListener {
+            resetData(plant.id, 0, System.currentTimeMillis(), true)
+            dialog.dismiss()
+        }
+        dialogView.findViewById<android.widget.Button>(R.id.btnCancelReset).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun resetData(plantId: Int, start: Long, end: Long, isAll: Boolean) {
+        ioScope.launch {
+            if (isAll) {
+                databaseLocal.sensorDao().deleteAllByPlantId(plantId)
+            } else {
+                databaseLocal.sensorDao().deleteReadingsBetween(plantId, start, end)
+            }
+            withContext(Dispatchers.Main) {
+                android.widget.Toast.makeText(this@HistoryActivity, "Datos eliminados correctamente", android.widget.Toast.LENGTH_SHORT).show()
+                val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+                loadHistoryData(type)
+            }
+        }
+    }
+
+    private fun showDeletePlantDialog() {
+        val plant = currentPlant ?: return
+        val dialogView = layoutInflater.inflate(R.layout.dialog_confirm, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val tvMessage = dialogView.findViewById<TextView>(R.id.tvMessage)
+        val btnCancel = dialogView.findViewById<android.widget.Button>(R.id.btnCancel)
+        val btnAction = dialogView.findViewById<android.widget.Button>(R.id.btnAction)
+
+        tvTitle.text = "Eliminar planta"
+        tvMessage.text = "¿Estás seguro de que quieres eliminar a '${plant.name}'? Se perderán todos sus datos."
+        btnAction.text = "Eliminar"
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnAction.setOnClickListener {
+            deleteCurrentPlant()
+            dialog.dismiss()
+        }
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun deleteCurrentPlant() {
+        val plantToDelete = currentPlant ?: return
+        ioScope.launch {
+            val db = databaseLocal
+            db.sensorDao().deleteAllByPlantId(plantToDelete.id)
+            db.plantDao().delete(plantToDelete)
+            
+            val remainingPlants = db.plantDao().getAll()
+            if (remainingPlants.isNotEmpty()) {
+                db.plantDao().update(remainingPlants[0].copy(isSelected = true))
+            }
+
+            withContext(Dispatchers.Main) {
+                val intent = Intent(this@HistoryActivity, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            }
         }
     }
 }
