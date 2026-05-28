@@ -646,19 +646,43 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (cbSoil.isChecked) lineData.addDataSet(LineDataSet(readings.mapIndexed { i, r -> Entry(i.toFloat(), r.soilMoisture.toFloat()) }, "Suelo").apply { color = Color.parseColor("#2E7D32"); setDrawCircles(false); lineWidth = 2.5f })
         if (cbLuz.isChecked) lineData.addDataSet(LineDataSet(readings.mapIndexed { i, r -> Entry(i.toFloat(), r.light.toFloat()) }, "Luz").apply { color = Color.rgb(255, 215, 0); setDrawCircles(false); lineWidth = 2f })
         combinedData.setData(lineData)
-        if (cbIRH.isChecked) combinedData.setData(com.github.mikephil.charting.data.BarData(com.github.mikephil.charting.data.BarDataSet(readings.mapIndexed { i, r -> com.github.mikephil.charting.data.BarEntry(i.toFloat(), r.irh.toFloat()) }, "IRH").apply { color = Color.argb(150, 211, 47, 47); setDrawValues(false) }))
+        if (cbIRH.isChecked) {
+            val barData = com.github.mikephil.charting.data.BarData(com.github.mikephil.charting.data.BarDataSet(readings.mapIndexed { i, r -> com.github.mikephil.charting.data.BarEntry(i.toFloat(), r.irh.toFloat()) }, "IRH").apply { color = Color.argb(150, 211, 47, 47); setDrawValues(false) })
+            barData.barWidth = 0.5f
+            combinedData.setData(barData)
+        }
+        
         combinedChart.apply {
             data = combinedData
             description.isEnabled = false
-            xAxis.position = XAxis.XAxisPosition.BOTTOM
-            xAxis.valueFormatter = object : ValueFormatter() {
-                private val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-                override fun getAxisLabel(v: Float, a: AxisBase?): String {
-                    val idx = v.toInt()
-                    return if (idx in readings.indices) sdf.format(Date(readings[idx].timestamp)) else ""
+            setExtraOffsets(5f, 5f, 5f, 15f)
+            
+            axisLeft.axisMinimum = 0f
+            axisLeft.axisMaximum = 105f
+            axisRight.isEnabled = false
+            
+            xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                granularity = 1f
+                labelRotationAngle = -30f
+                axisMinimum = -0.5f
+                axisMaximum = readings.size.toFloat() - 0.5f
+
+                valueFormatter = object : ValueFormatter() {
+                    private val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    override fun getAxisLabel(v: Float, a: AxisBase?): String {
+                        val idx = v.toInt()
+                        return if (idx in readings.indices) sdf.format(Date(readings[idx].timestamp)) else ""
+                    }
                 }
             }
-            axisRight.isEnabled = false
+            
+            setTouchEnabled(true)
+            isDragEnabled = true
+            isScaleXEnabled = true
+            isScaleYEnabled = false
+            
+            animateX(400)
             invalidate()
         }
     }
