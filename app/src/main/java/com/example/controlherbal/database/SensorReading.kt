@@ -9,7 +9,7 @@ data class SensorReading(
     val plantId: Int,
     val temperature: Double,
     val humidity: Double,
-    val light: Int,
+    val light: Double,
     val soilMoisture: Double, // Nuevo campo
     val irh: Double,
     val seq: Double,

@@ -61,25 +61,21 @@ class SensorForegroundService : Service() {
                         val boot = (snapshot.child("boot").value as? Number)?.toInt() ?: -1
                         val temp = (snapshot.child("temp").value as? Number)?.toDouble() ?: 0.0
                         val hum = (snapshot.child("hum").value as? Number)?.toDouble() ?: 0.0
-                        val luz = (snapshot.child("luz").value as? Number)?.toInt() ?: 0
+                        val luzRaw = (snapshot.child("luz").value as? Number)?.toDouble() ?: 0.0
                         val soil = (snapshot.child("soil").value as? Number)?.toDouble() ?: 0.0
                         
-                        if (temp == 0.0 && hum == 0.0 && luz == 0 && soil == 0.0) return@launch
+                        if (temp == 0.0 && hum == 0.0 && luzRaw == 0.0 && soil == 0.0) return@launch
 
                         val plant = databaseLocal.plantDao().getSelectedPlant() ?: return@launch
                         val lastReading = databaseLocal.sensorDao().getAllOrderByTimestampDesc(plant.id).firstOrNull()
 
                         // --- DETECCIÓN AUTOMÁTICA DE RIEGO ---
-                        // Si la humedad del suelo sube drásticamente (ej. +12%) entre lecturas
                         if (lastReading != null && soil > lastReading.soilMoisture + 12.0) {
                             val now = System.currentTimeMillis()
-                            // Solo registrar si han pasado al menos 30 min desde el último registro de riego 
-                            // para evitar duplicados por fluctuaciones de un mismo riego
                             if (now - plant.lastWateringTime > 1800000) {
-                                Log.d(TAG, "Riego detectado automáticamente por aumento de humedad (+${soil - lastReading.soilMoisture}%)")
                                 val updatedPlant = plant.copy(lastWateringTime = now, pendingSync = true)
                                 databaseLocal.plantDao().update(updatedPlant)
-                                sendCriticalAlert("💧 Riego detectado", "Se ha detectado un aumento drástico de humedad. Predicciones reajustadas.")
+                                // sendCriticalAlert("💧 Riego detectado", "Se ha detectado un aumento drástico de humedad. Predicciones reajustadas.")
                             }
                         }
 
@@ -93,12 +89,12 @@ class SensorForegroundService : Service() {
                             if (dt > 0.001) {
                                 deltaTemp = (temp - prev.temperature) / dt
                                 deltaHum = (hum - prev.humidity) / dt
-                                deltaLuz = (luz - prev.light.toDouble()) / dt
+                                deltaLuz = (luzRaw - prev.light) / dt
                                 deltaSoil = (soil - prev.soilMoisture) / dt
                             }
                         }
 
-                        if (luz < 20) {
+                        if (luzRaw < 20.0) {
                             if (startTimeWithoutSun == 0L) startTimeWithoutSun = System.currentTimeMillis()
                         } else {
                             startTimeWithoutSun = 0L
@@ -109,7 +105,7 @@ class SensorForegroundService : Service() {
                         } else 0.0
 
                         val result = PredictiveTheorem.analyze(
-                            temp, hum, luz, soil,
+                            temp, hum, luzRaw, soil,
                             deltaTemp, deltaHum, deltaLuz, deltaSoil,
                             plant.lastWateringTime,
                             plant.type,
@@ -120,8 +116,8 @@ class SensorForegroundService : Service() {
                             timestamp = System.currentTimeMillis(),
                             plantId = plant.id,
                             temperature = temp,
-                            humidity = result.adjustedHum, // Guardar humedad compensada por IA
-                            light = luz,
+                            humidity = result.adjustedHum,
+                            light = luzRaw, // Guardamos luzRaw directamente
                             soilMoisture = soil,
                             irh = result.irh,
                             seq = result.seq,
@@ -132,10 +128,8 @@ class SensorForegroundService : Service() {
                         databaseLocal.sensorDao().insert(reading)
                         databaseLocal.sensorDao().pruneData(plant.id)
 
-                        // Update notification with latest data
                         updateNotification("Temp: ${String.format("%.1f", temp)}°C | Suelo: ${String.format("%.1f", soil)}%")
                         
-                        // Handle critical alerts if necessary (could reuse MainActivity's notification logic here)
                         if (result.irh >= PredictiveTheorem.IRH_RIESGO) {
                              sendCriticalAlert("¡RIESGO CRÍTICO!", result.recommendation)
                         }
@@ -188,7 +182,6 @@ class SensorForegroundService : Service() {
     }
 
     private fun sendCriticalAlert(title: String, message: String) {
-        // Reuse main alert channel or create a high importance one
         val alertId = 3001
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)

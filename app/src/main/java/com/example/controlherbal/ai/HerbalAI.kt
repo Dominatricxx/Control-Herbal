@@ -10,11 +10,12 @@ import kotlin.random.Random
 
 /**
  * HerbalAI: Implementación de una Red Neuronal Multicapa (MLP).
- * Arquitectura Actualizada: 4 Entradas (Temp, HumAmb, Luz, Soil) -> 12 Neuronas Ocultas -> 1 Salida (IRH).
+ * Arquitectura Sincronizada con Arduino-Herbal-Mini.
+ * 4 Entradas (Temp, HumAmb, Luz, Soil) -> 12 Neuronas Ocultas -> 1 Salida (IRH).
  */
 class HerbalAI(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v3", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v4", Context.MODE_PRIVATE)
     
     private val inputSize = 4
     private val hiddenSize = 12
@@ -36,14 +37,21 @@ class HerbalAI(context: Context) {
     private fun sigmoidDeriv(x: Float): Float = x * (1f - x)
 
     /**
-     * Inferencia (Feed-forward): Calcula el IRH basado en los 4 parámetros.
+     * Inferencia (Feed-forward): Calcula el IRH basado en los 4 parámetros normalizados.
+     * Los rangos de estrés ahora coinciden exactamente con el Arduino y el tipo de planta.
      */
-    fun predictRefinedIRH(temp: Double, hum: Double, luz: Int, soil: Double): Double {
+    fun predictRefinedIRH(temp: Double, hum: Double, luz: Double, soil: Double, plantType: String = "Híbrido"): Double {
+        val r = when {
+            plantType.contains("Luz", ignoreCase = true) -> Triple(60.0, 100.0, 25.0) // luzMin, luzMax, soilMin
+            plantType.contains("Sombra", ignoreCase = true) -> Triple(10.0, 40.0, 25.0)
+            else -> Triple(30.0, 70.0, 25.0)
+        }
+
         val input = floatArrayOf(
-            PredictiveTheorem.estresVariable(temp, 15.0, 32.0).toFloat() / 100f,
+            PredictiveTheorem.estresTemp(temp, 15.0, 32.0).toFloat() / 100f,
             PredictiveTheorem.estresVariable(hum, 40.0, 60.0).toFloat() / 100f,
-            PredictiveTheorem.estresVariable(luz.toDouble(), 30.0, 70.0).toFloat() / 100f,
-            PredictiveTheorem.estresVariable(soil, 25.0, 70.0).toFloat() / 100f
+            PredictiveTheorem.estresLuz(luz, r.first).toFloat() / 100f,
+            PredictiveTheorem.estresVariable(soil, r.third, 70.0).toFloat() / 100f
         )
 
         // Capa Oculta
@@ -69,14 +77,14 @@ class HerbalAI(context: Context) {
     fun performSelfLearning(history: List<SensorReading>) {
         if (history.size < 15) return
 
-        Log.d(TAG, "Entrenando Red Neuronal con ${history.size} registros y 4 parámetros...")
+        Log.d(TAG, "Entrenando Red Neuronal con ${history.size} registros (Sync Arduino)...")
 
         repeat(100) {
             for (reading in history) {
                 val input = floatArrayOf(
-                    PredictiveTheorem.estresVariable(reading.temperature, 15.0, 32.0).toFloat() / 100f,
+                    PredictiveTheorem.estresTemp(reading.temperature, 15.0, 32.0).toFloat() / 100f,
                     PredictiveTheorem.estresVariable(reading.humidity, 40.0, 60.0).toFloat() / 100f,
-                    PredictiveTheorem.estresVariable(reading.light.toDouble(), 30.0, 70.0).toFloat() / 100f,
+                    PredictiveTheorem.estresLuz(reading.light, 30.0).toFloat() / 100f,
                     PredictiveTheorem.estresVariable(reading.soilMoisture, 25.0, 70.0).toFloat() / 100f
                 )
                 val target = reading.irh.toFloat() / 100f
@@ -116,7 +124,7 @@ class HerbalAI(context: Context) {
         }
 
         saveWeights()
-        Log.d(TAG, "Aprendizaje 4-parámetros completado.")
+        Log.d(TAG, "Aprendizaje sincronizado completado.")
     }
 
     private fun loadWeights() {

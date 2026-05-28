@@ -19,7 +19,7 @@ import java.nio.channels.FileChannel
 data class SensorUiState(
     val temp: Double = 0.0,
     val hum: Double = 0.0,
-    val luz: Int = 0,
+    val luz: Double = 0.0,
     val soil: Double = 0.0,
     val analysisResult: PredictiveTheorem.AnalysisResult? = null,
     val isConnected: Boolean = false
@@ -47,7 +47,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                     _uiState.value = SensorUiState(
                         temp = it.temperature,
                         hum = it.humidity,
-                        luz = it.light,
+                        luz = it.light, 
                         soil = it.soilMoisture,
                         analysisResult = PredictiveTheorem.AnalysisResult(
                             irh = it.irh,
@@ -55,8 +55,11 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                             somb = it.somb,
                             recommendation = it.action,
                             urgency = "", 
-                            wateringRecommended = it.soilMoisture < 30.0, 
-                            nextWateringHours = it.seq 
+                            wateringRecommended = it.soilMoisture < 25.0, // Sync con Arduino soilMin
+                            nextWateringHours = it.seq,
+                            adjustedHum = it.humidity,
+                            adjustedLuz = it.light,
+                            adjustedSoil = it.soilMoisture
                         ),
                         isConnected = true
                     )
@@ -82,8 +85,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     fun updateFromFirebase(
         temp: Double, 
         hum: Double, 
-        luz: Int, 
-        soil: Double, 
+        luzRaw: Double, 
+        soilRaw: Double, 
         currentPlant: Plant?, 
         lastReading: SensorReading?,
         hwIrh: Double = -1.0,
@@ -91,18 +94,14 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         hwSomb: Double = -1.0,
         hwAcc: String = ""
     ) {
-        performAnalysis(temp, hum, luz, soil, lastReading, currentPlant, hwIrh, hwSeq, hwSomb, hwAcc)
-        
-        // El SensorForegroundService ya guarda en DB, pero para asegurar actualización 
-        // inmediata en UI cuando la app está abierta, procesamos el análisis arriba.
-        // Opcionalmente podemos guardar aquí también si el servicio no está corriendo.
+        performAnalysis(temp, hum, luzRaw, soilRaw, lastReading, currentPlant, hwIrh, hwSeq, hwSomb, hwAcc)
     }
 
     private fun performAnalysis(
         temp: Double, 
-        hum: Double, 
-        luz: Int, 
-        soil: Double, 
+        humRaw: Double, 
+        luzRaw: Double, 
+        soilRaw: Double, 
         lastReading: SensorReading?, 
         currentPlant: Plant?,
         hwIrh: Double = -1.0,
@@ -111,6 +110,23 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         hwAcc: String = ""
     ) {
         viewModelScope.launch(Dispatchers.Default) {
+            val luzFiltrada = PredictiveTheorem.filtrarSensibilidadLuz(luzRaw)
+            
+            // FILTRO DE ESTABILIDAD PRO (Rechazo de picos de bajada)
+            val soilActual = if (soilRaw > 100.0) PredictiveTheorem.filtrarSensibilidadSuelo(soilRaw) else soilRaw
+            val prevSoil = _uiState.value.soil
+            
+            // Si el valor baja más del 15% de golpe, es un pico de ruido. 
+            // La tierra no se seca así de rápido. Mantenemos el valor alto.
+            val soilFiltrado = if (prevSoil > 1.0 && (prevSoil - soilActual) > 15.0) {
+                // Solo permitimos la bajada si se mantiene por varias lecturas (aquí mantenemos el anterior)
+                prevSoil
+            } else {
+                soilActual
+            }
+
+            val humFiltrada = PredictiveTheorem.filtrarSensibilidadHumedad(humRaw)
+            
             var deltaTemp = 0.0
             var deltaHum = 0.0
             var deltaLuz = 0.0
@@ -120,18 +136,16 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                 val dt = (System.currentTimeMillis() - prev.timestamp) / 3600000.0
                 if (dt > 0.001) {
                     deltaTemp = (temp - prev.temperature) / dt
-                    deltaHum = (hum - prev.humidity) / dt
-                    deltaLuz = (luz - prev.light.toDouble()) / dt
-                    deltaSoil = (soil - prev.soilMoisture) / dt
+                    deltaHum = (humFiltrada - prev.humidity) / dt
+                    deltaLuz = (luzFiltrada - prev.light) / dt
+                    deltaSoil = (soilFiltrado - prev.soilMoisture) / dt
                 }
             }
 
-            // Cálculo de tiempo sin sol (Luz < 20% se considera "sin sol")
-            val lowLuzThreshold = 20
-            if (luz < lowLuzThreshold) {
-                if (startTimeWithoutSun == 0L) {
-                    startTimeWithoutSun = System.currentTimeMillis()
-                }
+            // Cálculo de tiempo sin sol (LDR ya corregido)
+            val lowLuzThreshold = 10.0
+            if (luzFiltrada < lowLuzThreshold) {
+                if (startTimeWithoutSun == 0L) startTimeWithoutSun = System.currentTimeMillis()
             } else {
                 startTimeWithoutSun = 0L
             }
@@ -141,21 +155,20 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
             } else 0.0
 
             val result = PredictiveTheorem.analyze(
-                temp, hum, luz, soil,
+                temp, humRaw, luzRaw, soilRaw,
                 deltaTemp, deltaHum, deltaLuz, deltaSoil,
                 currentPlant?.lastWateringTime ?: 0,
                 currentPlant?.type ?: "",
                 hoursWithoutSun
             )
 
-            // Priorizar valores de hardware si están disponibles (compatibilidad con Arduino-Herbal-Mini)
             val finalIrh = if (hwIrh >= 0) hwIrh else {
-                val irhAI = herbalAI.predictRefinedIRH(temp, hum, luz, soil)
+                val irhAI = herbalAI.predictRefinedIRH(temp, humFiltrada, luzFiltrada, soilFiltrado, currentPlant?.type ?: "Híbrido")
                 var combinedIrh = (result.irh + irhAI) / 2.0
                 
                 try {
                     tflite?.let { interpreter ->
-                        val input = arrayOf(floatArrayOf(temp.toFloat(), hum.toFloat(), luz.toFloat()))
+                        val input = arrayOf(floatArrayOf(temp.toFloat(), humFiltrada.toFloat(), luzFiltrada.toFloat(), soilFiltrado.toFloat()))
                         val output = arrayOf(floatArrayOf(0f))
                         interpreter.run(input, output)
                         combinedIrh = (combinedIrh + output[0][0].toDouble()) / 2.0
@@ -173,9 +186,9 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
             
             _uiState.value = SensorUiState(
                 temp = temp,
-                hum = result.adjustedHum, // Usar humedad compensada por IA
-                luz = luz,
-                soil = soil,
+                hum = result.adjustedHum, 
+                luz = result.adjustedLuz,
+                soil = result.adjustedSoil,
                 analysisResult = finalResult,
                 isConnected = true
             )
