@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@drawable/rounded_background"
+    android:backgroundTint="#FFFFFF">
+
+    <TextView
+        android:id="@+id/tvResetTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reiniciar Datos"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#2E7D32"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Selecciona el periodo que deseas limpiar de tu historial:"
+        android:textSize="14sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="20dp" />
+
+    <Button
+        android:id="@+id/btnReset24h"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Últimas 24 horas"
+        android:gravity="start|center_vertical"
+        android:textColor="#212121"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/btnReset7d"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Últimos 7 días"
+        android:gravity="start|center_vertical"
+        android:textColor="#212121"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/btnResetMonth"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Último mes"
+        android:gravity="start|center_vertical"
+        android:textColor="#212121"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/btnResetAll"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Todo el historial"
+        android:gravity="start|center_vertical"
+        android:textColor="#D32F2F"
+        android:textStyle="bold"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/btnCancelReset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:text="Cancelar"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#9E9E9E" />
+
+</LinearLayout>

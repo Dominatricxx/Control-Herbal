@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background">
+
+    <TextView
+        android:id="@+id/tvControlTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Gestión de Datos"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#2E7D32"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/btnImportFirebase"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="IMPORTAR REGISTROS (NUBE)"
+        android:backgroundTint="#2E7D32"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="12dp"
+        style="@style/Widget.MaterialComponents.Button"
+        android:textAllCaps="true"/>
+
+    <Button
+        android:id="@+id/btnResetLocal"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="REINICIAR / ELIMINAR LOCAL"
+        android:backgroundTint="#616161"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="12dp"
+        style="@style/Widget.MaterialComponents.Button"
+        android:textAllCaps="true"/>
+
+    <Button
+        android:id="@+id/btnCancelControl"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="CANCELAR"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:textColor="#D32F2F"/>
+
+</LinearLayout>

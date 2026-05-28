@@ -18,7 +18,7 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.example.controlherbal.wear" />
+                  <option name="appId" value="com.example.controlherbal" />
                   <option name="mobileSdkAppId" value="1:741809372236:android:16c6ad844b4e865774c8e9" />
                   <option name="projectId" value="controlherbal-97558" />
                   <option name="projectNumber" value="741809372236" />

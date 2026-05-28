@@ -1,11 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/tvPlantItemName"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
     android:gravity="center"
-    android:textAlignment="center"
-    android:padding="16dp"
-    android:textSize="18sp"
-    android:textColor="#212121"
-    android:background="?attr/selectableItemBackground"/>
+    android:background="?attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/tvItemPlantName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#2E7D32" />
+
+    <TextView
+        android:id="@+id/tvItemPlantDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textColor="#616161"
+        android:layout_marginTop="2dp"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/tvItemPlantScientific"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:textColor="#9E9E9E"
+        android:textStyle="italic"
+        android:gravity="center" />
+
+</LinearLayout>

@@ -119,6 +119,18 @@ class PlantSetupActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener { finish() }
 
+        // Filtro para solo letras y números (incluyendo espacios)
+        val alphaNumericFilter = android.text.InputFilter { source, start, end, dest, dstart, dend ->
+            for (i in start until end) {
+                val char = source[i]
+                if (!Character.isLetterOrDigit(char) && char != ' ') {
+                    return@InputFilter ""
+                }
+            }
+            null
+        }
+        etPlantName.filters = arrayOf(alphaNumericFilter)
+
         val categoryList = mutableListOf("Seleccionar Categoría...")
         categoryList.addAll(plantCategories.keys)
         categoryList.add("Otro 🌱")
@@ -191,7 +203,7 @@ class PlantSetupActivity : AppCompatActivity() {
         tvTitle.text = "Selecciona ${category.split(" ").first()}"
         
         val listView = dialogView.findViewById<ListView>(R.id.dialogListView)
-        val adapter = ArrayAdapter(this, R.layout.item_plant_selection, plantNames)
+        val adapter = ArrayAdapter(this, R.layout.item_plant_selection, R.id.tvItemPlantName, plantNames)
         listView.adapter = adapter
 
         val dialog = AlertDialog.Builder(this)

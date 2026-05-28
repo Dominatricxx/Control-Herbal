@@ -74,17 +74,39 @@
             android:layout_marginBottom="20dp"
             android:gravity="center"
             android:visibility="gone">
-            <TextView
-                android:id="@+id/tvPlantNameAndEmoji"
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Mi Planta 🌻"
-                android:textSize="18sp"
-                android:textColor="#2E7D32"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:textAlignment="center"
-                android:lineSpacingExtra="4dp"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvPlantNameAndEmoji"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mi Planta 🌻"
+                    android:textSize="18sp"
+                    android:textColor="#2E7D32"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textAlignment="center"
+                    android:lineSpacingExtra="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground"/>
+
+                <ImageButton
+                    android:id="@+id/btnEditNameIcon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_edit"
+                    app:tint="#2E7D32"
+                    android:visibility="gone"
+                    android:contentDescription="Editar nombre" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -475,6 +497,67 @@
                     android:id="@+id/combinedChart"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Sección de Gestión de Planta -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="#F0F0F0">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Control de registros de datos"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="#616161"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginBottom="4dp"/>
+
+                <Button
+                    android:id="@+id/btnDataControl"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Importar | Reiniciar | Eliminar"
+                    android:textColor="#2E7D32"
+                    android:textStyle="bold"
+                    android:drawableStart="@android:drawable/ic_menu_save"
+                    android:drawablePadding="12dp"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="16dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#DDDDDD"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp" />
+
+                <Button
+                    android:id="@+id/btnDeletePlant"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Eliminar Planta"
+                    android:textColor="#D32F2F"
+                    android:textStyle="bold"
+                    android:drawableStart="@android:drawable/ic_menu_delete"
+                    android:drawablePadding="12dp"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="16dp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
