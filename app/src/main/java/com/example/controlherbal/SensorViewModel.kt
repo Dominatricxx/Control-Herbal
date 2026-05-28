@@ -31,11 +31,38 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     private val herbalAI = HerbalAI(application)
     private var tflite: Interpreter? = null
     
+    private var startTimeWithoutSun: Long = 0
+    
     private val _uiState = MutableStateFlow(SensorUiState())
     val uiState: StateFlow<SensorUiState> = _uiState
 
     init {
         loadModel()
+    }
+
+    fun observeLatestReading(plantId: Int) {
+        viewModelScope.launch {
+            db.sensorDao().getLatestReadingFlow(plantId).collect { reading ->
+                reading?.let {
+                    _uiState.value = SensorUiState(
+                        temp = it.temperature,
+                        hum = it.humidity,
+                        luz = it.light,
+                        soil = it.soilMoisture,
+                        analysisResult = PredictiveTheorem.AnalysisResult(
+                            irh = it.irh,
+                            seq = it.seq,
+                            somb = it.somb,
+                            recommendation = it.action,
+                            urgency = "", 
+                            wateringRecommended = it.soilMoisture < 30.0, 
+                            nextWateringHours = it.seq 
+                        ),
+                        isConnected = true
+                    )
+                }
+            }
+        }
     }
 
     private fun loadModel() {
@@ -66,25 +93,9 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         performAnalysis(temp, hum, luz, soil, lastReading, currentPlant, hwIrh, hwSeq, hwSomb, hwAcc)
         
-        // Save to DB
-        currentPlant?.let { plant ->
-            viewModelScope.launch(Dispatchers.IO) {
-                val reading = SensorReading(
-                    timestamp = System.currentTimeMillis(), 
-                    plantId = plant.id, 
-                    temperature = temp, 
-                    humidity = hum, 
-                    light = luz, 
-                    soilMoisture = soil,
-                    irh = _uiState.value.analysisResult?.irh ?: 0.0, 
-                    seq = _uiState.value.analysisResult?.seq ?: 0.0, 
-                    somb = _uiState.value.analysisResult?.somb ?: 0.0, 
-                    action = _uiState.value.analysisResult?.recommendation ?: ""
-                )
-                db.sensorDao().insert(reading)
-                db.sensorDao().pruneData(plant.id)
-            }
-        }
+        // El SensorForegroundService ya guarda en DB, pero para asegurar actualización 
+        // inmediata en UI cuando la app está abierta, procesamos el análisis arriba.
+        // Opcionalmente podemos guardar aquí también si el servicio no está corriendo.
     }
 
     private fun performAnalysis(
@@ -115,11 +126,26 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
+            // Cálculo de tiempo sin sol (Luz < 20% se considera "sin sol")
+            val lowLuzThreshold = 20
+            if (luz < lowLuzThreshold) {
+                if (startTimeWithoutSun == 0L) {
+                    startTimeWithoutSun = System.currentTimeMillis()
+                }
+            } else {
+                startTimeWithoutSun = 0L
+            }
+
+            val hoursWithoutSun = if (startTimeWithoutSun > 0) {
+                (System.currentTimeMillis() - startTimeWithoutSun) / 3600000.0
+            } else 0.0
+
             val result = PredictiveTheorem.analyze(
                 temp, hum, luz, soil,
                 deltaTemp, deltaHum, deltaLuz, deltaSoil,
                 currentPlant?.lastWateringTime ?: 0,
-                currentPlant?.type ?: ""
+                currentPlant?.type ?: "",
+                hoursWithoutSun
             )
 
             // Priorizar valores de hardware si están disponibles (compatibilidad con Arduino-Herbal-Mini)
@@ -147,7 +173,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
             
             _uiState.value = SensorUiState(
                 temp = temp,
-                hum = hum,
+                hum = result.adjustedHum, // Usar humedad compensada por IA
                 luz = luz,
                 soil = soil,
                 analysisResult = finalResult,

@@ -36,6 +36,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
     private lateinit var cbSoil: CheckBox
     private lateinit var cbLuz: CheckBox
     private lateinit var cbIRH: CheckBox
+    private lateinit var cbSeq: CheckBox
+    private lateinit var cbSomb: CheckBox
 
     private lateinit var cardPlant1: View
     private lateinit var tvNameP1: TextView
@@ -43,6 +45,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
     private lateinit var tvHumP1: TextView
     private lateinit var tvSoilP1: TextView
     private lateinit var tvLuzP1: TextView
+    private lateinit var tvSeqP1: TextView
+    private lateinit var tvSombP1: TextView
     private lateinit var tvIrhP1: TextView
 
     private lateinit var cardPlant2: View
@@ -51,6 +55,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
     private lateinit var tvHumP2: TextView
     private lateinit var tvSoilP2: TextView
     private lateinit var tvLuzP2: TextView
+    private lateinit var tvSeqP2: TextView
+    private lateinit var tvSombP2: TextView
     private lateinit var tvIrhP2: TextView
 
     private lateinit var databaseLocal: SensorDatabase
@@ -85,6 +91,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
         cbSoil = findViewById(R.id.cbSoil)
         cbLuz = findViewById(R.id.cbLuz)
         cbIRH = findViewById(R.id.cbIRH)
+        cbSeq = findViewById(R.id.cbSeq)
+        cbSomb = findViewById(R.id.cbSomb)
 
         val chartListener = CompoundButton.OnCheckedChangeListener { _, _ -> updateChart() }
         cbTemp.setOnCheckedChangeListener(chartListener)
@@ -92,6 +100,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
         cbSoil.setOnCheckedChangeListener(chartListener)
         cbLuz.setOnCheckedChangeListener(chartListener)
         cbIRH.setOnCheckedChangeListener(chartListener)
+        cbSeq.setOnCheckedChangeListener(chartListener)
+        cbSomb.setOnCheckedChangeListener(chartListener)
 
         cardPlant1 = findViewById(R.id.cardPlant1)
         tvNameP1 = findViewById(R.id.tvNameP1)
@@ -99,6 +109,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
         tvHumP1 = findViewById(R.id.tvHumP1)
         tvSoilP1 = findViewById(R.id.tvSoilP1)
         tvLuzP1 = findViewById(R.id.tvLuzP1)
+        tvSeqP1 = findViewById(R.id.tvSeqP1)
+        tvSombP1 = findViewById(R.id.tvSombP1)
         tvIrhP1 = findViewById(R.id.tvIrhP1)
 
         cardPlant2 = findViewById(R.id.cardPlant2)
@@ -107,6 +119,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
         tvHumP2 = findViewById(R.id.tvHumP2)
         tvSoilP2 = findViewById(R.id.tvSoilP2)
         tvLuzP2 = findViewById(R.id.tvLuzP2)
+        tvSeqP2 = findViewById(R.id.tvSeqP2)
+        tvSombP2 = findViewById(R.id.tvSombP2)
         tvIrhP2 = findViewById(R.id.tvIrhP2)
 
         btnSelectPlant1.setOnClickListener { showPlantSelectionDialog(1) }
@@ -131,7 +145,7 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
                 dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
                 
                 val listView = dialogView.findViewById<ListView>(R.id.dialogListView)
-                val adapter = object : ArrayAdapter<Plant>(this@ComparisonActivity, R.layout.item_plant_selection, plants) {
+                val adapter = object : ArrayAdapter<Plant>(this@ComparisonActivity, R.layout.item_plant_selection, R.id.tvItemPlantName, plants) {
                     override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
                         val row = convertView ?: layoutInflater.inflate(R.layout.item_plant_selection, parent, false)
                         val plant = getItem(position) ?: return row
@@ -202,6 +216,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
             tvHumP1.text = "Hum: ${last?.humidity ?: "--"}%"
             tvSoilP1.text = "Suelo: ${last?.soilMoisture ?: "--"}%"
             tvLuzP1.text = "Luz: ${last?.light ?: "--"}%"
+            tvSeqP1.text = "Seq: ${last?.seq ?: "--"}h"
+            tvSombP1.text = "Somb: ${last?.somb ?: "--"}h"
             tvIrhP1.text = "IRH: ${last?.irh ?: "--"}"
         } else {
             val plant = plant2 ?: return
@@ -212,6 +228,8 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
             tvHumP2.text = "Hum: ${last?.humidity ?: "--"}%"
             tvSoilP2.text = "Suelo: ${last?.soilMoisture ?: "--"}%"
             tvLuzP2.text = "Luz: ${last?.light ?: "--"}%"
+            tvSeqP2.text = "Seq: ${last?.seq ?: "--"}h"
+            tvSombP2.text = "Somb: ${last?.somb ?: "--"}h"
             tvIrhP2.text = "IRH: ${last?.irh ?: "--"}"
         }
     }
@@ -271,6 +289,28 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
             if (readingsP2.isNotEmpty()) {
                 val e = readingsP2.mapIndexed { i, r -> Entry(i.toFloat(), r.irh.toFloat()) }
                 lineData.addDataSet(LineDataSet(e, "${plant2?.name ?: "P2"} IRH").apply { color = Color.parseColor("#88444444"); setDrawCircles(false); enableDashedLine(10f, 5f, 0f) })
+            }
+        }
+
+        if (cbSeq.isChecked) {
+            if (readingsP1.isNotEmpty()) {
+                val e = readingsP1.mapIndexed { i, r -> Entry(i.toFloat(), r.seq.toFloat()) }
+                lineData.addDataSet(LineDataSet(e, "${plant1?.name ?: "P1"} Seq").apply { color = Color.CYAN; setDrawCircles(false) })
+            }
+            if (readingsP2.isNotEmpty()) {
+                val e = readingsP2.mapIndexed { i, r -> Entry(i.toFloat(), r.seq.toFloat()) }
+                lineData.addDataSet(LineDataSet(e, "${plant2?.name ?: "P2"} Seq").apply { color = Color.parseColor("#8800FFFF"); setDrawCircles(false); enableDashedLine(10f, 5f, 0f) })
+            }
+        }
+
+        if (cbSomb.isChecked) {
+            if (readingsP1.isNotEmpty()) {
+                val e = readingsP1.mapIndexed { i, r -> Entry(i.toFloat(), r.somb.toFloat()) }
+                lineData.addDataSet(LineDataSet(e, "${plant1?.name ?: "P1"} Somb").apply { color = Color.MAGENTA; setDrawCircles(false) })
+            }
+            if (readingsP2.isNotEmpty()) {
+                val e = readingsP2.mapIndexed { i, r -> Entry(i.toFloat(), r.somb.toFloat()) }
+                lineData.addDataSet(LineDataSet(e, "${plant2?.name ?: "P2"} Somb").apply { color = Color.parseColor("#88FF00FF"); setDrawCircles(false); enableDashedLine(10f, 5f, 0f) })
             }
         }
 

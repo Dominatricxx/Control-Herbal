@@ -25,6 +25,9 @@ interface SensorDao {
     @Query("DELETE FROM sensor_readings")
     suspend fun deleteAll()
 
+    @Query("SELECT * FROM sensor_readings WHERE plantId = :plantId ORDER BY timestamp DESC LIMIT 1")
+    fun getLatestReadingFlow(plantId: Int): kotlinx.coroutines.flow.Flow<SensorReading?>
+
     @Query("DELETE FROM sensor_readings WHERE plantId = :plantId")
     suspend fun deleteAllByPlantId(plantId: Int)
 

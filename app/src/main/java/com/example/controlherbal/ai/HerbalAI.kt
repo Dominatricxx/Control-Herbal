@@ -40,10 +40,10 @@ class HerbalAI(context: Context) {
      */
     fun predictRefinedIRH(temp: Double, hum: Double, luz: Int, soil: Double): Double {
         val input = floatArrayOf(
-            PredictiveTheorem.calcularEstresVariable(temp, 20.0, 30.0).toFloat() / 100f,
-            PredictiveTheorem.calcularEstresVariable(hum, 40.0, 70.0).toFloat() / 100f,
-            PredictiveTheorem.calcularEstresVariable(luz.toDouble(), 30.0, 80.0).toFloat() / 100f,
-            PredictiveTheorem.calcularEstresVariable(soil, 30.0, 70.0).toFloat() / 100f
+            PredictiveTheorem.estresVariable(temp, 15.0, 32.0).toFloat() / 100f,
+            PredictiveTheorem.estresVariable(hum, 40.0, 60.0).toFloat() / 100f,
+            PredictiveTheorem.estresVariable(luz.toDouble(), 30.0, 70.0).toFloat() / 100f,
+            PredictiveTheorem.estresVariable(soil, 25.0, 70.0).toFloat() / 100f
         )
 
         // Capa Oculta
@@ -74,10 +74,10 @@ class HerbalAI(context: Context) {
         repeat(100) {
             for (reading in history) {
                 val input = floatArrayOf(
-                    PredictiveTheorem.calcularEstresVariable(reading.temperature, 20.0, 30.0).toFloat() / 100f,
-                    PredictiveTheorem.calcularEstresVariable(reading.humidity, 40.0, 70.0).toFloat() / 100f,
-                    PredictiveTheorem.calcularEstresVariable(reading.light.toDouble(), 30.0, 80.0).toFloat() / 100f,
-                    PredictiveTheorem.calcularEstresVariable(reading.soilMoisture, 30.0, 70.0).toFloat() / 100f
+                    PredictiveTheorem.estresVariable(reading.temperature, 15.0, 32.0).toFloat() / 100f,
+                    PredictiveTheorem.estresVariable(reading.humidity, 40.0, 60.0).toFloat() / 100f,
+                    PredictiveTheorem.estresVariable(reading.light.toDouble(), 30.0, 70.0).toFloat() / 100f,
+                    PredictiveTheorem.estresVariable(reading.soilMoisture, 25.0, 70.0).toFloat() / 100f
                 )
                 val target = reading.irh.toFloat() / 100f
 

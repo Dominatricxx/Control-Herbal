@@ -218,35 +218,25 @@
             android:orientation="vertical"
             android:padding="12dp">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Control de registros de datos"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#616161"
+                android:layout_marginStart="16dp"
+                android:layout_marginBottom="4dp"/>
+
             <Button
-                android:id="@+id/btnResetData"
+                android:id="@+id/btnDataControl"
                 style="?android:attr/borderlessButtonStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Reiniciar / Eliminar Datos"
+                android:text="Importar | Reiniciar | Eliminar"
                 android:textColor="#2E7D32"
                 android:textStyle="bold"
-                android:drawableStart="@android:drawable/ic_menu_revert"
-                android:drawablePadding="12dp"
-                android:gravity="start|center_vertical"
-                android:paddingStart="16dp" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#DDDDDD"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp" />
-
-            <Button
-                android:id="@+id/btnDeletePlant"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Eliminar Planta"
-                android:textColor="#D32F2F"
-                android:textStyle="bold"
-                android:drawableStart="@android:drawable/ic_menu_delete"
+                android:drawableStart="@android:drawable/ic_menu_save"
                 android:drawablePadding="12dp"
                 android:gravity="start|center_vertical"
                 android:paddingStart="16dp" />

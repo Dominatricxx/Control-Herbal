@@ -88,7 +88,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var tvPlantNameAndEmoji: TextView? = null
     private var layoutPlantInfo: View? = null
     private lateinit var btnAddPlant: ImageButton
-    private lateinit var btnResetData: Button
+    private lateinit var btnEditNameIcon: ImageButton
+    private lateinit var btnDataControl: Button
     private lateinit var btnDeletePlant: Button
 
     private lateinit var databaseFirebase: DatabaseReference
@@ -117,62 +118,74 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var isFirstPacketAfterLinking = false
 
     private var lastWateringAlertState = 0 // 0: nada, 1: recomendado, 2: sobre-riego
+    private var lastRecommendationText = "" // Para evitar spam de notificaciones por cambios mínimos
 
     private var lastProcessTime: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        //No llamar a setContentView todavía para evitar el parpadeo blanco/principal
+        // Inicializar base de datos local
         databaseLocal = SensorDatabase.getInstance(this)
         
-        ioScope.launch {
-            val plant = databaseLocal.plantDao().getSelectedPlant()
-            val plantCount = databaseLocal.plantDao().getPlantCount()
+        // Cargar contenido inmediatamente para evitar estados inconsistentes
+        setContentView(R.layout.activity_main_drawer)
+        
+        // Inicializar UI antes de cualquier operación asíncrona
+        initializeUI()
+        
+        lifecycleScope.launch {
+            val plant = withContext(Dispatchers.IO) {
+                databaseLocal.plantDao().getSelectedPlant()
+            }
+            val plantCount = withContext(Dispatchers.IO) {
+                databaseLocal.plantDao().getPlantCount()
+            }
             
-            withContext(Dispatchers.Main) {
-                if (plant == null) {
-                    val intent = Intent(this@MainActivity, PlantSetupActivity::class.java)
-                    startActivity(intent)
-                    finish()
-                } else {
-                    setContentView(R.layout.activity_main_drawer)
-                    currentPlant = plant
+            if (plant == null) {
+                val intent = Intent(this@MainActivity, PlantSetupActivity::class.java)
+                startActivity(intent)
+                finish()
+            } else {
+                currentPlant = plant
+                
+                // Iniciar servicio de segundo plano para seguir recibiendo datos
+                startSensorService()
+                
+                try {
+                    herbalAI = HerbalAI(this@MainActivity)
+                    viewModel = androidx.lifecycle.ViewModelProvider(this@MainActivity).get(SensorViewModel::class.java)
                     
-                    try {
-                        herbalAI = HerbalAI(this@MainActivity)
-                        viewModel = androidx.lifecycle.ViewModelProvider(this@MainActivity).get(SensorViewModel::class.java)
-                        
-                        initializeUI()
+                    // Empezar a observar los datos que guarda el servicio en la DB
+                    viewModel.observeLatestReading(plant.id)
 
-                        // Observar cambios del ViewModel
-                        lifecycleScope.launch {
-                            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-                                viewModel.uiState.collect { state ->
-                                    state.analysisResult?.let { res ->
-                                        updateUIAndSave(
-                                            state.temp, state.hum, state.luz, state.soil,
-                                            res.irh, res.seq, res.somb,
-                                            res.recommendation, res.wateringRecommended, res.nextWateringHours
-                                        )
-                                    }
+                    // Observar cambios del ViewModel
+                    lifecycleScope.launch {
+                        repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                            viewModel.uiState.collect { state ->
+                                state.analysisResult?.let { res ->
+                                    updateUIAndSave(
+                                        state.temp, state.hum, state.luz, state.soil,
+                                        res.irh, res.seq, res.somb,
+                                        res.recommendation, res.wateringRecommended, res.nextWateringHours
+                                    )
                                 }
                             }
                         }
-
-                        showPlantInfo()
-                        updateMenuVisibility(plantCount)
-                        setupFirebase()
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error in Main init: ${e.message}")
                     }
+
+                    showPlantInfo()
+                    updateMenuVisibility(plantCount)
+                    setupFirebase()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in Main initialization: ${e.message}")
+                    Toast.makeText(this@MainActivity, "Error al inicializar componentes: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
     private fun initializeUI() {
-        // Ya no llamamos a setContentView aquí porque se llamó en onCreate
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
@@ -184,7 +197,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navView.menu.findItem(R.id.nav_main).isVisible = false
 
         tvConnectionState = findViewById(R.id.tvConnectionState)
-        // ... rest of initializeUI stays same ...
         tvConnectionState.text = "Desincronizado"
         tvConnectionState.setTextColor(Color.RED)
 
@@ -241,10 +253,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             startActivity(intent)
         }
 
-        btnResetData = findViewById(R.id.btnResetData)
+        btnDataControl = findViewById(R.id.btnDataControl)
+        btnEditNameIcon = findViewById(R.id.btnEditNameIcon)
         btnDeletePlant = findViewById(R.id.btnDeletePlant)
         
-        btnResetData.setOnClickListener { showResetDataDialog() }
+        btnDataControl.setOnClickListener { showDataControlDialog() }
+        
+        tvPlantNameAndEmoji?.setOnClickListener {
+            btnEditNameIcon.visibility = if (btnEditNameIcon.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        }
+        
+        btnEditNameIcon.setOnClickListener { showEditNameDialog() }
+
         btnDeletePlant.setOnClickListener { showDeletePlantDialog() }
 
         btnConnect.setOnClickListener { 
@@ -265,6 +285,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
         createNotificationChannel()
         requestNotificationPermission()
+    }
+
+    private fun startSensorService() {
+        val intent = Intent(this, com.example.controlherbal.sync.SensorForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
     }
 
     private fun updateMenuVisibility(plantCount: Int) {
@@ -431,7 +460,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         isDisconnected = false
         resetUIForLinking()
         
-        btnConnect.text = "Vinculando a ESP-32..."
+        btnConnect.text = "Estableciendo conexión..."
         btnConnect.isEnabled = false
 
         firebaseListener = object : ValueEventListener {
@@ -464,7 +493,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                                 lastBootCount = boot
                                 isFirstPacketAfterLinking = false
                                 runOnUiThread {
-                                    btnConnect.text = "Esperando señal..."
+                                    btnConnect.text = "Estableciendo conexión..."
                                     tvConnectionState.text = "Conectando..."
                                 }
                                 return // No procesamos datos todavía
@@ -510,7 +539,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             }
                         }
 
+                        // Ya no llamamos a viewModel.updateFromFirebase aquí
+                        // El SensorForegroundService se encarga de guardar en la DB
+                        // y el ViewModel observa esos cambios automáticamente.
+                        
+                        // RESTAURACIÓN DE FLUJO EN TIEMPO REAL:
+                        // Procesamos los datos recibidos para actualizar la UI inmediatamente
                         viewModel.updateFromFirebase(temp, hum, luz, soil, currentPlant, lastReading, irh, seq, somb, acc)
+
+                        runOnUiThread {
+                           tvConnectionState.text = "Sincronizado"
+                           tvConnectionState.setTextColor(Color.parseColor("#2E7D32"))
+                        }
                     } else {
                         Log.e(TAG, "El snapshot no existe en el path 'sensor'")
                     }
@@ -572,14 +612,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         } else {
             val calendar = Calendar.getInstance()
             calendar.add(Calendar.MINUTE, (nextWateringHours * 60).toInt())
-            val timeStr = SimpleDateFormat("HH:mm", locale).format(calendar.time)
-            tvNextWateringTime.text = "Próximo riego estimado: $timeStr"
+            val sdf = if (nextWateringHours > 20) { // Si falta mucho, mostrar día
+                SimpleDateFormat("EEE HH:mm", locale)
+            } else {
+                SimpleDateFormat("HH:mm", locale)
+            }
+            tvNextWateringTime.text = "Próximo riego estimado: ${sdf.format(calendar.time)}"
         }
         
         tvAccion.text = accion
         
-        // Notificaciones Push para Riego
-        handleWateringNotifications(wateringRecommended, accion)
+        // Notificaciones Push Inteligentes: Solo si el mensaje ha cambiado significativamente
+        if (accion != lastRecommendationText) {
+            handleSignificantNotifications(wateringRecommended, accion)
+            lastRecommendationText = accion
+        }
 
         tvAccion.setTextColor(ContextCompat.getColor(this, R.color.green_herbal))
         
@@ -642,7 +689,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private fun handleWateringNotifications(recommended: Boolean, action: String) {
+    private fun handleSignificantNotifications(recommended: Boolean, action: String) {
+        // Alertas de riego
         if (recommended && lastWateringAlertState != 1) {
             sendNotification("💧 Riego Recomendado", "Tu planta necesita hidratación según el análisis de la IA.")
             lastWateringAlertState = 1
@@ -652,6 +700,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         } else if (!recommended && !action.contains("SOBRE-RIEGO")) {
             lastWateringAlertState = 0
         }
+
+        // Alertas de sol/humedad/temp solo si NO es el mensaje de "Condiciones óptimas" o "estable"
+        if (!action.contains("óptimas", ignoreCase = true) && !action.contains("estables", ignoreCase = true)) {
+            // Solo notificar si contiene emojis de advertencia o es un mensaje de acción clara
+            if (action.contains("⚠️") || action.contains("🌡️") || action.contains("🔥")) {
+                sendNotification("🌿 Actualización de Cuidados", action)
+            }
+        }
+    }
+
+    private fun handleWateringNotifications(recommended: Boolean, action: String) {
+        // Esta función se mantiene vacía o se elimina si ya no se usa, 
+        // pero para evitar errores de compilación si hay llamadas pendientes, la redireccionamos
+        // o simplemente la dejamos de usar arriba como ya hice.
     }
 
     private fun handleDisconnection() {
@@ -801,11 +863,107 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
 
+    private fun showDataControlDialog() {
+        val plant = currentPlant ?: return
+        val dialogView = layoutInflater.inflate(R.layout.dialog_data_control, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvControlTitle)
+        tvTitle.text = "Gestión de '${plant.name}'"
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogView.findViewById<Button>(R.id.btnImportFirebase).setOnClickListener {
+            importDataFromFirebase()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btnResetLocal).setOnClickListener {
+            showResetDataDialog()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btnCancelControl).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun importDataFromFirebase() {
+        val plant = currentPlant ?: return
+        val progressDialog = AlertDialog.Builder(this)
+            .setMessage("Importando registros desde la nube...")
+            .setCancelable(false)
+            .show()
+
+        databaseFirebase.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                ioScope.launch {
+                    try {
+                        if (snapshot.exists()) {
+                            val readingsToInsert = mutableListOf<SensorReading>()
+                            
+                            fun processNode(data: DataSnapshot) {
+                                val temp = (data.child("temp").value as? Number)?.toDouble() ?: return
+                                val hum = (data.child("hum").value as? Number)?.toDouble() ?: 0.0
+                                val luz = (data.child("luz").value as? Number)?.toInt() ?: 0
+                                val soil = (data.child("soil").value as? Number)?.toDouble() ?: 0.0
+                                val irh = (data.child("irh").value as? Number)?.toDouble() ?: 0.0
+                                val seq = (data.child("seq").value as? Number)?.toDouble() ?: 0.0
+                                val somb = (data.child("somb").value as? Number)?.toDouble() ?: 0.0
+                                val action = data.child("acc").value as? String ?: ""
+                                val timestamp = (data.child("timestamp").value as? Number)?.toLong() ?: System.currentTimeMillis()
+
+                                readingsToInsert.add(SensorReading(timestamp, plant.id, temp, hum, luz, soil, irh, seq, somb, action))
+                            }
+
+                            if (snapshot.hasChild("history")) {
+                                snapshot.child("history").children.forEach { processNode(it) }
+                            } else {
+                                processNode(snapshot)
+                            }
+
+                            if (readingsToInsert.isNotEmpty()) {
+                                readingsToInsert.forEach { databaseLocal.sensorDao().insert(it) }
+                                withContext(Dispatchers.Main) {
+                                    progressDialog.dismiss()
+                                    Toast.makeText(this@MainActivity, "Se han importado ${readingsToInsert.size} registros ✅", Toast.LENGTH_LONG).show()
+                                    loadDataAndDrawChart()
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    progressDialog.dismiss()
+                                    Toast.makeText(this@MainActivity, "No se encontraron registros válidos en la nube", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                progressDialog.dismiss()
+                                Toast.makeText(this@MainActivity, "No hay datos en Firebase para esta planta", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            progressDialog.dismiss()
+                            Toast.makeText(this@MainActivity, "Error al importar: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {
+                progressDialog.dismiss()
+                Toast.makeText(this@MainActivity, "Error de conexión con Firebase", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
     private fun showResetDataDialog() {
         val plant = currentPlant ?: return
         val dialogView = layoutInflater.inflate(R.layout.dialog_reset_options, null)
         val tvTitle = dialogView.findViewById<TextView>(R.id.tvResetTitle)
-        tvTitle.text = "Reiniciar de '${plant.name}'"
+        tvTitle.text = "Reiniciar '${plant.name}'"
 
         val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
@@ -832,6 +990,56 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             dialog.dismiss()
         }
 
+        dialog.show()
+    }
+
+    private fun showEditNameDialog() {
+        val plant = currentPlant ?: return
+        val dialogView = layoutInflater.inflate(R.layout.dialog_input, null)
+        val etInput = dialogView.findViewById<android.widget.EditText>(R.id.etInput)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+        val btnOk = dialogView.findViewById<Button>(R.id.btnOk)
+
+        tvTitle.text = "Editar Nombre"
+        etInput.setText(plant.name)
+        etInput.hint = "Nuevo nombre (solo letras y números)"
+        
+        // Filtro para solo letras y números (incluyendo espacios)
+        val filter = android.text.InputFilter { source, start, end, dest, dstart, dend ->
+            for (i in start until end) {
+                val char = source[i]
+                if (!Character.isLetterOrDigit(char) && char != ' ') {
+                    return@InputFilter ""
+                }
+            }
+            null
+        }
+        etInput.filters = arrayOf(filter)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnOk.setOnClickListener {
+            val newName = etInput.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                ioScope.launch {
+                    val updatedPlant = plant.copy(name = newName)
+                    databaseLocal.plantDao().update(updatedPlant)
+                    currentPlant = updatedPlant
+                    withContext(Dispatchers.Main) {
+                        showPlantInfo()
+                        Toast.makeText(this@MainActivity, "Nombre actualizado correctamente", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                }
+            } else {
+                Toast.makeText(this, "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
+            }
+        }
+        btnCancel.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
@@ -910,7 +1118,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
                 
                 val listView = dialogView.findViewById<android.widget.ListView>(R.id.dialogListView)
-                val adapter = object : android.widget.ArrayAdapter<Plant>(this@MainActivity, R.layout.item_plant_selection, plants) {
+                val adapter = object : android.widget.ArrayAdapter<Plant>(this@MainActivity, R.layout.item_plant_selection, R.id.tvItemPlantName, plants) {
                     override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
                         val row = convertView ?: layoutInflater.inflate(R.layout.item_plant_selection, parent, false)
                         val plant = getItem(position) ?: return row

@@ -78,6 +78,8 @@
                         <CheckBox android:id="@+id/cbSoil" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Suelo" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
                         <CheckBox android:id="@+id/cbLuz" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Luz" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
                         <CheckBox android:id="@+id/cbIRH" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="IRH" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbSeq" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Seq" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
+                        <CheckBox android:id="@+id/cbSomb" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Somb" android:checked="false" android:buttonTint="?attr/colorPrimary"/>
                     </LinearLayout>
                 </HorizontalScrollView>
 
@@ -113,6 +115,8 @@
                     <TextView android:id="@+id/tvHumP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
                     <TextView android:id="@+id/tvSoilP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
                     <TextView android:id="@+id/tvLuzP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvSeqP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvSombP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
                     <TextView android:id="@+id/tvIrhP1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" android:textColor="#D32F2F" android:textSize="12sp"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -136,6 +140,8 @@
                     <TextView android:id="@+id/tvHumP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
                     <TextView android:id="@+id/tvSoilP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
                     <TextView android:id="@+id/tvLuzP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvSeqP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tvSombP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp"/>
                     <TextView android:id="@+id/tvIrhP2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" android:textColor="#D32F2F" android:textSize="12sp"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
