@@ -10,9 +10,11 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
+import com.example.controlherbal.logic.PredictiveTheorem
 import com.github.mikephil.charting.charts.CombinedChart
 import com.github.mikephil.charting.data.*
 import com.google.android.material.navigation.NavigationView
@@ -173,13 +175,34 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 val avgLuz = filteredReadings.map { it.light }.average()
                 val avgIRH = filteredReadings.map { it.irh }.average()
 
+                // Análisis IA para el historial
+                val herbalAI = com.example.controlherbal.ai.HerbalAI(this@HistoryActivity)
+                val aiIrh = herbalAI.predictRefinedIRH(avgTemp, avgHum, avgLuz, avgSoil, currentPlant?.type ?: "Híbrido")
+                val combinedIrh = (avgIRH + aiIrh) / 2.0
+
                 withContext(Dispatchers.Main) {
                     tvAvgTemp.text = String.format("%.1f °C", avgTemp)
                     tvAvgHum.text = String.format("%.1f %%", avgHum)
                     tvAvgSoil.text = String.format("%.1f %%", avgSoil)
                     tvAvgLuz.text = String.format("%.1f %%", avgLuz)
-                    tvAvgIRH.text = String.format("%.1f", avgIRH)
+                    tvAvgIRH.text = String.format("%.1f (IA)", combinedIrh)
+                    
+                    if (combinedIrh > 75.0) tvAvgIRH.setTextColor(Color.RED)
+                    else if (combinedIrh > 50.0) tvAvgIRH.setTextColor(Color.parseColor("#FF6D00"))
+                    else tvAvgIRH.setTextColor(Color.parseColor("#2E7D32"))
+
                     drawHistoryChart(filteredReadings)
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    combinedChart.clear()
+                    combinedChart.setNoDataText("No hay registros para este periodo")
+                    combinedChart.invalidate()
+                    tvAvgTemp.text = "--"
+                    tvAvgHum.text = "--"
+                    tvAvgSoil.text = "--"
+                    tvAvgLuz.text = "--"
+                    tvAvgIRH.text = "--"
                 }
             }
         }
@@ -278,7 +301,8 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                             fun processNode(data: com.google.firebase.database.DataSnapshot) {
                                 val temp = (data.child("temp").value as? Number)?.toDouble() ?: return
                                 val hum = (data.child("hum").value as? Number)?.toDouble() ?: 0.0
-                                val luz = (data.child("luz").value as? Number)?.toInt() ?: 0
+                                val luzRaw = (data.child("luz_raw").value as? Number)?.toDouble() ?: (data.child("luz").value as? Number)?.toDouble() ?: 0.0
+                                val luz = PredictiveTheorem.filtrarSensibilidadLuz(luzRaw)
                                 val soil = (data.child("soil").value as? Number)?.toDouble() ?: 0.0
                                 val irh = (data.child("irh").value as? Number)?.toDouble() ?: 0.0
                                 val seq = (data.child("seq").value as? Number)?.toDouble() ?: 0.0
@@ -286,7 +310,20 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                                 val action = data.child("acc").value as? String ?: ""
                                 val timestamp = (data.child("timestamp").value as? Number)?.toLong() ?: System.currentTimeMillis()
 
-                                readingsToInsert.add(SensorReading(timestamp, plant.id, temp, hum, luz, soil, irh, seq, somb, action))
+                                readingsToInsert.add(
+                                    SensorReading(
+                                        timestamp = timestamp,
+                                        plantId = plant.id,
+                                        temperature = temp,
+                                        humidity = hum,
+                                        light = luz,
+                                        soilMoisture = soil,
+                                        irh = irh,
+                                        seq = seq,
+                                        somb = somb,
+                                        action = action
+                                    )
+                                )
                             }
 
                             if (snapshot.hasChild("history")) {
@@ -334,7 +371,7 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         val plant = currentPlant ?: return
         val dialogView = layoutInflater.inflate(R.layout.dialog_reset_options, null)
         val tvTitle = dialogView.findViewById<TextView>(R.id.tvResetTitle)
-        tvTitle.text = "Reiniciar de '${plant.name}'"
+        tvTitle.text = "Reiniciar '${plant.name}'"
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
@@ -412,17 +449,22 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     }
 
     private fun resetData(plantId: Int, start: Long, end: Long, isAll: Boolean) {
-        ioScope.launch {
-            if (isAll) {
-                databaseLocal.sensorDao().deleteAllByPlantId(plantId)
-            } else {
-                databaseLocal.sensorDao().deleteReadingsBetween(plantId, start, end)
+        lifecycleScope.launch(Dispatchers.Main) {
+            combinedChart.clear()
+            combinedChart.setNoDataText("Borrando...")
+            combinedChart.invalidate()
+
+            withContext(Dispatchers.IO) {
+                if (isAll) {
+                    databaseLocal.sensorDao().deleteAllByPlantId(plantId)
+                } else {
+                    databaseLocal.sensorDao().deleteReadingsBetween(plantId, start, end)
+                }
             }
-            withContext(Dispatchers.Main) {
-                android.widget.Toast.makeText(this@HistoryActivity, "Datos eliminados correctamente", android.widget.Toast.LENGTH_SHORT).show()
-                val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
-                loadHistoryData(type)
-            }
+
+            android.widget.Toast.makeText(this@HistoryActivity, "Datos eliminados correctamente ✅", android.widget.Toast.LENGTH_SHORT).show()
+            val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+            loadHistoryData(type)
         }
     }
 }
