@@ -237,21 +237,58 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 color = Color.argb(150, 211, 47, 47)
                 setDrawValues(false)
             }
-            combinedData.setData(com.github.mikephil.charting.data.BarData(barDataSet))
+            val barData = com.github.mikephil.charting.data.BarData(barDataSet)
+            barData.barWidth = 0.5f // Ajustar ancho para que no se vea tan grueso
+            combinedData.setData(barData)
         }
 
         combinedChart.apply {
             data = combinedData
             description.isEnabled = false
-            xAxis.position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
-            xAxis.valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                private val sdf = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault())
-                override fun getAxisLabel(v: Float, a: com.github.mikephil.charting.components.AxisBase?): String {
-                    val idx = v.toInt()
-                    return if (idx in readings.indices) sdf.format(java.util.Date(readings[idx].timestamp)) else ""
+            
+            // Espaciado extra para evitar que se corte el histograma y las etiquetas
+            setExtraOffsets(5f, 5f, 5f, 15f)
+            
+            axisLeft.axisMinimum = 0f
+            axisLeft.axisMaximum = 105f // Un poco más de 100 para que no pegue arriba
+            axisRight.isEnabled = false
+            
+            xAxis.apply {
+                position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                
+                // Evita que las etiquetas se amontonen en vistas semanales/mensuales
+                setLabelCount(8, false)
+                granularity = 1f
+                
+                setDrawGridLines(false)
+                labelRotationAngle = -45f
+                
+                // Ajustar el rango para dar espacio a las barras en los extremos
+                axisMinimum = -0.5f
+                axisMaximum = readings.size.toFloat() - 0.5f
+
+                valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                    private val sdfDaily = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    private val sdfFull = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault())
+                    
+                    override fun getAxisLabel(v: Float, a: com.github.mikephil.charting.components.AxisBase?): String {
+                        val idx = v.toInt()
+                        if (idx !in readings.indices) return ""
+                        
+                        val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+                        val sdf = if (type == "DIARIO") sdfDaily else sdfFull
+                        return sdf.format(java.util.Date(readings[idx].timestamp))
+                    }
                 }
             }
-            axisRight.isEnabled = false
+            
+            setTouchEnabled(true)
+            isDragEnabled = true
+            isScaleXEnabled = true
+            isScaleYEnabled = false
+            setPinchZoom(true)
+            
+            animateX(500)
             invalidate()
         }
     }
