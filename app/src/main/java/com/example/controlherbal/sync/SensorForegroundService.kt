@@ -14,6 +14,7 @@ import com.example.controlherbal.ai.HerbalAI
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
 import com.example.controlherbal.logic.PredictiveTheorem
+import com.example.controlherbal.widget.HerbalWidgetManager
 import com.google.firebase.database.*
 import kotlinx.coroutines.*
 import java.util.*
@@ -30,6 +31,7 @@ class SensorForegroundService : Service() {
     private var lastBootCount: Int = -1
     private var startTimeWithoutSun: Long = 0
     private var lastIrh: Double = -1.0
+    private var lastSeq: Double = -1.0
     
     private var lastTemp = 0.0
     private var lastHum = 0.0
@@ -112,8 +114,16 @@ class SensorForegroundService : Service() {
 
                         lastTemp = sTemp; lastHum = sHum; lastLuz = sLuz; lastSoil = sSoil
 
-                        // Lectura de ventana diurna
-                        val isDay = (snapshot.child("is_day").value as? Number)?.toInt() == 1 || (snapshot.child("dia").value as? Number)?.toInt() == 1
+                        // --- LÓGICA DE DETECCIÓN DÍA/NOCHE REAFIRMADA ---
+                        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                        val isDayByTime = currentHour in 7..19
+                        val isDayByLight = sLuz > 10.0
+                        val isDayBySensor = (snapshot.child("is_day").value as? Number)?.toInt() == 1 || 
+                                           (snapshot.child("dia").value as? Number)?.toInt() == 1
+                        
+                        // Prioridad absoluta al horario y luz: Si el reloj marca día o hay luz detectada, es DÍA.
+                        // Esto evita que fallos en el sensor de luz o nubes marquen "Noche" erróneamente.
+                        val isDay = isDayByTime || isDayBySensor || isDayByLight
 
                         val lastReading = databaseLocal.sensorDao().getAllOrderByTimestampDesc(plant.id).firstOrNull()
 
@@ -148,16 +158,23 @@ class SensorForegroundService : Service() {
                             (System.currentTimeMillis() - startTimeWithoutSun) / 3600000.0
                         } else 0.0
 
+                        val historySize = databaseLocal.sensorDao().getCountByPlantId(plant.id)
+
+                        // Calculamos el Factor IA de deshidratación
+                        val aiDehydrationFactor = herbalAI.predictDehydrationFactor(sTemp, sHum, sLuz, sSoil, plant.type, isDay)
+
                         val result = PredictiveTheorem.analyze(
                             sTemp, humRaw, luzRaw, soilRaw,
                             deltaTemp, deltaHum, deltaLuz, deltaSoil,
                             plant.lastWateringTime,
                             plant.type,
                             hoursWithoutSun,
-                            isDay
+                            isDay,
+                            aiFactor = aiDehydrationFactor,
+                            historySize = historySize
                         )
 
-                        // REFINAMIENTO IA
+                        // REFINAMIENTO IA DEL IRH
                         val irhAI = herbalAI.predictRefinedIRH(sTemp, sHum, sLuz, sSoil, plant.type, isDay)
                         var finalIrh = (result.irh + irhAI) / 2.0
 
@@ -171,6 +188,10 @@ class SensorForegroundService : Service() {
                         }
                         lastIrh = finalIrh
 
+                        // Estabilización de SEQ (Inercia)
+                        val finalSeq = if (lastSeq < 0) result.seq else (result.seq * 0.15 + lastSeq * 0.85)
+                        lastSeq = finalSeq
+
                         val reading = SensorReading(
                             timestamp = System.currentTimeMillis(),
                             plantId = plant.id,
@@ -179,13 +200,16 @@ class SensorForegroundService : Service() {
                             light = sLuz,
                             soilMoisture = sSoil,
                             irh = finalIrh,
-                            seq = result.seq,
+                            seq = finalSeq,
                             somb = result.somb,
                             action = result.recommendation
                         )
                         
                         databaseLocal.sensorDao().insert(reading)
                         databaseLocal.sensorDao().pruneData(plant.id)
+
+                        // Actualizar Widgets sincronizadamente con los datos
+                        HerbalWidgetManager.updateWidgets(this@SensorForegroundService)
 
                         updateNotification("Temp: ${String.format("%.1f", sTemp)}°C | Suelo: ${String.format("%.1f", sSoil)}%")
                         

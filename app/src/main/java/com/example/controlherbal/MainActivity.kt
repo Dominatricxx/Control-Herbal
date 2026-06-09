@@ -45,6 +45,7 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.database.*
 import com.example.controlherbal.ChatActivity
+import com.example.controlherbal.widget.HerbalWidgetManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -74,6 +75,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var tvCausa: TextView
     private lateinit var tvAlerta: TextView
     private lateinit var tvLastUpdate: TextView
+    private lateinit var tvDayNightStatus: TextView
     private lateinit var tvWateringRecommended: TextView
     private lateinit var tvNextWateringTime: TextView
     private lateinit var combinedChart: CombinedChart
@@ -161,7 +163,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                                     updateUIAndSave(
                                         state.temp, state.hum, state.luz, state.soil,
                                         res.irh, res.seq, res.somb,
-                                        res.recommendation, res.wateringRecommended, res.nextWateringHours
+                                        res.recommendation, res.wateringRecommended, res.nextWateringHours,
+                                        res.confidence
                                     )
                                 } else if (!isLinkingInProgress) {
                                     showDisconnectedState()
@@ -203,6 +206,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvCausa = findViewById(R.id.tvCausa)
         tvAlerta = findViewById(R.id.tvAlerta)
         tvLastUpdate = findViewById(R.id.tvLastUpdate)
+        tvDayNightStatus = findViewById(R.id.tvDayNightStatus)
         tvWateringRecommended = findViewById(R.id.tvWateringRecommended)
         tvNextWateringTime = findViewById(R.id.tvNextWateringTime)
         combinedChart = findViewById(R.id.combinedChart)
@@ -441,6 +445,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             tvSeq.text = "--"
             tvSomb.text = "--"
             tvAccion.text = "Sincronizando..."
+            tvDayNightStatus.text = ""
             tvWateringRecommended.text = ""
             tvNextWateringTime.text = ""
             tvAlerta.text = "Esperando datos..."
@@ -456,6 +461,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun showDisconnectedState() {
         tvConnectionState.text = "Desconectado"
         tvConnectionState.setTextColor(Color.RED)
+        tvDayNightStatus.text = ""
         btnConnect.text = "VINCULAR DISPOSITIVO"
         btnConnect.isEnabled = true
         tvAlerta.text = "Sin conexión"
@@ -464,22 +470,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun startFirebaseListener() {
-        // Ahora el servicio en primer plano es el único responsable de Firebase.
-        // Vincular simplemente se asegura de que el servicio esté corriendo.
-        isLinkingInProgress = true
+        // Marcamos el inicio de la vinculación en el ViewModel
+        viewModel.setLinking(true)
         showLinkingState()
         
         startSensorService()
         
-        // Simulamos vinculación para UX, la UI se actualizará vía Room
-        handler.postDelayed({
-            isLinkingInProgress = false
-            runOnUiThread {
-                tvConnectionState.text = "Sincronizado (Segundo Plano)"
-                tvConnectionState.setTextColor(Color.parseColor("#2E7D32"))
-                btnConnect.text = "DISPOSITIVO VINCULADO ✅"
-            }
-        }, 2000)
+        // Ya no simulamos la vinculación con un delay. 
+        // La UI se actualizará automáticamente cuando el servicio guarde el primer dato en Room
+        // y el Flow del ViewModel lo detecte.
+        Toast.makeText(this, "Buscando señal del dispositivo...", Toast.LENGTH_SHORT).show()
     }
 
     override fun onStop() {
@@ -488,30 +488,84 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         firebaseListener = null
     }
 
-    private fun updateUIAndSave(temp: Double, hum: Double, luz: Double, soil: Double, irh: Double, seq: Double, somb: Double, accion: String, wateringRecommended: Boolean, nextWateringHours: Double) {
-        if (isLinkingInProgress) return
+    private fun updateUIAndSave(temp: Double, hum: Double, luz: Double, soil: Double, irh: Double, seq: Double, somb: Double, accion: String, wateringRecommended: Boolean, nextWateringHours: Double, confidence: Double = 1.0) {
         if (temp == 0.0 && hum == 0.0 && luz == 0.0 && soil == 0.0) return
 
         val locale = Locale.getDefault()
+        
+        // Actualizar estado de conexión simplificado
+        tvConnectionState.text = "Sincronizado"
+        tvConnectionState.setTextColor(Color.parseColor("#2E7D32"))
+        
+        // Actualizar ciclo día/noche en la cabecera de datos
+        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val isDay = luz > 10.0 || currentHour in 7..19
+        tvDayNightStatus.text = if (isDay) "(Día ☀️)" else "(Noche 🌙)"
+
+        btnConnect.text = "DISPOSITIVO VINCULADO ✅"
+        btnConnect.isEnabled = true
+
         tvTemp.text = String.format(locale, "%.1f °C", temp)
         tvHum.text = String.format(locale, "%.1f %%", hum)
         tvSoil.text = String.format(locale, "%.1f %%", soil)
         tvLuz.text = String.format(locale, "%.1f %%", luz)
         tvIRH.text = String.format(locale, "%.1f", irh)
-        tvSeq.text = if (seq < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", seq) else "Sin riesgo"
-        tvSomb.text = if (somb < PredictiveTheorem.PREDICCION_MAX_HORAS) String.format(locale, "%.1f h", somb) else "Sin necesidad"
+        
+        fun formatHours(h: Double): String {
+            if (h >= PredictiveTheorem.PREDICCION_MAX_HORAS - 1.0) return "Sin riesgo"
+            if (h < 1.0) return String.format(locale, "%.1f h", h)
+            val totalHours = h.toInt()
+            val days = totalHours / 24
+            val rem = totalHours % 24
+            return if (days > 0) "${days}d ${rem}h" else "${rem}h"
+        }
+
+        tvSeq.text = formatHours(seq)
+        tvSomb.text = formatHours(somb)
+        
+        // Manejo de Confianza en Predicción
+        if (confidence < 0.5) {
+            tvNextWateringTime.text = "Calculando predicción segura... ⏳"
+            tvNextWateringTime.setTextColor(Color.GRAY)
+        } else {
+            tvNextWateringTime.setTextColor(Color.BLACK)
+            if (nextWateringHours <= 0) {
+                tvNextWateringTime.text = "¡Necesita riego ahora! 💧"
+            } else {
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.MINUTE, (nextWateringHours * 60).toInt())
+                
+                val diffHours = nextWateringHours
+                val diffDays = (diffHours / 24).toInt()
+                
+                val timeString = when {
+                    diffDays >= 1 -> {
+                        val remainingHours = (diffHours % 24).toInt()
+                        val dayName = SimpleDateFormat("EEEE", locale).format(calendar.time).replaceFirstChar { it.uppercase() }
+                        val timeOfDay = SimpleDateFormat("HH:mm", locale).format(calendar.time)
+                        
+                        if (diffDays >= 7) {
+                            "aprox. en ${diffDays / 7} semana(s) ($dayName $timeOfDay)"
+                        } else if (remainingHours > 0) {
+                            "aprox. $diffDays días y $remainingHours h ($dayName $timeOfDay)"
+                        } else {
+                            "aprox. $diffDays días ($dayName $timeOfDay)"
+                        }
+                    }
+                    else -> {
+                        val h = diffHours.toInt()
+                        val m = ((diffHours - h) * 60).toInt()
+                        if (h > 0) "aprox. $h h y $m min (${SimpleDateFormat("HH:mm", locale).format(calendar.time)})"
+                        else "aprox. $m min (${SimpleDateFormat("HH:mm", locale).format(calendar.time)})"
+                    }
+                }
+                tvNextWateringTime.text = "Próximo riego estimado: $timeString"
+                if (confidence < 0.9) tvNextWateringTime.append(" (Aprendiendo... 🧠)")
+            }
+        }
         
         tvWateringRecommended.text = "Riego recomendado: ${if (wateringRecommended) "SÍ" else "No"}"
         tvWateringRecommended.setTextColor(if (wateringRecommended) Color.RED else Color.parseColor("#1E88E5"))
-        
-        if (nextWateringHours <= 0) {
-            tvNextWateringTime.text = "¡Necesita riego ahora!"
-        } else {
-            val calendar = Calendar.getInstance()
-            calendar.add(Calendar.MINUTE, (nextWateringHours * 60).toInt())
-            val sdf = if (nextWateringHours > 20) SimpleDateFormat("EEE HH:mm", locale) else SimpleDateFormat("HH:mm", locale)
-            tvNextWateringTime.text = "Próximo riego estimado: ${sdf.format(calendar.time)}"
-        }
         
         tvAccion.text = accion
         if (accion != lastRecommendationText) {
@@ -523,11 +577,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvCausa.text = ""
         tvLastUpdate.text = String.format("Última actualización: %s", SimpleDateFormat("HH:mm:ss", locale).format(Date()))
 
-        val isStressful = irh >= PredictiveTheorem.IRH_OPTIMO || 
-                         temp < PredictiveTheorem.TEMP_OPTIMA_MIN || 
-                         temp > PredictiveTheorem.TEMP_OPTIMA_MAX || 
-                         hum < PredictiveTheorem.HUM_OPTIMA_MIN || 
-                         hum > PredictiveTheorem.HUM_OPTIMA_MAX
+        // Sincronización de alertas con el estado de la recomendación (Acción)
+        // Rediseñado para evitar falsos positivos: Solo advertimos si el IRH es alto (>=50)
+        // o si hay una advertencia explícita de riesgo en el texto (⚠️, EXTREMO, etc).
+        val hasExplicitWarning = accion.contains("⚠️") || accion.contains("EXTREMO") || 
+                                accion.contains("URGENTE") || accion.contains("INMEDIATO")
+        
+        val isStressful = irh >= PredictiveTheorem.IRH_ADVERTENCIA || hasExplicitWarning
 
         when {
             irh >= PredictiveTheorem.IRH_RIESGO -> {
@@ -539,7 +595,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     lastAlertState = 2
                 }
             }
-            irh >= PredictiveTheorem.IRH_ADVERTENCIA || isStressful -> {
+            isStressful -> {
                 tvAlerta.text = "⚠️ ADVERTENCIA"
                 tvAlerta.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
                 tvAlerta.setTextColor(Color.BLACK)
@@ -576,6 +632,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             ioScope.launch {
                 databaseLocal.sensorDao().insert(reading)
                 databaseLocal.sensorDao().pruneData(plant.id)
+
+                // Forzar actualización de Widgets al recibir datos nuevos
+                HerbalWidgetManager.updateWidgets(this@MainActivity)
+
                 readingsSinceLastLearning++
                 if (readingsSinceLastLearning >= LEARNING_THRESHOLD) {
                     readingsSinceLastLearning = 0
@@ -600,10 +660,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             lastWateringAlertState = 2
         } else if (!recommended && !action.contains("SOBRE-RIEGO")) lastWateringAlertState = 0
 
-        if (!action.contains("óptimas", ignoreCase = true) && !action.contains("estables", ignoreCase = true)) {
-            // Solo lanzamos alerta si no es exclusivamente por luz alta (☀️)
-            val isOnlyLight = action.contains("☀️") && !action.contains("🌡️") && !action.contains("🔥") && !action.contains("💧")
-            if (!isOnlyLight && (action.contains("⚠️") || action.contains("🌡️") || action.contains("🔥"))) {
+        // Evitamos notificaciones por estados normales o consejos de iluminación menores
+        val isNormalState = action.contains("óptimas", ignoreCase = true) || 
+                          action.contains("estables", ignoreCase = true) ||
+                          action.contains("noche", ignoreCase = true)
+
+        if (!isNormalState) {
+            // No notificar si es solo un consejo de luz (sol ☀️ o poca luz 🌑) sin otros factores de estrés
+            val isOnlyLightAdvice = (action.contains("☀️") || action.contains("🌑")) && 
+                                   !action.contains("🌡️") && !action.contains("🔥") && 
+                                   !action.contains("💧") && !action.contains("⚠️")
+            
+            if (!isOnlyLightAdvice && (action.contains("⚠️") || action.contains("🌡️") || 
+                action.contains("🔥") || action.contains("EXTREMO"))) {
                 sendNotification("🌿 Actualización de Cuidados", action)
             }
         }
