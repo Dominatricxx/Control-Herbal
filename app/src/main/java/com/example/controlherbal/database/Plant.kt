@@ -11,5 +11,7 @@ data class Plant(
     val environment: String,
     val isSelected: Boolean = false,
     val lastWateringTime: Long = 0,
-    val pendingSync: Boolean = false
+    val pendingSync: Boolean = false,
+    val aiDiagnosis: String? = null,
+    val aiRecommendation: String? = null
 )

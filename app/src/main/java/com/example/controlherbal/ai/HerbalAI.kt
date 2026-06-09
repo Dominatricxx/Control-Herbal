@@ -9,16 +9,16 @@ import kotlin.math.exp
 import kotlin.random.Random
 
 /**
- * HerbalAI: Implementación de una Red Neuronal Multicapa (MLP).
- * Arquitectura Sincronizada con Arduino-Herbal-Mini.
- * 4 Entradas (Temp, HumAmb, Luz, Soil) -> 12 Neuronas Ocultas -> 1 Salida (IRH).
+ * HerbalAI: Red Neuronal Multicapa (MLP) Avanzada.
+ * Basada en investigaciones de fisiología vegetal (Vapor Pressure Deficit - VPD).
+ * 6 Entradas (Temp, HumAmb, Luz, Soil, isDay, VPD) -> 18 Neuronas Ocultas -> 1 Salida (IRH).
  */
 class HerbalAI(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v4", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v6", Context.MODE_PRIVATE)
     
-    private val inputSize = 4
-    private val hiddenSize = 12
+    private val inputSize = 6
+    private val hiddenSize = 18
     private val outputSize = 1
     
     private var weightsInputHidden = Array(inputSize) { FloatArray(hiddenSize) }
@@ -37,21 +37,32 @@ class HerbalAI(context: Context) {
     private fun sigmoidDeriv(x: Float): Float = x * (1f - x)
 
     /**
-     * Inferencia (Feed-forward): Calcula el IRH basado en los 4 parámetros normalizados.
-     * Los rangos de estrés ahora coinciden exactamente con el Arduino y el tipo de planta.
+     * Calcula el Déficit de Presión de Vapor (VPD).
+     * El VPD es el indicador académico más preciso para el estrés hídrico.
      */
-    fun predictRefinedIRH(temp: Double, hum: Double, luz: Double, soil: Double, plantType: String = "Híbrido"): Double {
+    private fun calculateVPD(temp: Double, hum: Double): Double {
+        val es = 0.6108 * exp(17.27 * temp / (temp + 237.3))
+        val ea = es * (hum / 100.0)
+        return (es - ea).coerceIn(0.0, 5.0) // kPa
+    }
+
+    fun predictRefinedIRH(temp: Double, hum: Double, luz: Double, soil: Double, plantType: String = "Híbrido", isDay: Boolean = true): Double {
         val r = when {
-            plantType.contains("Luz", ignoreCase = true) -> Triple(60.0, 100.0, 25.0) // luzMin, luzMax, soilMin
-            plantType.contains("Sombra", ignoreCase = true) -> Triple(10.0, 40.0, 25.0)
-            else -> Triple(30.0, 70.0, 25.0)
+            plantType.contains("Luz", ignoreCase = true) || plantType.contains("Sol", ignoreCase = true) -> Triple(60.0, 100.0, 15.0) 
+            plantType.contains("Sombra", ignoreCase = true) -> Triple(10.0, 40.0, 60.0)
+            else -> Triple(30.0, 70.0, 40.0)
         }
 
+        val vpd = calculateVPD(temp, hum)
+        val normalizedVPD = (vpd / 2.5).coerceIn(0.0, 1.0) // 1.2-1.5 kPa es el límite de estrés para muchas plantas
+
         val input = floatArrayOf(
-            PredictiveTheorem.estresTemp(temp, 15.0, 32.0).toFloat() / 100f,
-            PredictiveTheorem.estresVariable(hum, 40.0, 60.0).toFloat() / 100f,
+            PredictiveTheorem.estresTemp(temp, 18.0, 32.0).toFloat() / 100f,
+            PredictiveTheorem.estresVariable(hum, 40.0, 70.0).toFloat() / 100f,
             PredictiveTheorem.estresLuz(luz, r.first).toFloat() / 100f,
-            PredictiveTheorem.estresVariable(soil, r.third, 70.0).toFloat() / 100f
+            PredictiveTheorem.estresVariable(soil, r.third, 85.0).toFloat() / 100f,
+            if (isDay) 1.0f else 0.0f,
+            normalizedVPD.toFloat()
         )
 
         // Capa Oculta
@@ -75,19 +86,26 @@ class HerbalAI(context: Context) {
     }
 
     fun performSelfLearning(history: List<SensorReading>) {
-        if (history.size < 15) return
+        if (history.size < 20) return
 
-        Log.d(TAG, "Entrenando Red Neuronal con ${history.size} registros (Sync Arduino)...")
+        Log.d(TAG, "Aprendizaje IA (VPD + Circadiano) con ${history.size} registros...")
 
-        repeat(100) {
+        repeat(150) {
             for (reading in history) {
+                val isDayLocal = reading.light > 15.0
+                val vpd = calculateVPD(reading.temperature, reading.humidity)
+                val normalizedVPD = (vpd / 2.5).coerceIn(0.0, 1.0)
+                
                 val input = floatArrayOf(
-                    PredictiveTheorem.estresTemp(reading.temperature, 15.0, 32.0).toFloat() / 100f,
-                    PredictiveTheorem.estresVariable(reading.humidity, 40.0, 60.0).toFloat() / 100f,
+                    PredictiveTheorem.estresTemp(reading.temperature, 18.0, 32.0).toFloat() / 100f,
+                    PredictiveTheorem.estresVariable(reading.humidity, 40.0, 70.0).toFloat() / 100f,
                     PredictiveTheorem.estresLuz(reading.light, 30.0).toFloat() / 100f,
-                    PredictiveTheorem.estresVariable(reading.soilMoisture, 25.0, 70.0).toFloat() / 100f
+                    PredictiveTheorem.estresVariable(reading.soilMoisture, 25.0, 70.0).toFloat() / 100f,
+                    if (isDayLocal) 1.0f else 0.0f,
+                    normalizedVPD.toFloat()
                 )
                 val target = reading.irh.toFloat() / 100f
+                // ... resto del entrenamiento ...
 
                 // Feed-forward
                 val hiddenLayer = FloatArray(hiddenSize)

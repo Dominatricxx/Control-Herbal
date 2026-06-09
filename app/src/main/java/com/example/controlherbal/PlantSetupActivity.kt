@@ -18,8 +18,8 @@ import androidx.core.content.ContextCompat
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.google.firebase.Firebase
-import com.google.firebase.ai.ai
-import com.google.firebase.ai.type.content
+import com.google.firebase.vertexai.vertexAI
+import com.google.firebase.vertexai.type.content
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -337,7 +337,7 @@ class PlantSetupActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val model = Firebase.ai.generativeModel(modelName = "gemini-1.5-flash")
+                val model = Firebase.vertexAI.generativeModel(modelName = "gemini-1.5-flash")
                 
                 val prompt = "Actúa como experto botánico. Analiza la imagen. " +
                             "Si es una planta, responde ÚNICAMENTE con este formato: " +

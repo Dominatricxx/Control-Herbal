@@ -150,6 +150,9 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
             R.id.nav_comparison -> {
                 startActivity(Intent(this, ComparisonActivity::class.java))
             }
+            R.id.nav_chat -> {
+                startActivity(Intent(this, ChatActivity::class.java))
+            }
         }
         drawerLayout.closeDrawer(GravityCompat.START)
         return true

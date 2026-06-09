@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [SensorReading::class, Plant::class], version = 6, exportSchema = false)
+@Database(entities = [SensorReading::class, Plant::class], version = 7, exportSchema = false)
 abstract class SensorDatabase : RoomDatabase() {
     abstract fun sensorDao(): SensorDao
     abstract fun plantDao(): PlantDao
@@ -20,9 +20,7 @@ abstract class SensorDatabase : RoomDatabase() {
                     context.applicationContext,
                     SensorDatabase::class.java,
                     "sensor_database"
-                )
-                .fallbackToDestructiveMigration()
-                .build()
+                ).build()
                 INSTANCE = instance
                 instance
             }

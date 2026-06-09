@@ -55,5 +55,55 @@
             android:name=".ComparisonActivity"
             android:label="Comparador de Plantas"
             android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".ChatActivity"
+            android:label="Asistente Herbal AI"
+            android:parentActivityName=".MainActivity" />
+
+        <receiver
+            android:name=".widget.HerbalWidgetSummaryReceiver"
+            android:exported="true"
+            android:label="Resumen Herbal">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/herbal_widget_summary_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.HerbalWidgetStatusReceiver"
+            android:exported="true"
+            android:label="Estado Herbal">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/herbal_widget_status_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.HerbalWidgetAlertReceiver"
+            android:exported="true"
+            android:label="Alerta Herbal (Mini)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/herbal_widget_alert_info" />
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
