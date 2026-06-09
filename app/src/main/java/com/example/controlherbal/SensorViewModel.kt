@@ -36,6 +36,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     
     private var startTimeWithoutSun: Long = 0
     private var lastDisplayedIrh: Double = -1.0
+    private var lastDisplayedSeq: Double = -1.0
     
     private val _uiState = MutableStateFlow(SensorUiState())
     val uiState: StateFlow<SensorUiState> = _uiState
@@ -56,12 +57,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     fun observeLatestReading(plantId: Int) {
         viewModelScope.launch {
             db.sensorDao().getLatestReadingFlow(plantId).collect { reading ->
-                // No actualizamos si estamos vinculando para no mostrar datos viejos
-                if (_uiState.value.isLinking) return@collect
-                
                 reading?.let {
+                    // Si recibimos un dato válido, desactivamos el estado de "Vinculando"
                     val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-                    val estimatedIsDay = currentHour in 7..19
+                    val isDayByTime = currentHour in 7..19
+                    val isDayByLight = it.light > 10.0
+                    val estimatedIsDay = isDayByTime || isDayByLight
                     
                     _uiState.value = _uiState.value.copy(
                         temp = it.temperature,
@@ -74,13 +75,14 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                             somb = it.somb,
                             recommendation = it.action,
                             urgency = "", 
-                            wateringRecommended = it.soilMoisture < 25.0, 
+                            wateringRecommended = it.soilMoisture < 20.0 || (it.irh > 80 && it.soilMoisture < 35.0),
                             nextWateringHours = it.seq,
                             adjustedHum = it.humidity,
                             adjustedLuz = it.light,
                             adjustedSoil = it.soilMoisture
                         ),
                         isConnected = true,
+                        isLinking = false, // Salimos del modo vinculación al recibir datos
                         isDay = estimatedIsDay
                     )
                 }
@@ -179,13 +181,21 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                 (System.currentTimeMillis() - startTimeWithoutSun) / 3600000.0
             } else 0.0
 
+            // Obtenemos el tamaño del historial para la confianza
+            val historySize = currentPlant?.let { db.sensorDao().getCountByPlantId(it.id) } ?: 0
+
+            // Calculamos el Factor IA de deshidratación
+            val aiDehydrationFactor = herbalAI.predictDehydrationFactor(sTemp, sHum, sLuz, sSoil, currentPlant?.type ?: "Híbrido", isDay)
+
             val result = PredictiveTheorem.analyze(
                 sTemp, humRaw, luzRaw, soilRaw,
                 deltaTemp, deltaHum, deltaLuz, deltaSoil,
                 currentPlant?.lastWateringTime ?: 0,
                 currentPlant?.type ?: "",
                 hoursWithoutSun,
-                isDay
+                isDay,
+                aiFactor = aiDehydrationFactor,
+                historySize = historySize
             )
 
             val finalIrh = if (hwIrh > 0) {
@@ -215,9 +225,25 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
             
             lastDisplayedIrh = finalIrh
 
+            // Sanidad para el SEQ del hardware: El Arduino tiene un límite de 6h.
+            // Si el suelo está sano (>40%), ignoramos el SEQ del hardware y usamos el de la App (que es de largo plazo).
+            val rawHwSeq = hwSeq
+            val calculatedSeq = if (sSoil > 40.0) {
+                result.seq // Usamos el cálculo de largo plazo de la App
+            } else if (rawHwSeq > 0 && rawHwSeq < 6.0) {
+                rawHwSeq // Si es una sequía real inminente detectada por HW, la tomamos
+            } else {
+                result.seq
+            }
+            
+            // Filtro de Inercia Extrema para SEQ (95% Inercia)
+            // Esto garantiza que los cambios de "días" sean lentos y consistentes.
+            val finalSeq = if (lastDisplayedSeq < 0) calculatedSeq else (calculatedSeq * 0.05 + lastDisplayedSeq * 0.95)
+            lastDisplayedSeq = finalSeq
+
             val finalResult = result.copy(
                 irh = finalIrh,
-                seq = if (hwSeq >= 0) hwSeq else result.seq,
+                seq = finalSeq,
                 somb = if (hwSomb >= 0) hwSomb else result.somb,
                 recommendation = if (hwAcc.isNotEmpty()) hwAcc else result.recommendation,
                 isDataReliable = result.isDataReliable,

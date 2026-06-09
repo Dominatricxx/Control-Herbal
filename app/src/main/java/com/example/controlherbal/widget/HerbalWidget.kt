@@ -27,8 +27,23 @@ import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.Button
 import com.example.controlherbal.MainActivity
-import androidx.glance.Button
 import androidx.compose.ui.graphics.Color
+import androidx.glance.appwidget.updateAll
+
+/**
+ * Utilidad para forzar la actualización de todos los widgets desde el servicio o la app
+ */
+object HerbalWidgetManager {
+    suspend fun updateWidgets(context: Context) {
+        try {
+            HerbalWidgetSummary().updateAll(context)
+            HerbalWidgetStatus().updateAll(context)
+            HerbalWidgetAlert().updateAll(context)
+        } catch (e: Exception) {
+            android.util.Log.e("HerbalWidget", "Error updating widgets: ${e.message}")
+        }
+    }
+}
 
 /**
  * Widget Principal: Información completa y estado de la planta

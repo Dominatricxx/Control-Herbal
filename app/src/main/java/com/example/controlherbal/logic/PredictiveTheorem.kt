@@ -1,8 +1,8 @@
 package com.example.controlherbal.logic
 
+import java.util.*
 import kotlin.math.abs
 import kotlin.math.pow
-import kotlin.random.Random
 
 /**
  * Teorema Predictivo - Sincronizado con Arduino-Herbal-Mini (Proyecto A Final)
@@ -18,9 +18,9 @@ object PredictiveTheorem {
     )
 
     private val ranges = mapOf(
-        "Luz" to Range(20.0, 35.0, 20.0, 50.0, 60.0, 100.0, 15.0, 40.0),
-        "Híbrido" to Range(18.0, 30.0, 40.0, 70.0, 30.0, 70.0, 40.0, 70.0),
-        "Sombra" to Range(15.0, 28.0, 50.0, 80.0, 10.0, 40.0, 60.0, 85.0)
+        "Luz" to Range(18.0, 32.0, 20.0, 60.0, 40.0, 100.0, 10.0, 45.0),
+        "Híbrido" to Range(16.0, 28.0, 30.0, 75.0, 20.0, 70.0, 25.0, 65.0),
+        "Sombra" to Range(14.0, 26.0, 40.0, 85.0, 5.0, 40.0, 40.0, 80.0)
     )
 
     // Coeficientes IRH
@@ -40,7 +40,38 @@ object PredictiveTheorem {
     const val HUM_OPTIMA_MAX = 70.0
 
     const val PREDICCION_MIN_HORAS = 0.5
-    const val PREDICCION_MAX_HORAS = 6.0 
+    const val PREDICCION_MAX_HORAS = 720.0 // Hasta 30 días de predicción
+
+    /**
+     * Calcula la tasa de deshidratación teórica (Evapotranspiración)
+     * Optimizada: Menor peso a la luz, mayor peso a Temperatura/VPD y Ciclo Circadiano.
+     */
+    fun calcularTasaDeshidratacion(temp: Double, humAmb: Double, luz: Double, plantType: String): Double {
+        // Corrección de temperatura por radiación solar (Evita sobreestimación por sensor caliente)
+        // Si la luz es alta, restamos un factor de "calor de carcasa" para la predicción
+        val tempCorregida = if (luz > 50.0) temp - ((luz - 50.0) / 10.0) else temp
+        
+        // Tasa base según el tipo de planta (%/h)
+        val tasaBase = when (getPlantTypeKey(plantType)) {
+            "Luz" -> 0.4    // Reducido para mayor estabilidad
+            "Sombra" -> 0.1 
+            else -> 0.2      
+        }
+
+        // Factor de Temperatura: Usamos tempCorregida para no castigar de más la predicción
+        val fTemp = (tempCorregida.coerceAtLeast(10.0) / 22.0).pow(1.8).coerceIn(0.01, 4.0)
+        
+        // Factor de Humedad Ambiental (Inverso)
+        val fHum = (1.0 - (humAmb / 100.0)).pow(2.0).coerceIn(0.001, 2.0)
+        
+        // Factor de Luz (Secundario)
+        val fLuz = (1.0 + (luz / 100.0) * 0.3).coerceIn(1.0, 1.3)
+
+        // Factor de Ciclo (Noche): De noche la transpiración cae drásticamente
+        val cycleCorrection = if (luz < 8.0) 0.15 else 1.0
+
+        return tasaBase * fTemp * fHum * fLuz * cycleCorrection
+    }
 
     private fun getPlantTypeKey(plantType: String): String {
         return when {
@@ -163,7 +194,8 @@ object PredictiveTheorem {
         val adjustedHum: Double = 0.0,
         val adjustedLuz: Double = 0.0,
         val adjustedSoil: Double = 0.0,
-        val isDataReliable: Boolean = true
+        val isDataReliable: Boolean = true,
+        val confidence: Double = 1.0
     )
 
     fun analyze(
@@ -178,50 +210,98 @@ object PredictiveTheorem {
         lastWateringTime: Long = 0,
         plantType: String = "",
         hoursWithoutSun: Double = 0.0,
-        isDay: Boolean = true
+        isDay: Boolean = true,
+        aiFactor: Double = 1.0,
+        historySize: Int = 0
     ): AnalysisResult {
         val key = getPlantTypeKey(plantType)
         val r = ranges[key] ?: ranges["Híbrido"]!!
         
-        // 1. VERIFICACIÓN DE INTEGRIDAD (Anti-Fuga/Fallo)
-        // Si el delta de suelo es una caída masiva (> 40% en un periodo corto), el sensor falló.
+        // 1. CALIBRACIÓN DE TEMPERATURA (Filtro de Radiación - Dinámico)
+        // El sensor registra picos de 33°C vs 22°C reales. 
+        // Aplicamos una corrección basada en la intensidad lumínica.
+        val calibratedTemp = if (luzRaw > 20.0) {
+            // Factor de corrección: ~0.15°C por cada 1% de luz cruda por encima de 20%
+            (temp - ((luzRaw - 20.0) * 0.15)).coerceAtLeast(18.0)
+        } else temp
+
+        // 2. VERIFICACIÓN DE INTEGRIDAD Y CONFIANZA
         val isDataReliable = !(abs(deltaSoil) > 40.0) && soilRaw in 0.1..99.9
+        
+        val confidence = when {
+            !isDataReliable -> 0.0
+            historySize < 15 -> 0.4 
+            historySize < 60 -> 0.7 
+            else -> 1.0 
+        }
 
         val hum = filtrarSensibilidadHumedad(rawHum)
         val luzFiltrada = filtrarSensibilidadLuz(luzRaw)
         val soil = soilRaw
 
+        // Estrés base (Valores absolutos)
         val eH = estresVariable(hum, r.humMin, r.humMax)
-        val eT = estresTemp(temp, r.tempMin, r.tempMax)
+        val eT = estresTemp(calibratedTemp, r.tempMin, r.tempMax)
         val eL = estresLuz(luzFiltrada, r.luzMin)
         val eS = estresVariable(soil, r.soilMin, r.soilMax)
 
+        // Tendencias (Solo afectan si son significativas para evitar tambaleo)
         var tendH = 0.0; var tendT = 0.0; var tendL = 0.0; var tendS = 0.0
-        if (deltaHum < -5.0) tendH = 15.0 else if (deltaHum < -2.0) tendH = 8.0
-        if (deltaTemp > 2.0) tendT = 15.0 else if (deltaTemp > 1.0) tendT = 8.0
-        if (deltaLuz > 10.0) tendL = 15.0
-        if (deltaSoil < -5.0) tendS = 15.0
+        if (deltaHum < -8.0) tendH = 10.0
+        if (deltaTemp > 3.0) tendT = 10.0
+        if (deltaSoil < -3.0) tendS = 12.0
 
         var irh = (eH * COEF_HUM_AMB) + (eT * COEF_TEMP) + (eL * COEF_LUZ) + (eS * COEF_SUELO)
         irh += (tendH * 0.05) + (tendT * 0.05) + (tendL * 0.05) + (tendS * 0.1)
         irh = irh.coerceIn(0.0, 100.0)
 
-        var recommendation = generarRecomendacion(temp, hum, luzFiltrada, soil, plantType, isDay)
+        var recommendation = generarRecomendacion(calibratedTemp, hum, luzFiltrada, soil, plantType, isDay)
 
-        var seq = PREDICCION_MAX_HORAS; var somb = PREDICCION_MAX_HORAS
+        // --- PREDICCIÓN DE RIEGO AVANZADA (ESTABLE Y CICLO-CONSCIENTE) ---
+        var seq = PREDICCION_MAX_HORAS
+        var somb = PREDICCION_MAX_HORAS
 
-        if (isDay && isDataReliable) {
-            seq = if (deltaSoil < -2.0 && soil < r.soilMin) {
-                ((r.soilMin - soil) / (abs(deltaSoil) + 0.001)).coerceIn(PREDICCION_MIN_HORAS, PREDICCION_MAX_HORAS)
-            } else if (deltaTemp > 0.5 && luzFiltrada > 70 && soil < r.soilMin) 1.0 else PREDICCION_MAX_HORAS
+        if (isDataReliable) {
+            // 1. Déficit Hídrico
+            val deficitAgua = (soil - r.soilMin).coerceAtLeast(0.0)
+            
+            // 2. Cálculo de Tasas (Día y Noche teóricas usando temp calibrada)
+            val tasaDiaTeorica = calcularTasaDeshidratacion(calibratedTemp, hum, 80.0, plantType) * aiFactor
+            val tasaNocheTeorica = calcularTasaDeshidratacion(calibratedTemp, hum, 0.0, plantType) * aiFactor
+            
+            // Tasa teórica promediada por el ciclo de 24h
+            val tasaCicloPromedio = (tasaDiaTeorica * 13.0 + tasaNocheTeorica * 11.0) / 24.0
 
-            if (seq <= 1.0 && luzFiltrada > 70) {
-                recommendation = "⚠️ SEQUÍA INMINENTE en ${String.format("%.1f", seq)} horas. Sombra y riego urgente."
+            // 3. Integración con Comportamiento Real (Inercial - Suavizado Agresivo)
+            // Solo consideramos la tasa real si es mayor a la teórica (evita subestimar tiempo)
+            val tasaRealMedida = if (deltaSoil < -0.05) abs(deltaSoil) else 0.0
+            
+            // Mezcla: 85% Física/Ciclo y 15% Observación Real (Limitada para evitar tambaleo)
+            val tasaEstable = (tasaCicloPromedio * 0.85) + (tasaRealMedida.coerceAtMost(tasaDiaTeorica * 1.1) * 0.15)
+
+            // 4. Cálculo de Horas Restantes
+            seq = (deficitAgua / (tasaEstable.coerceAtLeast(0.0001)))
+            
+            // Refuerzo de consistencia: Si el suelo está muy húmedo, el tiempo debe ser muy estable
+            // Reducimos la sensibilidad al % de suelo para evitar que caiga de 14 días a 10 días rápido
+            if (soil > 70.0 && seq < 168.0) {
+                 // Garantizamos al menos 1 semana si el suelo > 70% y las condiciones no son extremas
+                 val factorEstabilidad = if (calibratedTemp < 30.0) 1.2 else 1.0
+                 seq = (168.0 * factorEstabilidad).coerceAtLeast(seq)
+            }
+
+            seq = seq.coerceIn(0.0, PREDICCION_MAX_HORAS)
+
+            // Alertas de sequía inmediata: Solo si es REALMENTE inminente
+            if (isDay && seq <= 3.0 && soil < (r.soilMin + 2)) {
+                recommendation = "⚠️ NIVEL BAJO: Próximo riego estimado en ${String.format(Locale.getDefault(), "%.1f", seq)}h."
             }
             
-            somb = if (deltaLuz > 10.0 && deltaTemp > 0.0 && soil < r.soilMin) {
-                ((r.soilMin - soil) / (abs(deltaSoil) + 0.001)).coerceIn(PREDICCION_MIN_HORAS, PREDICCION_MAX_HORAS)
-            } else if (luzFiltrada > 80 && temp > r.tempMax && soil < r.soilMin) 1.0 else PREDICCION_MAX_HORAS
+            if (isDay) {
+                somb = if (deltaLuz > 10.0 && deltaTemp > 0.0 && soil < r.soilMin) {
+                    ((r.soilMin - soil) / (abs(deltaSoil) + 0.001)).coerceIn(PREDICCION_MIN_HORAS, PREDICCION_MAX_HORAS)
+                } else if (luzFiltrada > 80 && calibratedTemp > r.tempMax && soil < r.soilMin) 1.0 else PREDICCION_MAX_HORAS
+            }
         }
 
         // REGLAS SEVERAS DE RIEGO (Anti-Ahogo):
@@ -242,6 +322,6 @@ object PredictiveTheorem {
 
         if (!isDataReliable) recommendation = "❌ ERROR: Sensor de suelo inestable. Riego bloqueado por seguridad."
 
-        return AnalysisResult(irh, seq, somb, recommendation, urgency, wateringRecommended, seq, hum, luzFiltrada, soil, isDataReliable)
+        return AnalysisResult(irh, seq, somb, recommendation, urgency, wateringRecommended, seq, hum, luzFiltrada, soil, isDataReliable, confidence)
     }
 }
