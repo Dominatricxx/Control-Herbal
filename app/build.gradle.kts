@@ -59,8 +59,15 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.firebase.ai)
+    // Vertex AI for Firebase (Actualizado para mayor estabilidad)
+    implementation("com.google.firebase:firebase-vertexai:16.0.0-beta04")
+    
+    // Firebase Realtime Database
     implementation(libs.firebase.database)
+    
+    // SDK Directo de Gemini (Fallback si Firebase falla)
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
     implementation(libs.tensorflow.lite)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -83,4 +90,8 @@ dependencies {
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+
+    // Jetpack Glance (Widgets)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
 }

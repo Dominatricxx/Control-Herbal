@@ -109,6 +109,61 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Tarjeta de Diagnóstico IA (Se muestra solo si hay un problema detectado por el Chatbot) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardAiDiagnosis"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="6dp"
+            app:cardBackgroundColor="#FFF3E0"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🩺 Diagnóstico Herbal AI"
+                    android:textColor="#E65100"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvAiDiagnosisTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Problema detectado"
+                    android:textColor="#212121"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvAiDiagnosisBody"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Recomendaciones de la IA..."
+                    android:textColor="#424242"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnClearAiDiagnosis"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:text="Entendido"
+                    android:textColor="#E65100" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

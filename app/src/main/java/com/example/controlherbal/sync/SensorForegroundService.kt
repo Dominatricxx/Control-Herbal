@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.controlherbal.MainActivity
 import com.example.controlherbal.R
+import com.example.controlherbal.ai.HerbalAI
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
 import com.example.controlherbal.logic.PredictiveTheorem
@@ -21,10 +23,18 @@ class SensorForegroundService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var databaseFirebase: DatabaseReference
     private lateinit var databaseLocal: SensorDatabase
+    private lateinit var herbalAI: HerbalAI
     private var firebaseListener: ValueEventListener? = null
+    private var wakeLock: PowerManager.WakeLock? = null
     
     private var lastBootCount: Int = -1
     private var startTimeWithoutSun: Long = 0
+    private var lastIrh: Double = -1.0
+    
+    private var lastTemp = 0.0
+    private var lastHum = 0.0
+    private var lastLuz = 0.0
+    private var lastSoil = 0.0
 
     companion object {
         private const val TAG = "SensorService"
@@ -34,7 +44,14 @@ class SensorForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        
+        // Solicitar WakeLock para evitar que el sistema mate la conexión al apagar pantalla
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ControlHerbal:SensorSync")
+        wakeLock?.acquire(10 * 60 * 1000L /*10 minutos de gracia si no hay updates*/)
+
         databaseLocal = SensorDatabase.getInstance(this)
+        herbalAI = HerbalAI(this)
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification("Sincronizando datos en segundo plano..."))
         setupFirebase()
@@ -56,45 +73,72 @@ class SensorForegroundService : Service() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) return
                 
+                // Refrescar WakeLock cada que llegan datos
+                if (wakeLock?.isHeld == false) wakeLock?.acquire(10 * 60 * 1000L)
+
                 serviceScope.launch {
                     try {
                         val boot = (snapshot.child("boot").value as? Number)?.toInt() ?: -1
-                        val temp = (snapshot.child("temp").value as? Number)?.toDouble() ?: 0.0
-                        val hum = (snapshot.child("hum").value as? Number)?.toDouble() ?: 0.0
-                        val luzRaw = (snapshot.child("luz").value as? Number)?.toDouble() ?: 0.0
-                        val soil = (snapshot.child("soil").value as? Number)?.toDouble() ?: 0.0
+                        val tempRaw = (snapshot.child("temp").value as? Number)?.toDouble() ?: 0.0
+                        val humRaw = (snapshot.child("hum").value as? Number)?.toDouble() ?: 0.0
+                        val luzRaw = (snapshot.child("luz_raw").value as? Number)?.toDouble() ?: (snapshot.child("luz").value as? Number)?.toDouble() ?: 0.0
+                        val soilRaw = (snapshot.child("soil").value as? Number)?.toDouble() ?: 0.0
                         
-                        if (temp == 0.0 && hum == 0.0 && luzRaw == 0.0 && soil == 0.0) return@launch
+                        // DEBUG para el problema de los 25°C y 50%
+                        if (tempRaw == 25.0 && humRaw == 50.0) {
+                            Log.w(TAG, "AVISO: Recibidos valores estáticos (25/50). ¿Sensor desconectado o valor por defecto?")
+                        }
+
+                        if (tempRaw == 0.0 && humRaw == 0.0 && luzRaw == 0.0 && soilRaw == 0.0) return@launch
 
                         val plant = databaseLocal.plantDao().getSelectedPlant() ?: return@launch
+                        
+                        // FILTROS DE ESTABILIDAD (Noise Reduction)
+                        val humFiltrada = PredictiveTheorem.filtrarSensibilidadHumedad(humRaw)
+                        val luzFiltrada = PredictiveTheorem.filtrarSensibilidadLuz(luzRaw)
+                        val soilFiltrada = if (soilRaw > 100.0) PredictiveTheorem.filtrarSensibilidadSuelo(soilRaw) else soilRaw
+
+                        fun stabilize(current: Double, target: Double, threshold: Double): Double {
+                            if (current <= 0.1) return target
+                            return if (Math.abs(current - target) > threshold) {
+                                current * 0.8 + target * 0.2
+                            } else target
+                        }
+
+                        val sTemp = stabilize(lastTemp, tempRaw, 5.0)
+                        val sHum = stabilize(lastHum, humFiltrada, 15.0)
+                        val sLuz = stabilize(lastLuz, luzFiltrada, 25.0)
+                        val sSoil = stabilize(lastSoil, soilFiltrada, 15.0)
+
+                        lastTemp = sTemp; lastHum = sHum; lastLuz = sLuz; lastSoil = sSoil
+
+                        // Lectura de ventana diurna
+                        val isDay = (snapshot.child("is_day").value as? Number)?.toInt() == 1 || (snapshot.child("dia").value as? Number)?.toInt() == 1
+
                         val lastReading = databaseLocal.sensorDao().getAllOrderByTimestampDesc(plant.id).firstOrNull()
 
                         // --- DETECCIÓN AUTOMÁTICA DE RIEGO ---
-                        if (lastReading != null && soil > lastReading.soilMoisture + 12.0) {
+                        if (lastReading != null && sSoil > lastReading.soilMoisture + 12.0) {
                             val now = System.currentTimeMillis()
                             if (now - plant.lastWateringTime > 1800000) {
                                 val updatedPlant = plant.copy(lastWateringTime = now, pendingSync = true)
                                 databaseLocal.plantDao().update(updatedPlant)
-                                // sendCriticalAlert("💧 Riego detectado", "Se ha detectado un aumento drástico de humedad. Predicciones reajustadas.")
                             }
                         }
 
-                        var deltaTemp = 0.0
-                        var deltaHum = 0.0
-                        var deltaLuz = 0.0
-                        var deltaSoil = 0.0
+                        var deltaTemp = 0.0; var deltaHum = 0.0; var deltaLuz = 0.0; var deltaSoil = 0.0
 
                         lastReading?.let { prev ->
                             val dt = (System.currentTimeMillis() - prev.timestamp) / 3600000.0
                             if (dt > 0.001) {
-                                deltaTemp = (temp - prev.temperature) / dt
-                                deltaHum = (hum - prev.humidity) / dt
-                                deltaLuz = (luzRaw - prev.light) / dt
-                                deltaSoil = (soil - prev.soilMoisture) / dt
+                                deltaTemp = (sTemp - prev.temperature) / dt
+                                deltaHum = (sHum - prev.humidity) / dt
+                                deltaLuz = (sLuz - prev.light) / dt
+                                deltaSoil = (sSoil - prev.soilMoisture) / dt
                             }
                         }
 
-                        if (luzRaw < 20.0) {
+                        if (sLuz < 20.0) {
                             if (startTimeWithoutSun == 0L) startTimeWithoutSun = System.currentTimeMillis()
                         } else {
                             startTimeWithoutSun = 0L
@@ -105,21 +149,36 @@ class SensorForegroundService : Service() {
                         } else 0.0
 
                         val result = PredictiveTheorem.analyze(
-                            temp, hum, luzRaw, soil,
+                            sTemp, humRaw, luzRaw, soilRaw,
                             deltaTemp, deltaHum, deltaLuz, deltaSoil,
                             plant.lastWateringTime,
                             plant.type,
-                            hoursWithoutSun
+                            hoursWithoutSun,
+                            isDay
                         )
+
+                        // REFINAMIENTO IA
+                        val irhAI = herbalAI.predictRefinedIRH(sTemp, sHum, sLuz, sSoil, plant.type, isDay)
+                        var finalIrh = (result.irh + irhAI) / 2.0
+
+                        // Estabilización final del IRH (Anti-parpadeo 0)
+                        if (lastIrh >= 0) {
+                            if (finalIrh < 1.0 && lastIrh > 10.0) {
+                                finalIrh = lastIrh * 0.9
+                            } else {
+                                finalIrh = finalIrh * 0.2 + lastIrh * 0.8
+                            }
+                        }
+                        lastIrh = finalIrh
 
                         val reading = SensorReading(
                             timestamp = System.currentTimeMillis(),
                             plantId = plant.id,
-                            temperature = temp,
-                            humidity = result.adjustedHum,
-                            light = luzRaw, // Guardamos luzRaw directamente
-                            soilMoisture = soil,
-                            irh = result.irh,
+                            temperature = sTemp,
+                            humidity = sHum,
+                            light = sLuz,
+                            soilMoisture = sSoil,
+                            irh = finalIrh,
                             seq = result.seq,
                             somb = result.somb,
                             action = result.recommendation
@@ -128,9 +187,9 @@ class SensorForegroundService : Service() {
                         databaseLocal.sensorDao().insert(reading)
                         databaseLocal.sensorDao().pruneData(plant.id)
 
-                        updateNotification("Temp: ${String.format("%.1f", temp)}°C | Suelo: ${String.format("%.1f", soil)}%")
+                        updateNotification("Temp: ${String.format("%.1f", sTemp)}°C | Suelo: ${String.format("%.1f", sSoil)}%")
                         
-                        if (result.irh >= PredictiveTheorem.IRH_RIESGO) {
+                        if (finalIrh >= PredictiveTheorem.IRH_RIESGO) {
                              sendCriticalAlert("¡RIESGO CRÍTICO!", result.recommendation)
                         }
 
@@ -206,6 +265,7 @@ class SensorForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         firebaseListener?.let { databaseFirebase.removeEventListener(it) }
+        if (wakeLock?.isHeld == true) wakeLock?.release()
         serviceScope.cancel()
     }
 

@@ -21,6 +21,9 @@
         <item
             android:id="@+id/nav_monthly"
             android:title="Registro Mensual" />
+        <item
+            android:id="@+id/nav_chat"
+            android:title="Asistente Herbal AI 🤖" />
     </group>
 
 </menu>
