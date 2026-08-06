@@ -17,8 +17,8 @@
 // ----------------------------- CONFIGURACIÓN DE REDES -----------------------------
 WiFiMulti wifiMulti;
 const char* redes[][2] = {
-  {"iPhone de Dominic", "DoDu180525"},
-  {"Escobar_2.4", "7373949701"},
+  {"Internet 1", "Password"},
+  {"Internet 2", "Password"},
 };
 const int numRedes = sizeof(redes) / sizeof(redes[0]);
 
