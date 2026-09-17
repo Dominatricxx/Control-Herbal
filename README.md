@@ -20,20 +20,20 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 
 ---
 
-## ✨ Características
+## Características
 
-- 📡 **Lectura en tiempo real** de temperatura, humedad ambiente, luz y humedad de suelo (ciclo de 1s)
-- 🧮 **IRH (Índice de Riesgo Herbal)** — métrica propia que combina el estado actual de cada sensor con su *tendencia* (ej. qué tan rápido se está secando el suelo)
-- ⏱️ **Predicción de sequía y necesidad de sombra**, estimando horas de margen antes de que la planta entre en riesgo
-- 🌡️ Perfiles configurables por tipo de planta (luz directa / híbrida / sombra), cada uno con sus propios rangos óptimos
-- 🔄 Calibración automática del sensor de luz (LDR) con persistencia en memoria
-- ☁️ Sincronización con **Firebase Realtime Database**
-- 🧠 Script en **Python + TensorFlow** que entrena un modelo con los datos reales recolectados y lo exporta a **TensorFlow Lite** para correr directo en la app
-- 💡 Indicador LED de estado (sensores OK / error de comunicación)
+- **Lectura en tiempo real** de temperatura, humedad ambiente, luz y humedad de suelo (ciclo de 1s)
+- **IRH (Índice de Riesgo Herbal)** — métrica propia que combina el estado actual de cada sensor con su *tendencia* (ej. qué tan rápido se está secando el suelo)
+- **Predicción de sequía y necesidad de sombra**, estimando horas de margen antes de que la planta entre en riesgo
+-  Perfiles configurables por tipo de planta (luz directa / híbrida / sombra), cada uno con sus propios rangos óptimos
+-  Calibración automática del sensor de luz (LDR) con persistencia en memoria
+-  Sincronización con **Firebase Realtime Database**
+-  Script en **Python + TensorFlow** que entrena un modelo con los datos reales recolectados y lo exporta a **TensorFlow Lite** para correr directo en la app
+-  Indicador LED de estado (sensores OK / error de comunicación)
 
 ---
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ```
 ┌─────────────┐     WiFi      ┌──────────────────┐     lee datos     ┌────────────────────┐
@@ -52,7 +52,7 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 
 ---
 
-## 📁 Estructura del repositorio
+## Estructura del repositorio
 
 ```
 ControlHerbal/
@@ -68,7 +68,7 @@ ControlHerbal/
 
 ---
 
-## 🧮 ¿Cómo se calcula el IRH?
+## ¿Cómo se calcula el IRH?
 
 El **Índice de Riesgo Herbal** pondera 4 factores de estrés (humedad ambiente, temperatura, luz y humedad de suelo), cada uno con su propio coeficiente según qué tan crítico es para la salud de la planta. Además, el sistema no solo mira el valor actual de cada sensor, sino su **tendencia** reciente — por ejemplo, si el suelo se está secando muy rápido, el IRH sube antes de que el valor absoluto sea crítico, permitiendo alertar con anticipación.
 
@@ -76,7 +76,7 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 <p align="center">
   <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,py,arduino,firebase,git,github,gradle" />
@@ -88,7 +88,7 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 
 ---
 
-## 📱 Capturas de pantalla
+## Capturas de pantalla
 
 <p align="center">
   <img src="https://placehold.co/220x440/1B3B2F/FFFFFF?text=App+Android" width="200"/>
@@ -96,11 +96,11 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
   <img src="https://placehold.co/380x260/7AA240/FFFFFF?text=Desktop" width="260"/>
 </p>
 
-> 📌 Reemplaza estas imágenes placeholder por capturas reales de tu app cuando las tengas listas.
+> Reemplaza estas imágenes placeholder por capturas reales de tu app cuando las tengas listas.
 
 ---
 
-## ⚙️ Instalación y uso
+## Instalación y uso
 
 ### 1. Firmware (ESP32)
 1. Instala en Arduino IDE las librerías: `DHT sensor library`, `WiFiMulti`, `FirebaseESP32`, `Preferences`
