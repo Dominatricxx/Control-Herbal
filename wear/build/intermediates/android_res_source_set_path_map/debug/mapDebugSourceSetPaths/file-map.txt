@@ -1,0 +1,9 @@
+com.example.controlherbal.wear-pngs-0 /home/dominic/Escritorio/UABC/ControlHerbal/wear/build/generated/res/pngs/debug
+com.example.controlherbal.wear-res-1 /home/dominic/Escritorio/UABC/ControlHerbal/wear/build/generated/res/processDebugGoogleServices
+com.example.controlherbal.wear-updated_navigation_xml-2 /home/dominic/Escritorio/UABC/ControlHerbal/wear/build/generated/updated_navigation_xml/debug
+com.example.controlherbal.wear-packageDebugResources-3 /home/dominic/Escritorio/UABC/ControlHerbal/wear/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.example.controlherbal.wear-packageDebugResources-4 /home/dominic/Escritorio/UABC/ControlHerbal/wear/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.example.controlherbal.wear-debug-5 /home/dominic/Escritorio/UABC/ControlHerbal/wear/build/intermediates/merged_res/debug/mergeDebugResources
+com.example.controlherbal.wear-debug-6 /home/dominic/Escritorio/UABC/ControlHerbal/wear/src/debug/res
+com.example.controlherbal.wear-main-7 /home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/res
+gradleHome-0 /home/dominic/.gradle

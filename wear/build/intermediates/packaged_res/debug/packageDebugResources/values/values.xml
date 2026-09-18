@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#000000</color>
+    <color name="ic_launcher_background">#3DDC84</color>
+    <color name="white">#FFFFFF</color>
+    <string name="app_name">Control Herbal Watch</string>
+    <string name="gcm_defaultSenderId" translatable="false">741809372236</string>
+    <string name="google_api_key" translatable="false">AIzaSyCCTQmeObzKv24qT265O2eNQOA_HblTcgc</string>
+    <string name="google_app_id" translatable="false">1:741809372236:android:16c6ad844b4e865774c8e9</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCCTQmeObzKv24qT265O2eNQOA_HblTcgc</string>
+    <string name="google_storage_bucket" translatable="false">controlherbal-97558.firebasestorage.app</string>
+    <string name="project_id" translatable="false">controlherbal-97558</string>
+    <style name="Theme.ControlHerbal.Wear" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">#F5F5F5</item>
+        <item name="android:colorBackground">#F5F5F5</item>
+    </style>
+</resources>

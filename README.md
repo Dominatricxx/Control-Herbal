@@ -91,12 +91,10 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 ## Capturas de pantalla
 
 <p align="center">
-  <img src="https://placehold.co/220x440/1B3B2F/FFFFFF?text=App+Android" width="200"/>
-  <img src="https://placehold.co/220x440/2E5E45/FFFFFF?text=Wear+OS" width="200"/>
-  <img src="https://placehold.co/380x260/7AA240/FFFFFF?text=Desktop" width="260"/>
+  <img src="./capturas/ss_celular.jpg" width="200" alt="App Android"/>
+  <img src="./capturas/ss_reloj.png" width="200" alt="Wear OS"/>
+  <img src="./capturas/ss_desktop.png" width="260" alt="Desktop"/>
 </p>
-
-> Reemplaza estas imágenes placeholder por capturas reales de tu app cuando las tengas listas.
 
 ---
 
