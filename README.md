@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1B3B2F,50:2E5E45,100:7AA240&height=170&section=header&text=ControlHerbal&fontSize=40&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Monitoreo%20inteligente%20de%20plantas%20con%20IoT%20%2B%20IA&descAlignY=58&descSize=16" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1B3B2F,50:2E5E45,100:7AA240&height=170&section=header&text=Control-Herbal&fontSize=40&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Monitoreo%20inteligente%20de%20plantas%20con%20IoT%20%2B%20IA&descAlignY=58&descSize=16" width="100%"/>
 
 <p>
   <img src="https://img.shields.io/badge/status-prototipo%20%2F%20PoC-yellow?style=for-the-badge"/>
