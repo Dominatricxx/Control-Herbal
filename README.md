@@ -1,13 +1,11 @@
 <div align="center">
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1B3B2F,50:2E5E45,100:7AA240&height=170&section=header&text=Control-Herbal&fontSize=40&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Monitoreo%20inteligente%20de%20plantas%20con%20IoT%20%2B%20IA&descAlignY=58&descSize=16" width="100%"/>
-
+  
+<img src="./assets/title.svg" width="100%" alt="ControlHerbal — Tu aplicación ecológica — By Dominic Escobar"/>
 <p>
-  <img src="https://img.shields.io/badge/status-prototipo%20%2F%20PoC-yellow?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/plataforma-Android%20%7C%20Wear%20OS%20%7C%20Desktop-7AA240?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/hardware-ESP32-blue?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/status-prototipo%20%2F%20PoC-yellow?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/plataforma-Android%20%7C%20Wear%20OS%20%7C%20Desktop-7AA240?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/hardware-ESP32-blue?style=for-the-badge"/>
 </p>
-
 </div>
 
 ## 🌿 ¿Qué es Control Herbal?
@@ -35,20 +33,9 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 
 ## Arquitectura
 
-```
-┌─────────────┐     WiFi      ┌──────────────────┐     lee datos     ┌────────────────────┐
-│   ESP32     │ ────────────► │  Firebase         │ ─────────────────► │ train_herbal_model  │
-│ + DHT11     │   cada 1s     │  Realtime DB      │                    │ (Python + TF)       │
-│ + LDR       │               │  /sensor          │                    └──────────┬──────────┘
-│ + Soil      │               └──────────┬────────┘                               │
-└─────────────┘                          │                              exporta modelo .tflite
-                                          │ lee estado                            │
-                                          ▼                                       ▼
-                              ┌───────────────────────────────────────────────────────┐
-                              │        App Kotlin Multiplatform (común)                │
-                              │   app/ (Android)  ·  wear/ (Wear OS)  ·  desktop/ (JVM) │
-                              └───────────────────────────────────────────────────────┘
-```
+<div align="center"> <img src="./assets/architecture.svg" width="100%" alt="Arquitectura de ControlHerbal"/> </div>
+
+<sub>El ESP32 lee los sensores y sube los datos a Firebase. Desde ahí, el script de Python entrena el modelo de IA (que se exporta como .tflite), mientras que la app multiplataforma consume tanto el estado en vivo de Firebase como el modelo entrenado.</sub>
 
 ---
 
