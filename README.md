@@ -41,8 +41,7 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 
 ## Estructura del repositorio
 
-<div align="center"> <picture> <source media="(prefers-color-scheme: dark)" srcset="./assets/structure-dark.svg"> <img src="./assets/structure.svg" width="745" alt="Estructura del repositorio de Control Herbal: app Android, Wear OS, escritorio, módulo común, firmware del ESP32 y entrenamiento del modelo de IA"/> </picture> </div>
-└── build.gradle.kts
+<div align="left"> <picture> <source media="(prefers-color-scheme: dark)" srcset="./assets/structure-dark.svg"> <img src="./assets/structure.svg" width="745" alt="Estructura del repositorio de Control Herbal: app Android, Wear OS, escritorio, módulo común, firmware del ESP32 y entrenamiento del modelo de IA"/> </picture> </div>
 
 ---
 
