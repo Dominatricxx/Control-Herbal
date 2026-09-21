@@ -41,17 +41,8 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 
 ## Estructura del repositorio
 
-```
-ControlHerbal/
-├── app/                     # App Android
-├── wear/                    # App Wear OS
-├── desktop/                 # App de escritorio (JVM)
-├── common/                  # Lógica y UI compartida (Kotlin Multiplatform)
-├── gradle/                  # Wrapper de Gradle
-├── ControlHerbal.ino        # Firmware del ESP32 (sensores + IRH + Firebase)
-├── train_herbal_model.py    # Entrenamiento del modelo IA (TensorFlow → TFLite)
+<div align="center"> <picture> <source media="(prefers-color-scheme: dark)" srcset="./assets/structure-dark.svg"> <img src="./assets/structure.svg" width="745" alt="Estructura del repositorio de Control Herbal: app Android, Wear OS, escritorio, módulo común, firmware del ESP32 y entrenamiento del modelo de IA"/> </picture> </div>
 └── build.gradle.kts
-```
 
 ---
 
