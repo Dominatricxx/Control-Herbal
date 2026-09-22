@@ -103,6 +103,14 @@ Esto descarga los datos acumulados en Firebase, entrena una red neuronal simple 
 Abre el proyecto en **Android Studio** y selecciona el módulo que quieras correr (`app`, `wear` o `desktop`).
 
 ---
+## Porcentaje de lenguajes aplicados
+
+<div align="center">
+<img src="./assets/control-herbal-languages-chart.svg" width="50%" alt="grafica"/>
+</div>
+
+---
+
 
 <div align="center">
 
