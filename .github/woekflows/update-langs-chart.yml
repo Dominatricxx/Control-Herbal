@@ -1,0 +1,45 @@
+name: Update languages chart
+
+on:
+  push:
+    branches: [main]
+    # evita que el propio commit del chart vuelva a disparar el workflow
+    paths-ignore:
+      - "capturas/control-herbal-languages-chart.svg"
+  schedule:
+    # además, refresca una vez por semana aunque no haya push
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate chart SVG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/generate_langs_chart.py "${{ github.repository }}" capturas/control-herbal-languages-chart.svg
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- capturas/control-herbal-languages-chart.svg; then
+            git add capturas/control-herbal-languages-chart.svg
+            git commit -m "chore: actualizar chart de lenguajes automaticamente"
+            git push
+          else
+            echo "Sin cambios en el chart, no se hace commit."
+          fi
