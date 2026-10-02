@@ -61,3 +61,7 @@ local.properties
 
 # Captures
 captures/
+
+# Salida del contenedor de entrenamiento
+output/*
+!output/.gitkeep

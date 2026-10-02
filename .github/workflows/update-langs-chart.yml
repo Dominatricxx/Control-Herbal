@@ -7,12 +7,16 @@ on:
     paths-ignore:
       - "assets/control-herbal-languages-chart.svg"
   schedule:
-    # además, refresca una vez por semana aunque no haya push
+    # refresco semanal aunque no haya push (corrige cualquier desfase de la API)
     - cron: "0 6 * * 1"
   workflow_dispatch: {}
 
 permissions:
   contents: write
+
+concurrency:
+  group: update-langs-chart
+  cancel-in-progress: true
 
 jobs:
   update-chart:
@@ -25,6 +29,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      # GitHub (Linguist) recalcula las estadísticas de lenguajes de forma asíncrona
+      # tras cada push. Sin esta espera, la API devuelve los datos del commit anterior.
+      - name: Esperar a que GitHub actualice las estadísticas
+        if: github.event_name == 'push'
+        run: sleep 60
 
       - name: Regenerate chart SVG
         env:
@@ -39,6 +49,7 @@ jobs:
           if ! git diff --quiet -- assets/control-herbal-languages-chart.svg; then
             git add assets/control-herbal-languages-chart.svg
             git commit -m "chore: actualizar chart de lenguajes automaticamente"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
             git push
           else
             echo "Sin cambios en el chart, no se hace commit."

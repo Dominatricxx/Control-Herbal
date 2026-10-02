@@ -99,6 +99,13 @@ python train_herbal_model.py
 ```
 Esto descarga los datos acumulados en Firebase, entrena una red neuronal simple y guarda el modelo listo para la app en `app/src/main/assets/herbal_model.tflite`.
 
+#### Con Docker (sin instalar TensorFlow)
+```bash
+export FIREBASE_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com/sensor.json"
+docker compose -f deploy/docker-compose.yml run --rm trainer
+# el modelo queda en ./output/herbal_model.tflite -> cópialo a app/src/main/assets/
+```
+
 ### 3. Apps (Android / Wear OS / Desktop)
 Abre el proyecto en **Android Studio** y selecciona el módulo que quieras correr (`app`, `wear` o `desktop`).
 

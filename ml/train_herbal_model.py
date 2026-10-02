@@ -1,5 +1,7 @@
 
 import json
+import os
+import sys
 import requests
 import pandas as pd
 import numpy as np
@@ -8,13 +10,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 # 1. Configuración de tu Firebase
-FIREBASE_URL = "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/sensor.json"
+FIREBASE_URL = os.environ.get(
+    "FIREBASE_URL", "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/sensor.json"
+)
+MODEL_OUTPUT_PATH = os.environ.get(
+    "MODEL_OUTPUT_PATH", "app/src/main/assets/herbal_model.tflite"
+)
 
 def train_automatic_model():
     print("📡 Descargando datos desde Firebase para entrenamiento automático...")
 
     # 2. Obtener datos reales
-    response = requests.get(FIREBASE_URL)
+    if "YOUR_PROJECT_ID" in FIREBASE_URL:
+        print("❌ Configura la variable de entorno FIREBASE_URL con tu Realtime Database.")
+        sys.exit(1)
+
+    response = requests.get(FIREBASE_URL, timeout=30)
+    response.raise_for_status()
     data = response.json()
 
     if not data:
@@ -66,10 +78,11 @@ def train_automatic_model():
     tflite_model = converter.convert()
 
     # Guardar modelo
-    with open('app/src/main/assets/herbal_model.tflite', 'wb') as f:
+    os.makedirs(os.path.dirname(MODEL_OUTPUT_PATH) or ".", exist_ok=True)
+    with open(MODEL_OUTPUT_PATH, 'wb') as f:
         f.write(tflite_model)
 
-    print("✅ ¡Modelo IA entrenado y guardado en app/src/main/assets/herbal_model.tflite!")
+    print(f"✅ ¡Modelo IA entrenado y guardado en {MODEL_OUTPUT_PATH}!")
 
 if __name__ == "__main__":
     train_automatic_model()

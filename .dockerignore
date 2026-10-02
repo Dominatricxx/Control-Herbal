@@ -1,0 +1,23 @@
+# El contexto de build es la raíz del repo; solo necesitamos ml/ para la imagen.
+.git
+.github
+.idea
+.gradle
+**/build
+app
+wear
+desktop
+common
+gradle
+gradlew
+gradlew.bat
+firmware
+docs
+capturas
+assets
+*.apk
+*.dm
+**/google-services.json
+**/__pycache__
+*.pyc
+.env

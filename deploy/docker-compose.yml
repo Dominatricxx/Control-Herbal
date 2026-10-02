@@ -1,22 +1,42 @@
+# Uso (desde la raíz del repo o desde deploy/):
+#   docker compose -f deploy/docker-compose.yml build
+#   FIREBASE_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com/sensor.json" \
+#     docker compose -f deploy/docker-compose.yml run --rm trainer
+#
+# El modelo queda en ./output/herbal_model.tflite (copialo a app/src/main/assets/).
+# Broker MQTT opcional (el proyecto hoy usa Firebase, no MQTT):
+#   docker compose -f deploy/docker-compose.yml --profile mqtt up -d mqtt-broker
+
+name: control-herbal
+
 services:
-  # Servicio 1: Broker MQTT para la telemetría de los sensores de temperatura
+  trainer:
+    build:
+      context: ..                 # raíz del repo
+      dockerfile: deploy/Dockerfile
+    image: control-herbal-trainer:latest
+    container_name: control-herbal-trainer
+    environment:
+      FIREBASE_URL: ${FIREBASE_URL:?Define FIREBASE_URL con la URL de tu Realtime Database (.../sensor.json)}
+      MODEL_OUTPUT_PATH: /app/output/herbal_model.tflite
+      HOME: /tmp
+    # Evita problemas de permisos en el bind mount (Linux): exporta HOST_UID/HOST_GID si no son 1000
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    volumes:
+      - ../output:/app/output     # el .tflite generado queda en ./output del host
+    restart: "no"
+
   mqtt-broker:
-    image: eclipse-mosquitto:latest
+    image: eclipse-mosquitto:2
     container_name: control-herbal-mqtt
+    profiles: ["mqtt"]
     ports:
-      - "1883:1883"  # Puerto estándar MQTT
-      - "9001:9001"  # Puerto WebSockets MQTT
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # MQTT sobre WebSockets
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
     restart: unless-stopped
 
-  # Servicio 2: Tu contenedor de scripts/aplicación
-  app-scripts:
-    build: .
-    container_name: control-herbal-app
-    volumes:
-      - .:/app  # Sincroniza tu código local con el contenedor
-    environment:
-      - MQTT_HOST=mqtt-broker
-      - MQTT_PORT=1883
-    depends_on:
-      - mqtt-broker
-    command: python -c "print('¡Contenedor de Control-Herbal inicializado correctamente con MQTT!')"
+volumes:
+  mosquitto-data:

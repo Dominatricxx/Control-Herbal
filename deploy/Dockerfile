@@ -1,20 +1,29 @@
-# Usamos una imagen oficial ligera de Python
+# Imagen para el pipeline de entrenamiento de IA (ml/train_herbal_model.py)
+# Contexto de build: RAÍZ del repo  ->  docker build -f deploy/Dockerfile .
 FROM python:3.11-slim
 
-# Directorio de trabajo dentro del contenedor
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    TF_CPP_MIN_LOG_LEVEL=2
+
 WORKDIR /app
 
-# Instalar dependencias esenciales del sistema si son necesarias
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Dependencias primero para aprovechar la caché de capas
+COPY ml/requirements.txt ./ml/requirements.txt
+RUN pip install -r ml/requirements.txt
 
-# Copiar el archivo de requerimientos si existe y asegurar dependencias
-COPY requirements.txt* ./
-RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
+# Código del pipeline
+COPY ml/ ./ml/
 
-# Copiar el resto del código del repositorio al contenedor
-COPY . /app
+# Usuario sin privilegios; /app/output es donde se escribe el .tflite
+RUN useradd --create-home --uid 1000 herbal \
+    && mkdir -p /app/output \
+    && chown -R herbal:herbal /app
+USER herbal
 
-# Comando por defecto al ejecutar el contenedor
-CMD ["python", "main.py"]
+# URL de Firebase y ruta de salida se configuran por variables de entorno
+ENV FIREBASE_URL="" \
+    MODEL_OUTPUT_PATH=/app/output/herbal_model.tflite
+
+CMD ["python", "ml/train_herbal_model.py"]

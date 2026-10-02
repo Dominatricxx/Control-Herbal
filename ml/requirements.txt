@@ -1,0 +1,5 @@
+requests>=2.31
+pandas>=2.1
+numpy>=1.26,<2.2
+scikit-learn>=1.4
+tensorflow-cpu>=2.16,<2.20

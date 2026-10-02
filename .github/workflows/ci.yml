@@ -2,28 +2,45 @@ name: CI Control-Herbal
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
 
 jobs:
-  build-and-test:
+  docker:
+    name: Docker build + validación
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Validar docker-compose
+        run: docker compose -f deploy/docker-compose.yml config -q
+        env:
+          FIREBASE_URL: https://ci-placeholder-default-rtdb.firebaseio.com/sensor.json
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
+          file: deploy/Dockerfile
           load: true
-          tags: control-herbal:test
+          tags: control-herbal-trainer:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Verify container execution
+      - name: Verificar que las dependencias se importan dentro del contenedor
         run: |
-          docker run --rm control-herbal:test python -c "print('¡CI de GitHub Actions ejecutado con éxito dentro del contenedor!')"
+          docker run --rm control-herbal-trainer:test \
+            python -c "import requests, pandas, numpy, sklearn, tensorflow as tf; print('OK, TensorFlow', tf.__version__)"
+
+      - name: Verificar que el script falla con mensaje claro sin FIREBASE_URL
+        run: |
+          set +e
+          docker run --rm control-herbal-trainer:test python ml/train_herbal_model.py
+          code=$?
+          [ "$code" -eq 1 ] && echo "Salida esperada (1) sin FIREBASE_URL" || { echo "Código inesperado: $code"; exit 1; }

@@ -13,7 +13,9 @@ Variables de entorno:
 import json
 import os
 import sys
+import time
 import urllib.request
+from xml.sax.saxutils import escape
 
 BASELINE_Y = 330
 CHART_TOP_Y = 60          # margen superior disponible para el porcentaje más alto
@@ -25,10 +27,11 @@ LABEL_GAP_MIN = 6
 ICON_SIZE = 32
 ICON_GAP = 12               # separación entre la línea base y el icono
 CANVAS_WIDTH = 700
-CANVAS_HEIGHT = 380
+CANVAS_HEIGHT = 410
 MARGIN_X = 32
-MAX_LANGS = 5               # cuántos lenguajes mostrar como máximo
-MIN_PCT_TO_SHOW = 0.5       # ocultar ruido (< 0.5%)
+MAX_LANGS = 7               # cuántos lenguajes mostrar como máximo
+MIN_PCT_TO_SHOW = 0.1       # ocultar ruido (< 0.1%)
+NAME_GAP = 22               # separación entre el icono y el nombre del lenguaje
 
 # Colores oficiales aproximados (linguist) + icono simplificado (viewBox 24x24).
 # Si un lenguaje no está aquí, se dibuja con un color genérico y sin icono.
@@ -72,21 +75,35 @@ LANG_STYLE = {
     "HTML": {"color": "#E34C26", "icon": None},
     "CSS": {"color": "#563D7C", "icon": None},
     "Shell": {"color": "#89E051", "icon": None},
-    "Dockerfile": {"color": "#384D54", "icon": None},
+    "Batchfile": {"color": "#C1F12E", "icon": None},
+    "Dockerfile": {"color": "#5B8DA0", "icon": None},
     "Jupyter Notebook": {"color": "#DA5B0B", "icon": None},
     "C#": {"color": "#178600", "icon": None},
 }
 FALLBACK_COLOR = "#8b949e"
 
 
-def fetch_languages(repo: str) -> dict:
+def fetch_languages(repo: str, retries: int = 3) -> dict:
     url = f"https://api.github.com/repos/{repo}/languages"
-    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "control-herbal-langs-chart",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
     token = os.environ.get("GITHUB_TOKEN")
     if token:
-        req.add_header("Authorization", f"Bearer {token}")
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read().decode())
+        headers["Authorization"] = f"Bearer {token}"
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                return json.loads(resp.read().decode())
+        except Exception as err:  # noqa: BLE001
+            last_err = err
+            print(f"Intento {attempt}/{retries} falló: {err}", file=sys.stderr)
+            time.sleep(5 * attempt)
+    raise SystemExit(f"No se pudo leer {url}: {last_err}")
 
 
 def compute_percentages(bytes_by_lang: dict):
@@ -131,8 +148,7 @@ def build_svg(items):
         icon_x = col_center - ICON_SIZE / 2
         icon_y = BASELINE_Y + ICON_GAP
 
-        pct_label = f"{pct:.1f}%".rstrip("0").rstrip(".") + ("%" if not f"{pct:.1f}".endswith("0") else "")
-        pct_label = f"{pct:.1f}%" if pct < 10 else f"{pct:.1f}%"
+        pct_label = f"{pct:.1f}%"
 
         icon_svg = style.get("icon")
         if icon_svg:
@@ -147,6 +163,7 @@ def build_svg(items):
     <svg x="{icon_x:.1f}" y="{icon_y}" width="{ICON_SIZE}" height="{ICON_SIZE}" viewBox="0 0 24 24">
       {icon_content}
     </svg>
+    <text x="{col_center:.1f}" y="{icon_y + ICON_SIZE + NAME_GAP - 8}" text-anchor="middle" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#9aa4b2">{escape(lang)}</text>
   </g>''')
 
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {CANVAS_WIDTH} {CANVAS_HEIGHT}" width="{CANVAS_WIDTH}" height="{CANVAS_HEIGHT}">
@@ -165,6 +182,8 @@ def main():
 
     repo, out_path = sys.argv[1], sys.argv[2]
     bytes_by_lang = fetch_languages(repo)
+    if not bytes_by_lang:
+        raise SystemExit("La API devolvió 0 lenguajes (GitHub aún no calculó las estadísticas); no se modifica el SVG.")
     items = compute_percentages(bytes_by_lang)
     svg = build_svg(items)
 
