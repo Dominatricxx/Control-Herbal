@@ -1,0 +1,22 @@
+services:
+  # Servicio 1: Broker MQTT para la telemetría de los sensores de temperatura
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    container_name: control-herbal-mqtt
+    ports:
+      - "1883:1883"  # Puerto estándar MQTT
+      - "9001:9001"  # Puerto WebSockets MQTT
+    restart: unless-stopped
+
+  # Servicio 2: Tu contenedor de scripts/aplicación
+  app-scripts:
+    build: .
+    container_name: control-herbal-app
+    volumes:
+      - .:/app  # Sincroniza tu código local con el contenedor
+    environment:
+      - MQTT_HOST=mqtt-broker
+      - MQTT_PORT=1883
+    depends_on:
+      - mqtt-broker
+    command: python -c "print('¡Contenedor de Control-Herbal inicializado correctamente con MQTT!')"
