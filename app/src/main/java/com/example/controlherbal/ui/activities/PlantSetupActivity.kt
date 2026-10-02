@@ -1,4 +1,4 @@
-package com.example.controlherbal
+package com.example.controlherbal.ui.activities
 
 import android.Manifest
 import androidx.appcompat.app.AlertDialog
@@ -15,8 +15,8 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.example.controlherbal.database.Plant
-import com.example.controlherbal.database.SensorDatabase
+import com.example.controlherbal.data.database.Plant
+import com.example.controlherbal.data.database.SensorDatabase
 import com.google.firebase.Firebase
 import com.google.firebase.vertexai.vertexAI
 import com.google.firebase.vertexai.type.content

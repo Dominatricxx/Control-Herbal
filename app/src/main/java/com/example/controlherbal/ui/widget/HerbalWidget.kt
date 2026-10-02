@@ -1,4 +1,4 @@
-package com.example.controlherbal.widget
+package com.example.controlherbal.ui.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -19,14 +19,14 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.example.controlherbal.R
-import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.SensorReading
+import com.example.controlherbal.data.database.SensorDatabase
+import com.example.controlherbal.data.database.SensorReading
 import kotlinx.coroutines.runBlocking
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.Button
-import com.example.controlherbal.MainActivity
+import com.example.controlherbal.ui.activities.MainActivity
 import androidx.compose.ui.graphics.Color
 import androidx.glance.appwidget.updateAll
 

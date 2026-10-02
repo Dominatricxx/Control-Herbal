@@ -1,13 +1,13 @@
-package com.example.controlherbal
+package com.example.controlherbal.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.controlherbal.ai.HerbalAI
-import com.example.controlherbal.database.Plant
-import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.logic.PredictiveTheorem
+import com.example.controlherbal.data.database.Plant
+import com.example.controlherbal.data.database.SensorDatabase
+import com.example.controlherbal.data.database.SensorReading
+import com.example.controlherbal.domain.logic.PredictiveTheorem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

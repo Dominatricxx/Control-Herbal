@@ -1,21 +1,40 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ProGuard Advanced Security & Optimization Rules for ControlHerbal
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep Room Database entities and DAOs
+-keep class com.example.controlherbal.data.database.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep AI and Logic models
+-keep class com.example.controlherbal.ai.** { *; }
+-keep class com.example.controlherbal.domain.logic.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep MPAndroidChart
+-keep class com.github.mikephil.charting.** { *; }
+-dontwarn com.github.mikephil.charting.**
+
+# Keep TensorFlow Lite
+-keep class org.tensorflow.lite.** { *; }
+-dontwarn org.tensorflow.lite.**
+
+# Keep Firebase & Generative AI SDKs
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn io.ktor.**
+-dontwarn com.google.ai.client.generativeai.**
+
+# Strip all logging calls in release builds for advanced data privacy & security
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(java.lang.String, java.lang.String);
+    public static int v(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int d(java.lang.String, java.lang.String);
+    public static int d(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int i(java.lang.String, java.lang.String);
+    public static int i(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int w(java.lang.String, java.lang.String);
+    public static int w(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int e(java.lang.String, java.lang.String);
+    public static int e(java.lang.String, java.lang.String, java.lang.Throwable);
+}
+
+# Preserve line numbers for crash reporting stack traces if needed
+-keepattributes SourceFile,LineNumberTable

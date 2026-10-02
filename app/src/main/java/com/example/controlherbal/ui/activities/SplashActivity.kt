@@ -1,11 +1,12 @@
-package com.example.controlherbal
+package com.example.controlherbal.ui.activities
 
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.controlherbal.database.SensorDatabase
+import com.example.controlherbal.R
+import com.example.controlherbal.data.database.SensorDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

@@ -11,15 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Descargar el código más reciente del repositorio
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Configurar Docker Buildx para manejar la construcción de imágenes
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3. Construir la imagen Docker usando tu Dockerfile local
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
@@ -27,7 +24,6 @@ jobs:
           load: true
           tags: control-herbal:test
 
-      # 4. Prueba básica dentro del contenedor para verificar que todo funciona
       - name: Verify container execution
         run: |
           docker run --rm control-herbal:test python -c "print('¡CI de GitHub Actions ejecutado con éxito dentro del contenedor!')"

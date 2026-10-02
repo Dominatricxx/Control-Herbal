@@ -3,8 +3,8 @@ package com.example.controlherbal.ai
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.logic.PredictiveTheorem
+import com.example.controlherbal.data.database.SensorReading
+import com.example.controlherbal.domain.logic.PredictiveTheorem
 import kotlin.math.exp
 import kotlin.random.Random
 

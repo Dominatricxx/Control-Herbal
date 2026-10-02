@@ -1,4 +1,4 @@
-package com.example.controlherbal
+package com.example.controlherbal.ui.state
 
 sealed interface UiState {
 

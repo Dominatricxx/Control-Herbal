@@ -1,4 +1,4 @@
-package com.example.controlherbal
+package com.example.controlherbal.ui.activities
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -15,8 +15,9 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.controlherbal.database.Plant
-import com.example.controlherbal.database.SensorDatabase
+import com.example.controlherbal.R
+import com.example.controlherbal.data.database.Plant
+import com.example.controlherbal.data.database.SensorDatabase
 import com.google.firebase.Firebase
 import com.google.firebase.vertexai.vertexAI
 import com.google.firebase.vertexai.type.content

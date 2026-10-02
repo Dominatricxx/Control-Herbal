@@ -1,9 +1,9 @@
-package com.example.controlherbal.sync
+package com.example.controlherbal.data.sync
 
 import android.content.Context
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.example.controlherbal.database.SensorDatabase
+import com.example.controlherbal.data.database.SensorDatabase
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.runBlocking
 

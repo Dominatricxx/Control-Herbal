@@ -1,4 +1,4 @@
-package com.example.controlherbal.database
+package com.example.controlherbal.data.database
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

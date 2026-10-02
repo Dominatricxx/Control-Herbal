@@ -1,4 +1,4 @@
-package com.example.controlherbal.logic
+package com.example.controlherbal.domain.logic
 
 import java.util.*
 import kotlin.math.abs

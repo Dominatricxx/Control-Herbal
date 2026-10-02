@@ -1,4 +1,4 @@
-package com.example.controlherbal
+package com.example.controlherbal.ui.activities
 
 import android.content.Intent
 import android.graphics.Color
@@ -11,9 +11,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
-import com.example.controlherbal.database.Plant
-import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.SensorReading
+import com.example.controlherbal.R
+import com.example.controlherbal.data.database.Plant
+import com.example.controlherbal.data.database.SensorDatabase
+import com.example.controlherbal.data.database.SensorReading
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData

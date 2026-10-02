@@ -28,12 +28,12 @@
         tools:targetApi="31">
 
         <service
-            android:name=".sync.SensorForegroundService"
+            android:name=".data.sync.SensorForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
         <activity
-            android:name=".SplashActivity"
+            android:name=".ui.activities.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.ControlHerbal">
             <intent-filter>
@@ -42,26 +42,30 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.activities.MainActivity"
             android:exported="true" />
         <activity
-            android:name=".HistoryActivity"
+            android:name=".ui.activities.HistoryActivity"
+            android:exported="false"
             android:label="Historial de Sensores"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".ui.activities.MainActivity" />
         <activity
-            android:name=".PlantSetupActivity"
+            android:name=".ui.activities.PlantSetupActivity"
+            android:exported="false"
             android:label="Configuracion de Planta" />
         <activity
-            android:name=".ComparisonActivity"
+            android:name=".ui.activities.ComparisonActivity"
+            android:exported="false"
             android:label="Comparador de Plantas"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".ui.activities.MainActivity" />
         <activity
-            android:name=".ChatActivity"
+            android:name=".ui.activities.ChatActivity"
+            android:exported="false"
             android:label="Asistente Herbal AI"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".ui.activities.MainActivity" />
 
         <receiver
-            android:name=".widget.HerbalWidgetSummaryReceiver"
+            android:name=".ui.widget.HerbalWidgetSummaryReceiver"
             android:exported="true"
             android:label="Resumen Herbal">
             <intent-filter>
@@ -73,7 +77,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.HerbalWidgetStatusReceiver"
+            android:name=".ui.widget.HerbalWidgetStatusReceiver"
             android:exported="true"
             android:label="Estado Herbal">
             <intent-filter>
@@ -85,7 +89,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.HerbalWidgetAlertReceiver"
+            android:name=".ui.widget.HerbalWidgetAlertReceiver"
             android:exported="true"
             android:label="Alerta Herbal (Mini)">
             <intent-filter>

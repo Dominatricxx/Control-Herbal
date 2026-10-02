@@ -1,4 +1,4 @@
-package com.example.controlherbal.sync
+package com.example.controlherbal.data.sync
 
 import android.app.*
 import android.content.Context
@@ -8,13 +8,13 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.controlherbal.MainActivity
+import com.example.controlherbal.ui.activities.MainActivity
 import com.example.controlherbal.R
 import com.example.controlherbal.ai.HerbalAI
-import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.logic.PredictiveTheorem
-import com.example.controlherbal.widget.HerbalWidgetManager
+import com.example.controlherbal.data.database.SensorDatabase
+import com.example.controlherbal.data.database.SensorReading
+import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.example.controlherbal.ui.widget.HerbalWidgetManager
 import com.google.firebase.database.*
 import kotlinx.coroutines.*
 import java.util.*
