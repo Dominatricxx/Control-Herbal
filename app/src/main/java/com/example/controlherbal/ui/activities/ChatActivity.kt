@@ -2,25 +2,34 @@ package com.example.controlherbal.ui.activities
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Bundle
+import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.controlherbal.R
+import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
 import com.google.firebase.Firebase
-import com.google.firebase.vertexai.vertexAI
 import com.google.firebase.vertexai.type.content
+import com.google.firebase.vertexai.vertexAI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,10 +44,10 @@ data class ChatMessage(
 class ChatActivity : AppCompatActivity() {
 
     private lateinit var rvChat: RecyclerView
-    private lateinit var etInput: android.widget.EditText
-    private lateinit var btnSend: android.widget.ImageButton
-    private lateinit var btnCamera: android.widget.ImageButton
-    private lateinit var pbLoading: android.widget.ProgressBar
+    private lateinit var etInput: EditText
+    private lateinit var btnSend: ImageButton
+    private lateinit var btnCamera: ImageButton
+    private lateinit var pbLoading: ProgressBar
     private val messages = mutableListOf<ChatMessage>()
     private lateinit var adapter: ChatAdapter
     
@@ -47,6 +56,10 @@ class ChatActivity : AppCompatActivity() {
     
     private val databaseLocal by lazy { SensorDatabase.getInstance(this) }
     private var currentPlant: Plant? = null
+
+    companion object {
+        private const val TAG = "ChatActivity"
+    }
 
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && currentPhotoPath != null) {
@@ -77,7 +90,8 @@ class ChatActivity : AppCompatActivity() {
         btnSend.setOnClickListener {
             val text = etInput.text.toString().trim()
             if (text.isNotEmpty()) {
-                val msg = ChatMessage(text, true)
+                val sanitizedText = SecurityUtils.sanitizePrompt(text)
+                val msg = ChatMessage(sanitizedText, true)
                 addMessage(msg)
                 etInput.text.clear()
                 sendMessageToAI(msg)
@@ -88,7 +102,8 @@ class ChatActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             currentPlant = withContext(Dispatchers.IO) { databaseLocal.plantDao().getSelectedPlant() }
-            addMessage(ChatMessage("¡Hola! Soy tu asistente Herbal AI. ¿En qué puedo ayudarte hoy con tu planta ${currentPlant?.name ?: ""}? Puedes enviarme fotos si notas algún problema.", false))
+            val plantName = SecurityUtils.sanitizeText(currentPlant?.name ?: "")
+            addMessage(ChatMessage("¡Hola! Soy tu asistente Herbal AI. ¿En qué puedo ayudarte hoy con tu planta $plantName? Puedes enviarme fotos si notas algún problema.", false))
         }
     }
 
@@ -99,29 +114,37 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun openCamera() {
-        val photoFile = File.createTempFile("IMG_", ".jpg", getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES))
-        currentPhotoPath = photoFile.absolutePath
-        val photoURI = FileProvider.getUriForFile(this, "${packageName}.fileprovider", photoFile)
-        takePictureLauncher.launch(photoURI)
+        try {
+            val photoFile = File.createTempFile("IMG_", ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES))
+            currentPhotoPath = photoFile.absolutePath
+            val photoURI = FileProvider.getUriForFile(this, "${packageName}.fileprovider", photoFile)
+            takePictureLauncher.launch(photoURI)
+        } catch (e: Exception) {
+            SecureLogger.e(TAG, "Error al abrir la cámara: ${e.message}")
+            Toast.makeText(this, "Error al abrir la cámara", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun sendMessageToAI(userMsg: ChatMessage) {
         pbLoading.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                // Migración al motor Gemini 2.0 Flash (Última versión disponible y funcional)
-                val model = Firebase.vertexAI.generativeModel("gemini-2.0-flash-exp")
+                val model = Firebase.vertexAI.generativeModel(AppConstants.VERTEX_AI_MODEL)
+                val sanitizedPlantType = SecurityUtils.sanitizeText(currentPlant?.type ?: "desconocida")
+                val sanitizedPlantName = SecurityUtils.sanitizeText(currentPlant?.name ?: "")
                 
                 val promptText = if (userMsg.image != null) {
-                    "Actúa como un experto botánico. Analiza la imagen de esta planta (${currentPlant?.type ?: "desconocida"}). Identifica si tiene algún problema. Responde brevemente: 1. Diagnóstico, 2. Causa, 3. Recomendación. Si hay problema grave, termina con [ALERTA: Nombre]."
+                    "Actúa como un experto botánico. Analiza la imagen de esta planta ($sanitizedPlantType). Identifica si tiene algún problema. Responde brevemente: 1. Diagnóstico, 2. Causa, 3. Recomendación. Si hay problema grave, termina con [ALERTA: Nombre]."
                 } else {
-                    "Asistente botánico para la planta: ${currentPlant?.name} (${currentPlant?.type}). Responde brevemente."
+                    "Asistente botánico para la planta: $sanitizedPlantName ($sanitizedPlantType). Responde brevemente."
                 }
 
+                val sanitizedUserText = SecurityUtils.sanitizePrompt(userMsg.text)
+
                 val response = if (userMsg.image != null) {
-                    model.generateContent(content { image(userMsg.image!!); text(promptText) })
+                    model.generateContent(content { image(userMsg.image); text(promptText) })
                 } else {
-                    model.generateContent(userMsg.text + "\nContexto: " + promptText)
+                    model.generateContent("$sanitizedUserText\nContexto: $promptText")
                 }
 
                 val responseText = response.text ?: "No pude procesar tu solicitud."
@@ -130,13 +153,14 @@ class ChatActivity : AppCompatActivity() {
                     pbLoading.visibility = View.GONE
                     if (responseText.contains("[ALERTA:")) {
                         val diagnosis = responseText.substringAfter("[ALERTA:").substringBefore("]").trim()
-                        updatePlantHealth(diagnosis, responseText)
+                        updatePlantHealth(SecurityUtils.sanitizeText(diagnosis), responseText)
                     }
                 }
             } catch (e: Exception) {
+                SecureLogger.e(TAG, "Error de IA: ${e.message}")
                 withContext(Dispatchers.Main) {
                     pbLoading.visibility = View.GONE
-                    Toast.makeText(this@ChatActivity, "Error de IA: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@ChatActivity, "Error de conexión con el servicio de IA", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -156,7 +180,7 @@ class ChatActivity : AppCompatActivity() {
         inner class ChatViewHolder(v: View) : RecyclerView.ViewHolder(v) {
             val tvText: TextView = v.findViewById(R.id.tvMessageText)
             val ivImage: ImageView = v.findViewById(R.id.ivMessageImage)
-            val card: androidx.cardview.widget.CardView = v.findViewById(R.id.cardMessage)
+            val card: CardView = v.findViewById(R.id.cardMessage)
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
             val v = LayoutInflater.from(parent.context).inflate(R.layout.item_chat_message, parent, false)
@@ -169,10 +193,10 @@ class ChatActivity : AppCompatActivity() {
             if (m.image != null) holder.ivImage.setImageBitmap(m.image)
             val params = holder.card.layoutParams as ViewGroup.MarginLayoutParams
             if (m.isUser) {
-                holder.card.setCardBackgroundColor(android.graphics.Color.parseColor("#E8F5E9"))
+                holder.card.setCardBackgroundColor(Color.parseColor("#E8F5E9"))
                 params.marginStart = 100; params.marginEnd = 0
             } else {
-                holder.card.setCardBackgroundColor(android.graphics.Color.WHITE)
+                holder.card.setCardBackgroundColor(Color.WHITE)
                 params.marginStart = 0; params.marginEnd = 100
             }
             holder.card.layoutParams = params

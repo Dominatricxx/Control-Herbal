@@ -4,6 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.controlherbal.ai.HerbalAI
+import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
@@ -15,7 +18,7 @@ import kotlinx.coroutines.launch
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
-import java.util.*
+import java.util.Calendar
 
 data class SensorUiState(
     val temp: Double = 0.0,
@@ -41,9 +44,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     private val _uiState = MutableStateFlow(SensorUiState())
     val uiState: StateFlow<SensorUiState> = _uiState
 
+    companion object {
+        private const val TAG = "SensorViewModel"
+    }
+
     fun setLinking(linking: Boolean) {
         if (linking) {
-            // Cuando iniciamos vinculación, limpiamos el estado actual para no mostrar datos residuales
             _uiState.value = SensorUiState(isLinking = true, isConnected = false)
         } else {
             _uiState.value = _uiState.value.copy(isLinking = false)
@@ -58,7 +64,6 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             db.sensorDao().getLatestReadingFlow(plantId).collect { reading ->
                 reading?.let {
-                    // Si recibimos un dato válido, desactivamos el estado de "Vinculando"
                     val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                     val isDayByTime = currentHour in 7..19
                     val isDayByLight = it.light > 10.0
@@ -82,7 +87,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                             adjustedSoil = it.soilMoisture
                         ),
                         isConnected = true,
-                        isLinking = false, // Salimos del modo vinculación al recibir datos
+                        isLinking = false,
                         isDay = estimatedIsDay
                     )
                 }
@@ -92,7 +97,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun loadModel() {
         try {
-            val assetFileDescriptor = getApplication<Application>().assets.openFd("herbal_model.tflite")
+            val assetFileDescriptor = getApplication<Application>().assets.openFd(AppConstants.TFLITE_MODEL_ASSET)
             val inputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
             val fileChannel = inputStream.channel
             val startOffset = assetFileDescriptor.startOffset
@@ -100,7 +105,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
             val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
             tflite = Interpreter(modelBuffer)
         } catch (e: Exception) {
-            // Log error
+            SecureLogger.e(TAG, "Error al cargar modelo TFLite: ${e.message}")
         }
     }
 
@@ -134,22 +139,21 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         isDay: Boolean = true
     ) {
         viewModelScope.launch(Dispatchers.Default) {
+            val tempSafe = SecurityUtils.clampValue(temp, 0.0, 100.0)
             val luzFiltrada = PredictiveTheorem.filtrarSensibilidadLuz(luzRaw)
             val humFiltrada = PredictiveTheorem.filtrarSensibilidadHumedad(humRaw)
             val soilActual = if (soilRaw > 100.0) PredictiveTheorem.filtrarSensibilidadSuelo(soilRaw) else soilRaw
             
             val currentState = _uiState.value
             
-            // FILTROS DE ESTABILIDAD (Noise Reduction)
-            // No permitimos cambios bruscos de más del 20% en una sola lectura para sensores físicos
             fun stabilize(current: Double, target: Double, threshold: Double): Double {
-                if (current <= 0.1) return target // Inicialización
+                if (current <= 0.1) return target
                 return if (Math.abs(current - target) > threshold) {
-                    current * 0.8 + target * 0.2 // Suavizado agresivo si hay un pico
+                    current * 0.8 + target * 0.2
                 } else target
             }
 
-            val sTemp = stabilize(currentState.temp, temp, 5.0)
+            val sTemp = stabilize(currentState.temp, tempSafe, 5.0)
             val sHum = stabilize(currentState.hum, humFiltrada, 15.0)
             val sLuz = stabilize(currentState.luz, luzFiltrada, 25.0)
             val sSoil = stabilize(currentState.soil, soilActual, 15.0)
@@ -169,7 +173,6 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
-            // Cálculo de tiempo sin sol
             val lowLuzThreshold = 10.0
             if (sLuz < lowLuzThreshold) {
                 if (startTimeWithoutSun == 0L) startTimeWithoutSun = System.currentTimeMillis()
@@ -181,10 +184,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                 (System.currentTimeMillis() - startTimeWithoutSun) / 3600000.0
             } else 0.0
 
-            // Obtenemos el tamaño del historial para la confianza
             val historySize = currentPlant?.let { db.sensorDao().getCountByPlantId(it.id) } ?: 0
 
-            // Calculamos el Factor IA de deshidratación
             val aiDehydrationFactor = herbalAI.predictDehydrationFactor(sTemp, sHum, sLuz, sSoil, currentPlant?.type ?: "Híbrido", isDay)
 
             val result = PredictiveTheorem.analyze(
@@ -199,14 +200,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
             )
 
             val finalIrh = if (hwIrh > 0) {
-                // Si el hardware manda un IRH > 0, lo usamos pero lo suavizamos para evitar parpadeos
                 if (lastDisplayedIrh < 0) hwIrh else (hwIrh * 0.3 + lastDisplayedIrh * 0.7)
             } else if (hwIrh == 0.0 && lastDisplayedIrh > 5.0) {
-                // Si el hardware manda un 0 de repente, lo ignoramos momentáneamente (parpadeo)
-                // y bajamos el valor gradualmente
                 lastDisplayedIrh * 0.85
             } else {
-                // Cálculo de la IA de la App
                 val irhAI = herbalAI.predictRefinedIRH(sTemp, sHum, sLuz, sSoil, currentPlant?.type ?: "Híbrido", isDay)
                 var combinedIrh = (result.irh + irhAI) / 2.0
                 
@@ -217,27 +214,24 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                         interpreter.run(input, output)
                         combinedIrh = (combinedIrh + output[0][0].toDouble()) / 2.0
                     }
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    SecureLogger.e(TAG, "Error en inferencia TFLite: ${e.message}")
+                }
                 
-                // Suavizamos el resultado de la IA también
                 if (lastDisplayedIrh < 0) combinedIrh else (combinedIrh * 0.3 + lastDisplayedIrh * 0.7)
             }
             
             lastDisplayedIrh = finalIrh
 
-            // Sanidad para el SEQ del hardware: El Arduino tiene un límite de 6h.
-            // Si el suelo está sano (>40%), ignoramos el SEQ del hardware y usamos el de la App (que es de largo plazo).
             val rawHwSeq = hwSeq
             val calculatedSeq = if (sSoil > 40.0) {
-                result.seq // Usamos el cálculo de largo plazo de la App
+                result.seq
             } else if (rawHwSeq > 0 && rawHwSeq < 6.0) {
-                rawHwSeq // Si es una sequía real inminente detectada por HW, la tomamos
+                rawHwSeq
             } else {
                 result.seq
             }
             
-            // Filtro de Inercia Extrema para SEQ (95% Inercia)
-            // Esto garantiza que los cambios de "días" sean lentos y consistentes.
             val finalSeq = if (lastDisplayedSeq < 0) calculatedSeq else (calculatedSeq * 0.05 + lastDisplayedSeq * 0.95)
             lastDisplayedSeq = finalSeq
 

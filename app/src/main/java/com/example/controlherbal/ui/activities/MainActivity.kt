@@ -7,11 +7,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
-import android.text.style.RelativeSizeSpan
-import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
@@ -35,16 +30,22 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.controlherbal.R
 import com.example.controlherbal.ai.HerbalAI
+import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
-import com.example.controlherbal.domain.logic.PredictiveTheorem
 import com.example.controlherbal.data.sync.SensorForegroundService
-import com.github.mikephil.charting.charts.CombinedChart
-import com.google.android.material.navigation.NavigationView
-import com.google.firebase.database.*
+import com.example.controlherbal.domain.logic.PredictiveTheorem
 import com.example.controlherbal.ui.viewmodel.SensorViewModel
 import com.example.controlherbal.ui.widget.HerbalWidgetManager
+import com.github.mikephil.charting.charts.CombinedChart
+import com.google.android.material.navigation.NavigationView
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ServerValue
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,12 +54,14 @@ import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     companion object {
-        private const val TAG = "Control Herbal"
+        private const val TAG = "MainActivity"
         private const val LEARNING_THRESHOLD = 20
     }
 
@@ -98,14 +101,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     internal lateinit var btnClearAiDiagnosis: Button
 
     internal lateinit var databaseFirebase: DatabaseReference
-    internal val CHANNEL_ID = "herbal_alerts_channel"
-    internal val NOTIFICATION_ID = 1001
-    internal val SYNC_NOTIFICATION_ID = 1002
     internal var lastAlertState = 0 
     internal var isDisconnected = false
-    internal var lastBootCount: Int = -1
     internal val handler = Handler(Looper.getMainLooper())
-    internal val syncTimeoutRunnable = Runnable { handleDisconnection() }
 
     internal lateinit var viewModel: SensorViewModel
     internal lateinit var databaseLocal: SensorDatabase
@@ -119,12 +117,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     internal var firebaseListener: ValueEventListener? = null
     
     internal var isLinkingInProgress = false
-    internal var isFirstPacketAfterLinking = false
-
-    internal var lastWateringAlertState = 0 
     internal var lastRecommendationText = "" 
-
-    internal var lastProcessTime: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -177,7 +170,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     updateMenuVisibility(plantCount)
                     setupFirebase()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error: ${e.message}")
+                    SecureLogger.e(TAG, "Error inicializando MainActivity: ${e.message}")
                 }
             }
         }
@@ -291,20 +284,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun setupFirebase() {
         try {
-            val dbInstance = FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/")
-            databaseFirebase = dbInstance.getReference("sensor")
+            val dbInstance = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
+            databaseFirebase = dbInstance.getReference(AppConstants.FIREBASE_SENSOR_NODE)
             databaseFirebase.keepSynced(true)
             databaseFirebase.get().addOnSuccessListener { 
-                Log.d(TAG, "Firebase conectado")
+                SecureLogger.d(TAG, "Firebase conectado correctamente")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Firebase Error: ${e.message}")
+            SecureLogger.e(TAG, "Error Firebase: ${e.message}")
         }
     }
 
     private fun loadModel() {
         try {
-            val assetFileDescriptor = assets.openFd("herbal_model.tflite")
+            val assetFileDescriptor = assets.openFd(AppConstants.TFLITE_MODEL_ASSET)
             val inputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
             val fileChannel = inputStream.channel
             val startOffset = assetFileDescriptor.startOffset
@@ -312,7 +305,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
             tflite = Interpreter(modelBuffer)
         } catch (e: Exception) {
-            Log.e(TAG, "TFLite Error")
+            SecureLogger.e(TAG, "Error TFLite: ${e.message}")
         }
     }
 
@@ -325,8 +318,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
         val btnAction = dialogView.findViewById<Button>(R.id.btnAction)
 
+        val safeName = SecurityUtils.sanitizeText(plant.name)
         tvTitle.text = "Riego Manual 💧"
-        tvMessage.text = "¿Deseas activar el sistema de riego automático para '${plant.name}'?"
+        tvMessage.text = "¿Deseas activar el sistema de riego automático para '$safeName'?"
         btnAction.text = "ACTIVAR"
         btnAction.setBackgroundColor(Color.parseColor("#1E88E5"))
         
@@ -341,7 +335,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 currentPlant = updatedPlant
                 
                 try {
-                    val controlRef = FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/").getReference("control/riego")
+                    val controlRef = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL).getReference("control/riego")
                     val duracion = when {
                         plant.environment.contains("Luz", ignoreCase = true) -> 10
                         plant.environment.contains("Sombra", ignoreCase = true) -> 30
@@ -355,11 +349,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     )
                     controlRef.setValue(command)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error Proyecto B: ${e.message}")
+                    SecureLogger.e(TAG, "Error enviando comando de riego: ${e.message}")
                 }
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Comando enviado al Proyecto B 💧", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "Comando enviado al sistema de riego 💧", Toast.LENGTH_SHORT).show()
                     btnWatering.isEnabled = false
                     handler.postDelayed({ btnWatering.isEnabled = true }, 10000)
                     dialog.dismiss()
@@ -495,18 +489,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvWateringRecommended.text = "Riego recomendado: ${if (wateringRecommended) "SÍ" else "No"}"
         tvWateringRecommended.setTextColor(if (wateringRecommended) Color.RED else Color.parseColor("#1E88E5"))
         
-        tvAccion.text = accion
-        if (accion != lastRecommendationText) {
-            handleSignificantNotifications(wateringRecommended, accion)
-            lastRecommendationText = accion
+        val sanitizedAccion = SecurityUtils.sanitizeText(accion, 200)
+        tvAccion.text = sanitizedAccion
+        if (sanitizedAccion != lastRecommendationText) {
+            handleSignificantNotifications(wateringRecommended, sanitizedAccion)
+            lastRecommendationText = sanitizedAccion
         }
 
         tvAccion.setTextColor(ContextCompat.getColor(this, R.color.green_herbal))
         tvCausa.text = ""
         tvLastUpdate.text = String.format("Última actualización: %s", SimpleDateFormat("HH:mm:ss", locale).format(Date()))
 
-        val hasExplicitWarning = accion.contains("⚠️") || accion.contains("EXTREMO") || 
-                                accion.contains("URGENTE") || accion.contains("INMEDIATO")
+        val hasExplicitWarning = sanitizedAccion.contains("⚠️") || sanitizedAccion.contains("EXTREMO") || 
+                                sanitizedAccion.contains("URGENTE") || sanitizedAccion.contains("INMEDIATO")
         val isStressful = irh >= PredictiveTheorem.IRH_ADVERTENCIA || hasExplicitWarning
 
         when {
@@ -515,7 +510,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 tvAlerta.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.holo_red_dark))
                 tvAlerta.setTextColor(Color.WHITE)
                 if (lastAlertState != 2) {
-                    sendNotification(String.format("🚨 RIESGO CRÍTICO (IRH: %.1f)", irh), accion)
+                    sendNotification(String.format("🚨 RIESGO CRÍTICO (IRH: %.1f)", irh), sanitizedAccion)
                     lastAlertState = 2
                 }
             }
@@ -524,7 +519,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 tvAlerta.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
                 tvAlerta.setTextColor(Color.BLACK)
                 if (lastAlertState != 1) {
-                    sendNotification(String.format("⚠️ Advertencia (IRH: %.1f)", irh), accion)
+                    sendNotification(String.format("⚠️ Advertencia (IRH: %.1f)", irh), sanitizedAccion)
                     lastAlertState = 1
                 }
             }
@@ -550,7 +545,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 irh = irh,
                 seq = seq,
                 somb = somb,
-                action = accion
+                action = sanitizedAccion
             )
             lastReading = reading
             ioScope.launch {
@@ -576,9 +571,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         val intent = Intent(this, HistoryActivity::class.java)
         when (item.itemId) {
-            R.id.nav_daily -> intent.putExtra("HISTORY_TYPE", "Diario")
-            R.id.nav_weekly -> intent.putExtra("HISTORY_TYPE", "Semanal")
-            R.id.nav_monthly -> intent.putExtra("HISTORY_TYPE", "Mensual")
+            R.id.nav_daily -> intent.putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO)
+            R.id.nav_weekly -> intent.putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_SEMANAL)
+            R.id.nav_monthly -> intent.putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_MENSUAL)
             R.id.nav_plants -> { showPlantsSelectionDialog(); return true }
             R.id.nav_comparison -> { startActivity(Intent(this, ComparisonActivity::class.java)); return true }
             R.id.nav_chat -> { startActivity(Intent(this, ChatActivity::class.java)); return true }
@@ -605,7 +600,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         val tvName = row.findViewById<TextView>(R.id.tvItemPlantName)
                         val tvDetails = row.findViewById<TextView>(R.id.tvItemPlantDetails)
                         val tvScientific = row.findViewById<TextView>(R.id.tvItemPlantScientific)
-                        tvName.text = plant.name
+                        tvName.text = SecurityUtils.sanitizeText(plant.name)
                         val fullType = plant.type
                         val category = if (fullType.contains("Categoría:")) fullType.substringAfter("Categoría:").substringBefore("|").trim() else ""
                         val typePart = if (fullType.contains("Tipo:")) fullType.substringAfter("Tipo:").substringBefore("(").trim() else fullType.substringBefore("(")
@@ -627,7 +622,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             databaseLocal.plantDao().deselectAll()
             databaseLocal.plantDao().update(plant.copy(isSelected = true))
             val tipoInt = when { plant.environment.contains("Luz", ignoreCase = true) -> 1; plant.environment.contains("Sombra", ignoreCase = true) -> 3; else -> 2 }
-            FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/").getReference("config/tipoPlanta").setValue(tipoInt)
+            FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL).getReference("config/tipoPlanta").setValue(tipoInt)
             withContext(Dispatchers.Main) { val intent = Intent(this@MainActivity, MainActivity::class.java); intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK; startActivity(intent); finish() }
         }
     }

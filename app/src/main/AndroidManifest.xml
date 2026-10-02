@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.controlherbal"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.controlherbal">
 
-    <!-- Permisos Wi-Fi e Internet -->
+    <!-- Permisos de red, sensores y notificaciones -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -14,24 +14,32 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ControlHerbal"
-        android:usesCleartextTraffic="true"
-        tools:targetApi="31">
+        android:usesCleartextTraffic="false"
+        tools:targetApi="34">
 
+        <!-- Servicio de monitoreo en segundo plano -->
         <service
             android:name=".data.sync.SensorForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- Punto de entrada principal (Launcher) -->
         <activity
             android:name=".ui.activities.SplashActivity"
             android:exported="true"
@@ -41,29 +49,37 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Actividades internas no exportadas para prevenir Intent Redirection -->
         <activity
             android:name=".ui.activities.MainActivity"
-            android:exported="true" />
+            android:exported="false"
+            android:launchMode="singleTop" />
+
         <activity
             android:name=".ui.activities.HistoryActivity"
             android:exported="false"
             android:label="Historial de Sensores"
             android:parentActivityName=".ui.activities.MainActivity" />
+
         <activity
             android:name=".ui.activities.PlantSetupActivity"
             android:exported="false"
-            android:label="Configuracion de Planta" />
+            android:label="Configuración de Planta" />
+
         <activity
             android:name=".ui.activities.ComparisonActivity"
             android:exported="false"
             android:label="Comparador de Plantas"
             android:parentActivityName=".ui.activities.MainActivity" />
+
         <activity
             android:name=".ui.activities.ChatActivity"
             android:exported="false"
             android:label="Asistente Herbal AI"
             android:parentActivityName=".ui.activities.MainActivity" />
 
+        <!-- Receivers para Widgets de Pantalla de Inicio -->
         <receiver
             android:name=".ui.widget.HerbalWidgetSummaryReceiver"
             android:exported="true"
@@ -100,6 +116,7 @@
                 android:resource="@xml/herbal_widget_alert_info" />
         </receiver>
 
+        <!-- FileProvider Seguro -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -109,5 +126,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 </manifest>

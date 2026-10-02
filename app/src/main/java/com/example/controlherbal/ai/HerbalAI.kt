@@ -2,24 +2,24 @@ package com.example.controlherbal.ai
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
+import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.SecureLogger
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.domain.logic.PredictiveTheorem
 import kotlin.math.exp
 import kotlin.random.Random
 
 /**
- * HerbalAI: Red Neuronal Multicapa (MLP) Avanzada.
- * Basada en investigaciones de fisiología vegetal (Vapor Pressure Deficit - VPD).
- * 6 Entradas (Temp, HumAmb, Luz, Soil, isDay, VPD) -> 18 Neuronas Ocultas -> 1 Salida (IRH).
+ * HerbalAI: Red Neuronal Multicapa (MLP) basada en fisiología vegetal.
+ * Entradas: Temp, HumAmb, Luz, Soil, isDay, VPD -> Neuronas Ocultas -> Salida (IRH, DehydrationFactor).
  */
 class HerbalAI(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("herbal_ai_mlp_weights_v6", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences(AppConstants.PREFS_WEIGHTS_NAME, Context.MODE_PRIVATE)
     
     private val inputSize = 6
     private val hiddenSize = 18
-    private val outputSize = 2 // 0: IRH, 1: DehydrationFactor
+    private val outputSize = 2
     
     private var weightsInputHidden = Array(inputSize) { FloatArray(hiddenSize) }
     private var weightsHiddenOutput = Array(hiddenSize) { FloatArray(outputSize) }
@@ -27,7 +27,10 @@ class HerbalAI(context: Context) {
     private var biasOutput = FloatArray(outputSize)
 
     private val learningRate = 0.05f
-    private val TAG = "HerbalAI_MLP"
+
+    companion object {
+        private const val TAG = "HerbalAI_MLP"
+    }
 
     init {
         loadWeights()
@@ -36,14 +39,10 @@ class HerbalAI(context: Context) {
     private fun sigmoid(x: Float): Float = 1f / (1f + exp(-x.toDouble()).toFloat())
     private fun sigmoidDeriv(x: Float): Float = x * (1f - x)
 
-    /**
-     * Calcula el Déficit de Presión de Vapor (VPD).
-     * El VPD es el indicador académico más preciso para el estrés hídrico.
-     */
     private fun calculateVPD(temp: Double, hum: Double): Double {
         val es = 0.6108 * exp(17.27 * temp / (temp + 237.3))
         val ea = es * (hum / 100.0)
-        return (es - ea).coerceIn(0.0, 5.0) // kPa
+        return (es - ea).coerceIn(0.0, 5.0)
     }
 
     fun predictRefinedIRH(temp: Double, hum: Double, luz: Double, soil: Double, plantType: String = "Híbrido", isDay: Boolean = true): Double {
@@ -51,23 +50,16 @@ class HerbalAI(context: Context) {
         return forward(input)[0] * 100.0
     }
 
-    /**
-     * Predice un factor de ajuste para la tasa de deshidratación basándose en el aprendizaje histórico.
-     * 1.0 = Normal, >1.0 = Acelerada, <1.0 = Ralentizada.
-     */
     fun predictDehydrationFactor(temp: Double, hum: Double, luz: Double, soil: Double, plantType: String = "Híbrido", isDay: Boolean = true): Double {
         val input = prepareInput(temp, hum, luz, soil, plantType, isDay)
         val outputs = forward(input)
         
-        // Output[0] es IRH, Output[1] es el factor de aprendizaje (Dehydration Correction)
-        // Escalamos el factor: 0.5 en la red = 1.0x (neutro). 0.0 = 0.2x, 1.0 = 5.0x
         val learnedFactor = if (outputs[1] < 0.5f) {
-            0.2f + (outputs[1] / 0.5f) * 0.8f // 0.2 a 1.0
+            0.2f + (outputs[1] / 0.5f) * 0.8f
         } else {
-            1.0f + ((outputs[1] - 0.5f) / 0.5f) * 4.0f // 1.0 a 5.0
+            1.0f + ((outputs[1] - 0.5f) / 0.5f) * 4.0f
         }
         
-        // Combinamos con VPD físico para mayor robustez
         val vpd = calculateVPD(temp, hum)
         val vpdFactor = (vpd / 1.0).coerceIn(0.5, 2.0)
         val dayNightFactor = if (isDay) 1.0 else 0.3
@@ -96,7 +88,6 @@ class HerbalAI(context: Context) {
     }
 
     private fun forward(input: FloatArray): FloatArray {
-        // Capa Oculta
         val hiddenLayer = FloatArray(hiddenSize)
         for (j in 0 until hiddenSize) {
             var activation = biasHidden[j]
@@ -106,7 +97,6 @@ class HerbalAI(context: Context) {
             hiddenLayer[j] = sigmoid(activation)
         }
 
-        // Capa de Salida (Multicapa para IRH y Tasa)
         val outputs = FloatArray(outputSize)
         for (k in 0 until outputSize) {
             var outputActivation = biasOutput[k]
@@ -122,24 +112,18 @@ class HerbalAI(context: Context) {
     fun performSelfLearning(history: List<SensorReading>) {
         if (history.size < 20) return
 
-        Log.d(TAG, "Aprendizaje IA (Entorno Adaptativo) con ${history.size} registros...")
+        SecureLogger.d(TAG, "Aprendizaje IA ejecutado con ${history.size} registros.")
 
         repeat(200) {
             for (idx in 1 until history.size) {
                 val current = history[idx]
                 val prev = history[idx-1]
                 
-                // Calculamos la tasa de deshidratación REAL observada (%/h)
                 val dt = (current.timestamp - prev.timestamp) / 3600000.0
                 val realDelta = if (dt > 0.1) (prev.soilMoisture - current.soilMoisture) / dt else 0.0
                 
-                // Target 1: IRH (0-1)
                 val targetIrh = current.irh.toFloat() / 100f
-                
-                // Target 2: Factor de Corrección de Tasa (0-1)
-                // Usamos la tasa teórica base para normalizar lo aprendido
                 val theoryTasa = PredictiveTheorem.calcularTasaDeshidratacion(current.temperature, current.humidity, current.light, "Híbrido")
-                // Ratio real/teórico. 1.0 = neutro (0.5 en sigmoide), >1.0 = más rápido, <1.0 = más lento
                 val ratio = (realDelta / (theoryTasa.coerceAtLeast(0.01))).coerceIn(0.1, 5.0)
                 val targetFactor = if (ratio <= 1.0) (ratio / 1.0 * 0.5).toFloat() 
                                   else (0.5 + (ratio - 1.0) / 4.0 * 0.5).toFloat()
@@ -159,7 +143,6 @@ class HerbalAI(context: Context) {
                 
                 val targets = floatArrayOf(targetIrh, targetFactor)
 
-                // Feed-forward
                 val hiddenLayer = FloatArray(hiddenSize)
                 for (j in 0 until hiddenSize) {
                     var act = biasHidden[j]
@@ -174,7 +157,6 @@ class HerbalAI(context: Context) {
                     outputs[k] = sigmoid(outAct)
                 }
 
-                // Backpropagation
                 val outputDeltas = FloatArray(outputSize)
                 for (k in 0 until outputSize) {
                     val error = targets[k] - outputs[k]
@@ -190,7 +172,6 @@ class HerbalAI(context: Context) {
                     hiddenDeltas[j] = hiddenError * sigmoidDeriv(hiddenLayer[j])
                 }
 
-                // Update Weights
                 for (k in 0 until outputSize) {
                     biasOutput[k] += learningRate * outputDeltas[k]
                     for (j in 0 until hiddenSize) {
@@ -207,7 +188,6 @@ class HerbalAI(context: Context) {
         }
 
         saveWeights()
-        Log.d(TAG, "Aprendizaje de entorno completado.")
     }
 
     private fun loadWeights() {

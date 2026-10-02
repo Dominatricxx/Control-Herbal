@@ -2,12 +2,16 @@ package com.example.controlherbal.ui.activities
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.text.InputFilter
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import com.example.controlherbal.R
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.domain.logic.PredictiveTheorem
 import com.google.firebase.database.DataSnapshot
@@ -21,7 +25,10 @@ fun MainActivity.showPlantInfo() {
     currentPlant?.let { plant ->
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_options, null)
         val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
-        tvTitle.text = "Planta: ${plant.name}\nEspecie: ${plant.type}\nEntorno: ${plant.environment}"
+        val name = SecurityUtils.sanitizeText(plant.name)
+        val type = SecurityUtils.sanitizeText(plant.type)
+        val env = SecurityUtils.sanitizeText(plant.environment)
+        tvTitle.text = "Planta: $name\nEspecie: $type\nEntorno: $env"
 
         AlertDialog.Builder(this)
             .setTitle("Detalles de la Planta")
@@ -84,17 +91,20 @@ fun MainActivity.importDataFromFirebase() {
                             val irh = (data.child("irh").value as? Number)?.toDouble() ?: 0.0
                             val seq = (data.child("seq").value as? Number)?.toDouble() ?: 0.0
                             val somb = (data.child("somb").value as? Number)?.toDouble() ?: 0.0
-                            val action = data.child("acc").value as? String ?: ""
+                            val action = SecurityUtils.sanitizeText(data.child("acc").value as? String ?: "")
                             val timestamp = (data.child("timestamp").value as? Number)?.toLong() ?: System.currentTimeMillis()
                             readingsToInsert.add(SensorReading(timestamp, plant.id, temp, hum, luz, soil, irh, seq, somb, action))
                         }
                         if (snapshot.hasChild("history")) snapshot.child("history").children.forEach { processNode(it) } else processNode(snapshot)
                         if (readingsToInsert.isNotEmpty()) {
                             readingsToInsert.forEach { databaseLocal.sensorDao().insert(it) }
-                            withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Importados ${readingsToInsert.size} ✅", Toast.LENGTH_LONG).show(); loadDataAndDrawChart() }
+                            withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Importados ${readingsToInsert.size} registros ✅", Toast.LENGTH_LONG).show(); loadDataAndDrawChart() }
                         } else withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Sin datos válidos", Toast.LENGTH_SHORT).show() }
                     } else withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Sin datos en Firebase", Toast.LENGTH_SHORT).show() }
-                } catch (e: Exception) { withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_SHORT).show() } }
+                } catch (e: Exception) {
+                    SecureLogger.e("MainActivity", "Error importando de Firebase: ${e.message}")
+                    withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Error en la importación", Toast.LENGTH_SHORT).show() }
+                }
             }
         }
         override fun onCancelled(error: DatabaseError) { progressDialog.dismiss(); Toast.makeText(activity, "Error de conexión", Toast.LENGTH_SHORT).show() }
@@ -113,7 +123,7 @@ fun MainActivity.showResetDataDialog() {
     }
     dialogView.findViewById<View>(R.id.btnReset24h)?.setOnClickListener {
         dialog.dismiss()
-        val oneDayAgo = System.currentTimeMillis() - 86400000
+        val oneDayAgo = System.currentTimeMillis() - (24 * 3600 * 1000L)
         resetData(1, oneDayAgo, System.currentTimeMillis(), false)
     }
     dialogView.findViewById<View>(R.id.btnCancelReset)?.setOnClickListener {
@@ -125,36 +135,60 @@ fun MainActivity.showResetDataDialog() {
 fun MainActivity.showEditNameDialog() {
     currentPlant?.let { plant ->
         val activity = this
-        val input = EditText(this).apply {
-            setText(plant.name)
-            setSelection(plant.name.length)
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Editar Nombre de Planta")
-            .setView(input)
-            .setPositiveButton("Guardar") { _, _ ->
-                val newName = input.text.toString().trim()
-                if (newName.isNotEmpty()) {
-                    ioScope.launch {
-                        databaseLocal.plantDao().update(plant.copy(name = newName))
-                        currentPlant = databaseLocal.plantDao().getSelectedPlant()
-                        withContext(Dispatchers.Main) {
-                            tvPlantNameAndEmoji?.text = "🌱 $newName"
-                            Toast.makeText(activity, "Nombre actualizado", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_input, null)
+        val etInput = dialogView.findViewById<EditText>(R.id.etInput)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+        val btnOk = dialogView.findViewById<Button>(R.id.btnOk)
+
+        tvTitle.text = "Editar Nombre"
+        etInput.setText(plant.name)
+        etInput.hint = "Nuevo nombre (solo letras y números)"
+
+        val filter = InputFilter { source, start, end, _, _, _ ->
+            for (i in start until end) {
+                val char = source[i]
+                if (!Character.isLetterOrDigit(char) && char != ' ') {
+                    return@InputFilter ""
                 }
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+            null
+        }
+        etInput.filters = arrayOf(filter)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnOk.setOnClickListener {
+            val rawName = etInput.text.toString().trim()
+            val newName = SecurityUtils.sanitizeText(rawName)
+            if (newName.isNotEmpty()) {
+                ioScope.launch {
+                    databaseLocal.plantDao().update(plant.copy(name = newName))
+                    currentPlant = databaseLocal.plantDao().getSelectedPlant()
+                    withContext(Dispatchers.Main) {
+                        tvPlantNameAndEmoji?.text = "🌱 $newName"
+                        Toast.makeText(activity, "Nombre actualizado correctamente", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                }
+            } else {
+                Toast.makeText(activity, "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
+            }
+        }
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 }
 
 fun MainActivity.showDeletePlantDialog() {
     currentPlant?.let { plant ->
+        val safeName = SecurityUtils.sanitizeText(plant.name)
         AlertDialog.Builder(this)
             .setTitle("Eliminar Planta")
-            .setMessage("¿Estás seguro de eliminar a '${plant.name}'? Se borrarán sus registros asociados.")
+            .setMessage("¿Estás seguro de eliminar a '$safeName'? Se borrarán sus registros asociados.")
             .setPositiveButton("Eliminar") { _, _ ->
                 deleteCurrentPlant()
             }

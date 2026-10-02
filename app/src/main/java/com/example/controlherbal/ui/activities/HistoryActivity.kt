@@ -3,26 +3,53 @@ package com.example.controlherbal.ui.activities
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
+import android.text.InputFilter
+import android.view.MenuItem
 import android.view.View
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.CompoundButton
+import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.example.controlherbal.R
+import com.example.controlherbal.ai.HerbalAI
+import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.domain.logic.PredictiveTheorem
 import com.github.mikephil.charting.charts.CombinedChart
-import com.github.mikephil.charting.data.*
+import com.github.mikephil.charting.components.AxisBase
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.data.CombinedData
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.navigation.NavigationView
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -34,16 +61,20 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     private lateinit var tvAvgLuz: TextView
     private lateinit var tvAvgIRH: TextView
     private lateinit var combinedChart: CombinedChart
-    private lateinit var cbTemp: android.widget.CheckBox
-    private lateinit var cbHum: android.widget.CheckBox
-    private lateinit var cbSoil: android.widget.CheckBox
-    private lateinit var cbLuz: android.widget.CheckBox
-    private lateinit var cbIRH: android.widget.CheckBox
-    private lateinit var btnDataControl: android.widget.Button
+    private lateinit var cbTemp: CheckBox
+    private lateinit var cbHum: CheckBox
+    private lateinit var cbSoil: CheckBox
+    private lateinit var cbLuz: CheckBox
+    private lateinit var cbIRH: CheckBox
+    private lateinit var btnDataControl: Button
     private lateinit var databaseLocal: SensorDatabase
-    private lateinit var databaseFirebase: com.google.firebase.database.DatabaseReference
+    private lateinit var databaseFirebase: DatabaseReference
     private val ioScope = CoroutineScope(Dispatchers.IO)
     private var currentPlant: Plant? = null
+
+    companion object {
+        private const val TAG = "HistoryActivity"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +84,7 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
         
-        val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+        val type = SecurityUtils.getSafeIntentString(intent, AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO)
         
         findViewById<View>(R.id.btnMenu).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
@@ -61,9 +92,9 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
 
         val menu = navView.menu
         when(type) {
-            "DIARIO" -> menu.findItem(R.id.nav_daily).isVisible = false
-            "SEMANAL" -> menu.findItem(R.id.nav_weekly).isVisible = false
-            "MENSUAL" -> menu.findItem(R.id.nav_monthly).isVisible = false
+            AppConstants.HISTORY_DIARIO -> menu.findItem(R.id.nav_daily).isVisible = false
+            AppConstants.HISTORY_SEMANAL -> menu.findItem(R.id.nav_weekly).isVisible = false
+            AppConstants.HISTORY_MENSUAL -> menu.findItem(R.id.nav_monthly).isVisible = false
         }
 
         tvTitle = findViewById(R.id.tvHistoryTitle)
@@ -82,9 +113,9 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         cbLuz = findViewById(R.id.cbLuz)
         cbIRH = findViewById(R.id.cbIRH)
 
-        val chartListener = android.widget.CompoundButton.OnCheckedChangeListener { _, _ -> 
-            val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
-            loadHistoryData(type)
+        val chartListener = CompoundButton.OnCheckedChangeListener { _, _ -> 
+            val currentType = SecurityUtils.getSafeIntentString(intent, AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO)
+            loadHistoryData(currentType)
         }
         cbTemp.setOnCheckedChangeListener(chartListener)
         cbHum.setOnCheckedChangeListener(chartListener)
@@ -93,16 +124,15 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         cbIRH.setOnCheckedChangeListener(chartListener)
 
         btnDataControl = findViewById(R.id.btnDataControl)
-        
         btnDataControl.setOnClickListener { showDataControlDialog() }
 
         databaseLocal = SensorDatabase.getInstance(this)
         
         try {
-            val dbInstance = com.google.firebase.database.FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/")
-            databaseFirebase = dbInstance.getReference("sensor")
+            val dbInstance = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
+            databaseFirebase = dbInstance.getReference(AppConstants.FIREBASE_SENSOR_NODE)
         } catch (e: Exception) {
-            android.util.Log.e("HistoryActivity", "Error Firebase: ${e.message}")
+            SecureLogger.e(TAG, "Error Firebase: ${e.message}")
         }
 
         tvHeaderTitle.text = "Registro $type"
@@ -121,39 +151,31 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         }
     }
 
-    override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_main -> {
-                val intent = Intent(this, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                }
                 startActivity(intent)
             }
             R.id.nav_daily -> {
-                val intent = Intent(this, HistoryActivity::class.java)
-                intent.putExtra("HISTORY_TYPE", "DIARIO")
-                startActivity(intent)
+                startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO))
             }
             R.id.nav_weekly -> {
-                val intent = Intent(this, HistoryActivity::class.java)
-                intent.putExtra("HISTORY_TYPE", "SEMANAL")
-                startActivity(intent)
+                startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_SEMANAL))
             }
             R.id.nav_monthly -> {
-                val intent = Intent(this, HistoryActivity::class.java)
-                intent.putExtra("HISTORY_TYPE", "MENSUAL")
-                startActivity(intent)
+                startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_MENSUAL))
             }
             R.id.nav_plants -> {
-                val intent = Intent(this, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                }
                 startActivity(intent)
             }
-            R.id.nav_comparison -> {
-                startActivity(Intent(this, ComparisonActivity::class.java))
-            }
-            R.id.nav_chat -> {
-                startActivity(Intent(this, ChatActivity::class.java))
-            }
+            R.id.nav_comparison -> startActivity(Intent(this, ComparisonActivity::class.java))
+            R.id.nav_chat -> startActivity(Intent(this, ChatActivity::class.java))
         }
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
@@ -164,9 +186,9 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         ioScope.launch {
             val endTime = System.currentTimeMillis()
             val startTime = when (type) {
-                "DIARIO" -> endTime - (24 * 3600 * 1000L)
-                "SEMANAL" -> endTime - (7 * 24 * 3600 * 1000L)
-                "MENSUAL" -> endTime - (30 * 24 * 3600 * 1000L)
+                AppConstants.HISTORY_DIARIO -> endTime - (24 * 3600 * 1000L)
+                AppConstants.HISTORY_SEMANAL -> endTime - (7 * 24 * 3600 * 1000L)
+                AppConstants.HISTORY_MENSUAL -> endTime - (30 * 24 * 3600 * 1000L)
                 else -> endTime - (24 * 3600 * 1000L)
             }
 
@@ -179,20 +201,19 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 val avgLuz = filteredReadings.map { it.light }.average()
                 val avgIRH = filteredReadings.map { it.irh }.average()
 
-                // Análisis IA para el historial
-                val herbalAI = com.example.controlherbal.ai.HerbalAI(this@HistoryActivity)
+                val herbalAI = HerbalAI(this@HistoryActivity)
                 val aiIrh = herbalAI.predictRefinedIRH(avgTemp, avgHum, avgLuz, avgSoil, currentPlant?.type ?: "Híbrido")
                 val combinedIrh = (avgIRH + aiIrh) / 2.0
 
                 withContext(Dispatchers.Main) {
-                    tvAvgTemp.text = String.format("%.1f °C", avgTemp)
-                    tvAvgHum.text = String.format("%.1f %%", avgHum)
-                    tvAvgSoil.text = String.format("%.1f %%", avgSoil)
-                    tvAvgLuz.text = String.format("%.1f %%", avgLuz)
-                    tvAvgIRH.text = String.format("%.1f (IA)", combinedIrh)
+                    tvAvgTemp.text = String.format(Locale.getDefault(), "%.1f °C", avgTemp)
+                    tvAvgHum.text = String.format(Locale.getDefault(), "%.1f %%", avgHum)
+                    tvAvgSoil.text = String.format(Locale.getDefault(), "%.1f %%", avgSoil)
+                    tvAvgLuz.text = String.format(Locale.getDefault(), "%.1f %%", avgLuz)
+                    tvAvgIRH.text = String.format(Locale.getDefault(), "%.1f (IA)", combinedIrh)
                     
-                    if (combinedIrh > 75.0) tvAvgIRH.setTextColor(Color.RED)
-                    else if (combinedIrh > 50.0) tvAvgIRH.setTextColor(Color.parseColor("#FF6D00"))
+                    if (combinedIrh > PredictiveTheorem.IRH_RIESGO) tvAvgIRH.setTextColor(Color.RED)
+                    else if (combinedIrh > PredictiveTheorem.IRH_ADVERTENCIA) tvAvgIRH.setTextColor(Color.parseColor("#FF6D00"))
                     else tvAvgIRH.setTextColor(Color.parseColor("#2E7D32"))
 
                     drawHistoryChart(filteredReadings)
@@ -213,8 +234,8 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     }
 
     private fun drawHistoryChart(readings: List<SensorReading>) {
-        val combinedData = com.github.mikephil.charting.data.CombinedData()
-        val lineData = com.github.mikephil.charting.data.LineData()
+        val combinedData = CombinedData()
+        val lineData = LineData()
 
         if (cbTemp.isChecked) {
             val entries = readings.mapIndexed { i, r -> Entry(i.toFloat(), r.temperature.toFloat()) }
@@ -236,52 +257,45 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         combinedData.setData(lineData)
 
         if (cbIRH.isChecked) {
-            val barEntries = readings.mapIndexed { i, r -> com.github.mikephil.charting.data.BarEntry(i.toFloat(), r.irh.toFloat()) }
-            val barDataSet = com.github.mikephil.charting.data.BarDataSet(barEntries, "IRH").apply {
+            val barEntries = readings.mapIndexed { i, r -> BarEntry(i.toFloat(), r.irh.toFloat()) }
+            val barDataSet = BarDataSet(barEntries, "IRH").apply {
                 color = Color.argb(150, 211, 47, 47)
                 setDrawValues(false)
             }
-            val barData = com.github.mikephil.charting.data.BarData(barDataSet)
-            barData.barWidth = 0.5f // Ajustar ancho para que no se vea tan grueso
+            val barData = BarData(barDataSet)
+            barData.barWidth = 0.5f
             combinedData.setData(barData)
         }
 
         combinedChart.apply {
             data = combinedData
             description.isEnabled = false
-            
-            // Espaciado extra para evitar que se corte el histograma y las etiquetas
             setExtraOffsets(5f, 5f, 5f, 15f)
             
             axisLeft.axisMinimum = 0f
-            axisLeft.axisMaximum = 105f // Un poco más de 100 para que no pegue arriba
+            axisLeft.axisMaximum = 105f
             axisRight.isEnabled = false
             
             xAxis.apply {
-                position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
-                
-                // Evita que las etiquetas se amontonen en vistas semanales/mensuales
+                position = XAxis.XAxisPosition.BOTTOM
                 setLabelCount(8, false)
                 granularity = 1f
-                
                 setDrawGridLines(false)
                 labelRotationAngle = -45f
-                
-                // Ajustar el rango para dar espacio a las barras en los extremos
                 axisMinimum = -0.5f
                 axisMaximum = readings.size.toFloat() - 0.5f
 
-                valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                    private val sdfDaily = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                    private val sdfFull = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault())
+                valueFormatter = object : ValueFormatter() {
+                    private val sdfDaily = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    private val sdfFull = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
                     
-                    override fun getAxisLabel(v: Float, a: com.github.mikephil.charting.components.AxisBase?): String {
+                    override fun getAxisLabel(v: Float, a: AxisBase?): String {
                         val idx = v.toInt()
                         if (idx !in readings.indices) return ""
                         
-                        val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
-                        val sdf = if (type == "DIARIO") sdfDaily else sdfFull
-                        return sdf.format(java.util.Date(readings[idx].timestamp))
+                        val type = SecurityUtils.getSafeIntentString(intent, AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO)
+                        val sdf = if (type == AppConstants.HISTORY_DIARIO) sdfDaily else sdfFull
+                        return sdf.format(Date(readings[idx].timestamp))
                     }
                 }
             }
@@ -301,24 +315,24 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         val plant = currentPlant ?: return
         val dialogView = layoutInflater.inflate(R.layout.dialog_data_control, null)
         val tvTitle = dialogView.findViewById<TextView>(R.id.tvControlTitle)
-        tvTitle.text = "Gestión de '${plant.name}'"
+        tvTitle.text = "Gestión de '${SecurityUtils.sanitizeText(plant.name)}'"
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        dialogView.findViewById<android.widget.Button>(R.id.btnImportFirebase).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnImportFirebase).setOnClickListener {
             importDataFromFirebase()
             dialog.dismiss()
         }
 
-        dialogView.findViewById<android.widget.Button>(R.id.btnResetLocal).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnResetLocal).setOnClickListener {
             showResetDataDialog()
             dialog.dismiss()
         }
 
-        dialogView.findViewById<android.widget.Button>(R.id.btnCancelControl).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnCancelControl).setOnClickListener {
             dialog.dismiss()
         }
 
@@ -327,19 +341,19 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
 
     private fun importDataFromFirebase() {
         val plant = currentPlant ?: return
-        val progressDialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        val progressDialog = AlertDialog.Builder(this)
             .setMessage("Importando registros desde la nube...")
             .setCancelable(false)
             .show()
 
-        databaseFirebase.addListenerForSingleValueEvent(object : com.google.firebase.database.ValueEventListener {
-            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+        databaseFirebase.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
                 ioScope.launch {
                     try {
                         if (snapshot.exists()) {
                             val readingsToInsert = mutableListOf<SensorReading>()
                             
-                            fun processNode(data: com.google.firebase.database.DataSnapshot) {
+                            fun processNode(data: DataSnapshot) {
                                 val temp = (data.child("temp").value as? Number)?.toDouble() ?: return
                                 val hum = (data.child("hum").value as? Number)?.toDouble() ?: 0.0
                                 val luzRaw = (data.child("luz_raw").value as? Number)?.toDouble() ?: (data.child("luz").value as? Number)?.toDouble() ?: 0.0
@@ -348,7 +362,7 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                                 val irh = (data.child("irh").value as? Number)?.toDouble() ?: 0.0
                                 val seq = (data.child("seq").value as? Number)?.toDouble() ?: 0.0
                                 val somb = (data.child("somb").value as? Number)?.toDouble() ?: 0.0
-                                val action = data.child("acc").value as? String ?: ""
+                                val action = SecurityUtils.sanitizeText(data.child("acc").value as? String ?: "")
                                 val timestamp = (data.child("timestamp").value as? Number)?.toLong() ?: System.currentTimeMillis()
 
                                 readingsToInsert.add(
@@ -377,33 +391,34 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                                 readingsToInsert.forEach { databaseLocal.sensorDao().insert(it) }
                                 withContext(Dispatchers.Main) {
                                     progressDialog.dismiss()
-                                    android.widget.Toast.makeText(this@HistoryActivity, "Se han importado ${readingsToInsert.size} registros ✅", android.widget.Toast.LENGTH_LONG).show()
-                                    val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+                                    Toast.makeText(this@HistoryActivity, "Se han importado ${readingsToInsert.size} registros ✅", Toast.LENGTH_LONG).show()
+                                    val type = SecurityUtils.getSafeIntentString(intent, AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO)
                                     loadHistoryData(type)
                                 }
                             } else {
                                 withContext(Dispatchers.Main) {
                                     progressDialog.dismiss()
-                                    android.widget.Toast.makeText(this@HistoryActivity, "No se encontraron registros válidos en la nube", android.widget.Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this@HistoryActivity, "No se encontraron registros válidos en la nube", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         } else {
                             withContext(Dispatchers.Main) {
                                 progressDialog.dismiss()
-                                android.widget.Toast.makeText(this@HistoryActivity, "No hay datos en Firebase para esta planta", android.widget.Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@HistoryActivity, "No hay datos en Firebase para esta planta", Toast.LENGTH_SHORT).show()
                             }
                         }
                     } catch (e: Exception) {
+                        SecureLogger.e(TAG, "Error en importación: ${e.message}")
                         withContext(Dispatchers.Main) {
                             progressDialog.dismiss()
-                            android.widget.Toast.makeText(this@HistoryActivity, "Error al importar: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@HistoryActivity, "Error al importar datos", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
             }
-            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+            override fun onCancelled(error: DatabaseError) {
                 progressDialog.dismiss()
-                android.widget.Toast.makeText(this@HistoryActivity, "Error de conexión con Firebase", android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@HistoryActivity, "Error de conexión con Firebase", Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -411,81 +426,33 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
     private fun showResetDataDialog() {
         val plant = currentPlant ?: return
         val dialogView = layoutInflater.inflate(R.layout.dialog_reset_options, null)
-        val tvTitle = dialogView.findViewById<TextView>(R.id.tvResetTitle)
-        tvTitle.text = "Reiniciar '${plant.name}'"
+        val tvTitleDialog = dialogView.findViewById<TextView>(R.id.tvResetTitle)
+        tvTitleDialog.text = "Reiniciar '${SecurityUtils.sanitizeText(plant.name)}'"
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        dialogView.findViewById<android.widget.Button>(R.id.btnReset24h).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnReset24h).setOnClickListener {
             resetData(plant.id, System.currentTimeMillis() - (24 * 3600 * 1000L), System.currentTimeMillis(), false)
             dialog.dismiss()
         }
-        dialogView.findViewById<android.widget.Button>(R.id.btnReset7d).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnReset7d).setOnClickListener {
             resetData(plant.id, System.currentTimeMillis() - (7 * 24 * 3600 * 1000L), System.currentTimeMillis(), false)
             dialog.dismiss()
         }
-        dialogView.findViewById<android.widget.Button>(R.id.btnResetMonth).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnResetMonth).setOnClickListener {
             resetData(plant.id, System.currentTimeMillis() - (30 * 24 * 3600 * 1000L), System.currentTimeMillis(), false)
             dialog.dismiss()
         }
-        dialogView.findViewById<android.widget.Button>(R.id.btnResetAll).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnResetAll).setOnClickListener {
             resetData(plant.id, 0, System.currentTimeMillis(), true)
             dialog.dismiss()
         }
-        dialogView.findViewById<android.widget.Button>(R.id.btnCancelReset).setOnClickListener {
+        dialogView.findViewById<Button>(R.id.btnCancelReset).setOnClickListener {
             dialog.dismiss()
         }
-        dialog.show()
-    }
-
-    private fun showEditNameDialog() {
-        val plant = currentPlant ?: return
-        val dialogView = layoutInflater.inflate(R.layout.dialog_input, null)
-        val etInput = dialogView.findViewById<android.widget.EditText>(R.id.etInput)
-        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
-        val btnCancel = dialogView.findViewById<android.widget.Button>(R.id.btnCancel)
-        val btnOk = dialogView.findViewById<android.widget.Button>(R.id.btnOk)
-
-        tvTitle.text = "Editar Nombre"
-        etInput.setText(plant.name)
-        etInput.hint = "Nuevo nombre (solo letras y números)"
-
-        val filter = android.text.InputFilter { source, start, end, dest, dstart, dend ->
-            for (i in start until end) {
-                val char = source[i]
-                if (!Character.isLetterOrDigit(char) && char != ' ') {
-                    return@InputFilter ""
-                }
-            }
-            null
-        }
-        etInput.filters = arrayOf(filter)
-
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        btnOk.setOnClickListener {
-            val newName = etInput.text.toString().trim()
-            if (newName.isNotEmpty()) {
-                ioScope.launch {
-                    val updatedPlant = plant.copy(name = newName)
-                    databaseLocal.plantDao().update(updatedPlant)
-                    currentPlant = updatedPlant
-                    withContext(Dispatchers.Main) {
-                        android.widget.Toast.makeText(this@HistoryActivity, "Nombre actualizado correctamente", android.widget.Toast.LENGTH_SHORT).show()
-                        dialog.dismiss()
-                    }
-                }
-            } else {
-                android.widget.Toast.makeText(this, "El nombre no puede estar vacío", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
-        btnCancel.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
@@ -503,8 +470,8 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                 }
             }
 
-            android.widget.Toast.makeText(this@HistoryActivity, "Datos eliminados correctamente ✅", android.widget.Toast.LENGTH_SHORT).show()
-            val type = intent.getStringExtra("HISTORY_TYPE") ?: "DIARIO"
+            Toast.makeText(this@HistoryActivity, "Datos eliminados correctamente ✅", Toast.LENGTH_SHORT).show()
+            val type = SecurityUtils.getSafeIntentString(intent, AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO)
             loadHistoryData(type)
         }
     }

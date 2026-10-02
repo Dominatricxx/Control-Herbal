@@ -15,40 +15,23 @@ class SplashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        try {
-            setContentView(R.layout.activity_splash)
+        setContentView(R.layout.activity_splash)
 
-            val btnContinue = findViewById<ImageButton>(R.id.btnContinue)
-            btnContinue.setOnClickListener {
-                checkPlantsAndNavigate()
-            }
-
-        } catch (e: Exception) {
-            android.util.Log.e("Control Herbal", "Error inflating splash: ${e.message}")
-            // Si falla la inflación (posible OOM por imagen pesada), intentamos ir directo
-            checkPlantsAndNavigate()
-        }
+        val btnContinue = findViewById<ImageButton>(R.id.btnContinue)
+        btnContinue.setOnClickListener { navigateNext() }
     }
 
-    private fun checkPlantsAndNavigate() {
-        lifecycleScope.launch {
-            try {
-                val db = withContext(Dispatchers.IO) {
-                    SensorDatabase.getInstance(this@SplashActivity)
-                }
-                val plantCount = withContext(Dispatchers.IO) {
-                    db.plantDao().getPlantCount()
-                }
-                
-                if (plantCount > 0) {
-                    startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+    private fun navigateNext() {
+        val databaseLocal = SensorDatabase.getInstance(this)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val selectedPlant = databaseLocal.plantDao().getSelectedPlant()
+            withContext(Dispatchers.Main) {
+                val nextIntent = if (selectedPlant == null) {
+                    Intent(this@SplashActivity, PlantSetupActivity::class.java)
                 } else {
-                    startActivity(Intent(this@SplashActivity, PlantSetupActivity::class.java))
+                    Intent(this@SplashActivity, MainActivity::class.java)
                 }
-                finish()
-            } catch (e: Exception) {
-                android.util.Log.e("Control Herbal", "Error checking plants: ${e.message}")
-                startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                startActivity(nextIntent)
                 finish()
             }
         }

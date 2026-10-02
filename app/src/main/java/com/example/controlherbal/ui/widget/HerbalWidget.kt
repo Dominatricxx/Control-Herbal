@@ -2,6 +2,7 @@ package com.example.controlherbal.ui.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -9,26 +10,36 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.updateAll
 import androidx.glance.background
-import androidx.glance.layout.*
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
+import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.example.controlherbal.R
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
-import kotlinx.coroutines.runBlocking
-import androidx.glance.action.actionStartActivity
-import androidx.glance.action.actionStartActivity
-import androidx.glance.action.clickable
-import androidx.glance.Button
 import com.example.controlherbal.ui.activities.MainActivity
-import androidx.compose.ui.graphics.Color
-import androidx.glance.appwidget.updateAll
+import kotlinx.coroutines.runBlocking
+import java.util.Locale
 
 /**
  * Utilidad para forzar la actualización de todos los widgets desde el servicio o la app
@@ -40,7 +51,7 @@ object HerbalWidgetManager {
             HerbalWidgetStatus().updateAll(context)
             HerbalWidgetAlert().updateAll(context)
         } catch (e: Exception) {
-            android.util.Log.e("HerbalWidget", "Error updating widgets: ${e.message}")
+            SecureLogger.e("HerbalWidget", "Error al actualizar widgets: ${e.message}")
         }
     }
 }
@@ -57,7 +68,8 @@ class HerbalWidgetSummary : GlanceAppWidget() {
                 val reading = runBlocking { 
                     plant?.let { db.sensorDao().getAllOrderByTimestampDesc(it.id).firstOrNull() }
                 }
-                UnifiedWidgetContent(plant?.name ?: "Sin Planta", reading)
+                val safeName = SecurityUtils.sanitizeText(plant?.name ?: "Sin Planta")
+                UnifiedWidgetContent(safeName, reading)
             }
         }
     }
@@ -75,14 +87,15 @@ class HerbalWidgetStatus : GlanceAppWidget() {
                 val reading = runBlocking { 
                     plant?.let { db.sensorDao().getAllOrderByTimestampDesc(it.id).firstOrNull() }
                 }
-                UnifiedWidgetContent(plant?.name ?: "Sin Planta", reading, showAI = true)
+                val safeName = SecurityUtils.sanitizeText(plant?.name ?: "Sin Planta")
+                UnifiedWidgetContent(safeName, reading, showAI = true)
             }
         }
     }
 }
 
 /**
- * Widget de Alerta: Diseño 2x2 pero con enfoque en alertas
+ * Widget de Alerta: Diseño 2x2 con enfoque en alertas
  */
 class HerbalWidgetAlert : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -93,7 +106,8 @@ class HerbalWidgetAlert : GlanceAppWidget() {
                 val reading = runBlocking { 
                     plant?.let { db.sensorDao().getAllOrderByTimestampDesc(it.id).firstOrNull() }
                 }
-                UnifiedWidgetContent(plant?.name ?: "Sin Planta", reading, isAlertVersion = true)
+                val safeName = SecurityUtils.sanitizeText(plant?.name ?: "Sin Planta")
+                UnifiedWidgetContent(safeName, reading, isAlertVersion = true)
             }
         }
     }
@@ -112,7 +126,6 @@ private fun UnifiedWidgetContent(name: String, r: SensorReading?, showAI: Boolea
             .padding(12.dp)
             .clickable(actionStartActivity<MainActivity>())
     ) {
-        // Header
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.Vertical.CenterVertically
@@ -129,8 +142,9 @@ private fun UnifiedWidgetContent(name: String, r: SensorReading?, showAI: Boolea
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ColorProvider(if (isAlertVersion && isCritical) alertRed else primaryGreen))
                 )
                 if (showAI && r != null) {
+                    val safeAction = SecurityUtils.sanitizeText(r.action, 20)
                     Text(
-                        text = "Herbal AI: ${r.action.take(20)}...",
+                        text = "Herbal AI: $safeAction...",
                         style = TextStyle(fontSize = 9.sp, color = ColorProvider(Color.Gray))
                     )
                 } else {
@@ -145,20 +159,18 @@ private fun UnifiedWidgetContent(name: String, r: SensorReading?, showAI: Boolea
         Spacer(GlanceModifier.height(8.dp))
 
         if (r != null) {
-            // Grid 2x2
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "TEMP", value = "${String.format("%.1f", r.temperature)}°", icon = "🌡️")
-                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "HUM", value = "${String.format("%.1f", r.humidity)}%", icon = "☁️")
+                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "TEMP", value = "${String.format(Locale.getDefault(), "%.1f", r.temperature)}°", icon = "🌡️")
+                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "HUM", value = "${String.format(Locale.getDefault(), "%.1f", r.humidity)}%", icon = "☁️")
             }
             Spacer(GlanceModifier.height(6.dp))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "SUELO", value = "${String.format("%.1f", r.soilMoisture)}%", icon = "💧")
-                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "LUZ", value = "${String.format("%.0f", r.light)}lx", icon = "☀️")
+                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "SUELO", value = "${String.format(Locale.getDefault(), "%.1f", r.soilMoisture)}%", icon = "💧")
+                SensorItem(modifier = GlanceModifier.defaultWeight(), label = "LUZ", value = "${String.format(Locale.getDefault(), "%.0f", r.light)}lx", icon = "☀️")
             }
 
             Spacer(GlanceModifier.height(8.dp))
 
-            // IRH Bar
             val statusColor = if (isCritical) alertRed else primaryGreen
             Column(
                 modifier = GlanceModifier.fillMaxWidth()
@@ -171,7 +183,7 @@ private fun UnifiedWidgetContent(name: String, r: SensorReading?, showAI: Boolea
                     style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold, color = ColorProvider(statusColor))
                 )
                 Text(
-                    text = "IRH: ${String.format("%.1f", irhValue)}%",
+                    text = "IRH: ${String.format(Locale.getDefault(), "%.1f", irhValue)}%",
                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorProvider(statusColor))
                 )
             }
@@ -198,7 +210,6 @@ private fun SensorItem(modifier: GlanceModifier, label: String, value: String, i
     }
 }
 
-// Receivers
 class HerbalWidgetSummaryReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HerbalWidgetSummary()
 }

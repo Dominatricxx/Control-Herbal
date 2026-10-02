@@ -1,8 +1,6 @@
 package com.example.controlherbal.ui.activities
 
 import android.Manifest
-import androidx.appcompat.app.AlertDialog
-import com.example.controlherbal.R
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -10,16 +8,31 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.provider.MediaStore
+import android.text.InputFilter
 import android.view.View
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ListView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.example.controlherbal.R
+import com.example.controlherbal.common.PlantCategoriesCatalog
+import com.example.controlherbal.common.PredefinedPlantInfo
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
 import com.google.firebase.Firebase
-import com.google.firebase.vertexai.vertexAI
 import com.google.firebase.vertexai.type.content
+import com.google.firebase.vertexai.vertexAI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,62 +44,14 @@ class PlantSetupActivity : AppCompatActivity() {
     private lateinit var spinnerPlantType: AutoCompleteTextView
     private lateinit var spinnerEnvironment: AutoCompleteTextView
     private lateinit var btnSelectSpecificPlant: Button
-    private var selectedPlantData: PredefinedPlant? = null
+    private var selectedPlantData: PredefinedPlantInfo? = null
     private var customPlantType: String? = null
     private var currentCategory: String? = null
 
-    data class PredefinedPlant(
-        val name: String,
-        val scientificName: String,
-        val emoji: String,
-        val environment: String
-    )
+    companion object {
+        private const val TAG = "PlantSetupActivity"
+    }
 
-    private val plantCategories = mapOf(
-        "Flores 🌸" to listOf(
-            PredefinedPlant("Girasol", "Helianthus annuus", "🌻", "Luz 🌞"),
-            PredefinedPlant("Girasol de Sombra", "Helianthus decapetalus", "🌻", "Sombra 🌥️"),
-            PredefinedPlant("Tulipán", "Tulipa", "🌷", "Híbrido ⛅"),
-            PredefinedPlant("Rosa", "Rosa", "🌹", "Luz 🌞"),
-            PredefinedPlant("Lavanda", "Lavandula", "🌿", "Luz 🌞"),
-            PredefinedPlant("Caléndula", "Calendula officinalis", "🧡", "Luz 🌞"),
-            PredefinedPlant("Orquídea", "Orchidaceae", "🌸", "Sombra 🌥️")
-        ),
-        "Hierbas y Especias 🌿" to listOf(
-            PredefinedPlant("Menta", "Mentha", "🍃", "Sombra 🌥️"),
-            PredefinedPlant("Albahaca", "Ocimum basilicum", "🌿", "Luz 🌞"),
-            PredefinedPlant("Romero", "Salvia rosmarinus", "🌿", "Luz 🌞"),
-            PredefinedPlant("Tomillo", "Thymus", "🌿", "Luz 🌞"),
-            PredefinedPlant("Perejil", "Petroselinum crispum", "🌿", "Híbrido ⛅"),
-            PredefinedPlant("Cilantro", "Coriandrum sativum", "🌿", "Híbrido ⛅"),
-            PredefinedPlant("Hierbabuena", "Mentha spicata", "🌿", "Híbrido ⛅")
-        ),
-        "Medicinales 💊" to listOf(
-            PredefinedPlant("Áloe Vera", "Aloe barbadensis", "🌵", "Luz 🌞"),
-            PredefinedPlant("Manzanilla", "Chamaemelum nobile", "🌼", "Luz 🌞"),
-            PredefinedPlant("Diente de León", "Taraxacum officinale", "🌼", "Luz 🌞"),
-            PredefinedPlant("Salvia", "Salvia officinalis", "🌿", "Híbrido ⛅"),
-            PredefinedPlant("Eucalipto", "Eucalyptus", "🌿", "Luz 🌞"),
-            PredefinedPlant("Ruda", "Ruta graveolens", "🌿", "Híbrido ⛅")
-        ),
-        "Huerto y Frutales 🍅" to listOf(
-            PredefinedPlant("Tomate", "Solanum lycopersicum", "🍅", "Luz 🌞"),
-            PredefinedPlant("Chile", "Capsicum", "🌶️", "Luz 🌞"),
-            PredefinedPlant("Limón", "Citrus limon", "🍋", "Luz 🌞"),
-            PredefinedPlant("Aguacate", "Persea americana", "🥑", "Luz 🌞"),
-            PredefinedPlant("Fresa", "Fragaria", "🍓", "Híbrido ⛅"),
-            PredefinedPlant("Naranjo", "Citrus sinensis", "🍊", "Luz 🌞")
-        ),
-        "Suculentas y Otros 🌵" to listOf(
-            PredefinedPlant("Nopal", "Opuntia ficus-indica", "🌵", "Luz 🌞"),
-            PredefinedPlant("Suculenta", "Crassulaceae", "🌵", "Luz 🌞"),
-            PredefinedPlant("Lengua de Suegra", "Sansevieria trifasciata", "🌿", "Sombra 🌥️"),
-            PredefinedPlant("Bambú", "Bambusoideae", "🎍", "Sombra 🌥️"),
-            PredefinedPlant("Helecho", "Filicopsida", "🌿", "Sombra 🌥️")
-        )
-    )
-
-    // Lanzador para la cámara
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val bitmap = result.data?.extras?.get("data") as? Bitmap
@@ -94,7 +59,6 @@ class PlantSetupActivity : AppCompatActivity() {
         }
     }
 
-    // Permiso de cámara
     private val requestCameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             openCamera()
@@ -119,8 +83,7 @@ class PlantSetupActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener { finish() }
 
-        // Filtro para solo letras y números (incluyendo espacios)
-        val alphaNumericFilter = android.text.InputFilter { source, start, end, dest, dstart, dend ->
+        val alphaNumericFilter = InputFilter { source, start, end, _, _, _ ->
             for (i in start until end) {
                 val char = source[i]
                 if (!Character.isLetterOrDigit(char) && char != ' ') {
@@ -132,7 +95,7 @@ class PlantSetupActivity : AppCompatActivity() {
         etPlantName.filters = arrayOf(alphaNumericFilter)
 
         val categoryList = mutableListOf("Seleccionar Categoría...")
-        categoryList.addAll(plantCategories.keys)
+        categoryList.addAll(PlantCategoriesCatalog.categoriesMap.keys)
         categoryList.add("Otro 🌱")
         categories = categoryList
 
@@ -144,38 +107,39 @@ class PlantSetupActivity : AppCompatActivity() {
         val adapterEnv = ArrayAdapter(this, R.layout.spinner_item, environments)
         spinnerEnvironment.setAdapter(adapterEnv)
 
-        spinnerPlantType.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
-                val selected = categories[position]
-                currentCategory = selected
-                when {
-                    selected == "Seleccionar Categoría..." -> {
-                        selectedPlantData = null
-                        customPlantType = null
-                        btnSelectSpecificPlant.visibility = View.GONE
-                        resetEnvironmentSpinner()
-                    }
-                    selected == "Otro 🌱" -> {
-                        btnSelectSpecificPlant.visibility = View.GONE
-                        showOtherOptionsDialog()
-                    }
-                    plantCategories.containsKey(selected) -> {
-                        showPlantSelectionDialog(selected)
-                    }
+        spinnerPlantType.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
+            val selected = categories[position]
+            currentCategory = selected
+            when {
+                selected == "Seleccionar Categoría..." -> {
+                    selectedPlantData = null
+                    customPlantType = null
+                    btnSelectSpecificPlant.visibility = View.GONE
+                    resetEnvironmentSpinner()
                 }
+                selected == "Otro 🌱" -> {
+                    btnSelectSpecificPlant.visibility = View.GONE
+                    showOtherOptionsDialog()
+                }
+                PlantCategoriesCatalog.categoriesMap.containsKey(selected) -> {
+                    showPlantSelectionDialog(selected)
+                }
+            }
         }
 
         btnSelectSpecificPlant.setOnClickListener {
             currentCategory?.let { category ->
-                if (plantCategories.containsKey(category)) {
+                if (PlantCategoriesCatalog.categoriesMap.containsKey(category)) {
                     showPlantSelectionDialog(category)
                 }
             }
         }
 
         btnSavePlant.setOnClickListener {
-            val name = etPlantName.text.toString().trim()
+            val rawName = etPlantName.text.toString().trim()
+            val name = SecurityUtils.sanitizeText(rawName)
             if (name.isEmpty()) {
-                Toast.makeText(this, "Por favor, dale un nombre a tu planta", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Por favor, dale un nombre válido a tu planta", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -190,12 +154,12 @@ class PlantSetupActivity : AppCompatActivity() {
             
             val environment = spinnerEnvironment.text.toString()
 
-            savePlantAndFinish(name, type, environment)
+            savePlantAndFinish(name, SecurityUtils.sanitizeText(type), environment)
         }
     }
 
     private fun showPlantSelectionDialog(category: String) {
-        val plants = plantCategories[category] ?: return
+        val plants = PlantCategoriesCatalog.categoriesMap[category] ?: return
         val plantNames = plants.map { "${it.name} ${it.emoji}" }
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_rounded_list, null)
@@ -222,21 +186,17 @@ class PlantSetupActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun selectPredefinedPlant(plant: PredefinedPlant, category: String) {
+    private fun selectPredefinedPlant(plant: PredefinedPlantInfo, category: String) {
         selectedPlantData = plant
         
-        // Formato solicitado: Categoría: [Nombre] | Tipo: [Nombre] [Emoji] ([Científico])
         val categoryName = category.split(" ").first()
         val formattedType = "Categoría: $categoryName | Tipo: ${plant.name} ${plant.emoji} (${plant.scientificName})"
         
         customPlantType = formattedType
         
-        // Mostrar botón para re-seleccionar
         btnSelectSpecificPlant.text = "${plant.name} ${plant.emoji}"
         btnSelectSpecificPlant.visibility = View.VISIBLE
 
-        // Auto-seleccionar ambiente y deshabilitar
-        val environments = arrayOf("Luz 🌞", "Sombra 🌥️", "Híbrido ⛅")
         val envIndex = environments.indexOf(plant.environment)
         if (envIndex >= 0) {
             spinnerEnvironment.setText(environments[envIndex], false)
@@ -290,7 +250,7 @@ class PlantSetupActivity : AppCompatActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         btnOk.setOnClickListener {
-            val text = etInput.text.toString().trim()
+            val text = SecurityUtils.sanitizeText(etInput.text.toString().trim())
             if (text.isNotEmpty()) {
                 customPlantType = "$text 🌿"
                 selectedPlantData = null
@@ -317,15 +277,20 @@ class PlantSetupActivity : AppCompatActivity() {
     }
 
     private fun openCamera() {
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        cameraLauncher.launch(intent)
+        try {
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            cameraLauncher.launch(intent)
+        } catch (e: Exception) {
+            SecureLogger.e(TAG, "Error al abrir la cámara: ${e.message}")
+            Toast.makeText(this, "No se pudo abrir la cámara", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun identifyPlantWithAI(bitmap: Bitmap) {
         if (isInternetAvailable()) {
             identifyOnline(bitmap)
         } else {
-            identifyOffline(bitmap)
+            identifyOffline()
         }
     }
 
@@ -338,7 +303,6 @@ class PlantSetupActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val model = Firebase.vertexAI.generativeModel(modelName = "gemini-1.5-flash")
-                
                 val prompt = "Actúa como experto botánico. Analiza la imagen. " +
                             "Si es una planta, responde ÚNICAMENTE con este formato: " +
                             "Nombre común [Emoji] (Nombre científico) | Ambiente: [Luz/Sombra/Híbrido]. " +
@@ -354,20 +318,18 @@ class PlantSetupActivity : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
-                    val result = response.text?.trim() ?: "Planta Desconocida 🌿"
+                    val result = SecurityUtils.sanitizePrompt(response.text?.trim() ?: "Planta Desconocida 🌿")
                     
                     if (result.contains("No es una planta", ignoreCase = true)) {
                         Toast.makeText(this@PlantSetupActivity, "No se detectó una planta.", Toast.LENGTH_LONG).show()
                         spinnerPlantType.setText(categories[0], false)
                     } else {
-                        // Intentar extraer ambiente para auto-configurar
                         if (result.contains("| Ambiente:")) {
                             val parts = result.split("| Ambiente:")
                             customPlantType = parts[0].trim()
                             val envText = parts[1].trim()
                             
-                            val environments = arrayOf("Luz", "Sombra", "Híbrido")
-                            val envIndex = environments.indexOfFirst { envText.contains(it, ignoreCase = true) }
+                            val envIndex = environments.indexOfFirst { envText.contains(it.split(" ").first(), ignoreCase = true) }
                             if (envIndex >= 0) {
                                 spinnerEnvironment.setText(environments[envIndex], false)
                                 spinnerEnvironment.isEnabled = false
@@ -382,23 +344,22 @@ class PlantSetupActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
+                SecureLogger.e(TAG, "Error identificación online: ${e.message}")
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
-                    identifyOffline(bitmap)
+                    identifyOffline()
                 }
             }
         }
     }
 
-    private fun identifyOffline(bitmap: Bitmap) {
+    private fun identifyOffline() {
         Toast.makeText(this, R.string.offline_identification, Toast.LENGTH_SHORT).show()
-        
-        // Base de datos local masiva (Simulación para este ejemplo con un subconjunto)
-        val localHerbalDB = arrayOf(
-            PredefinedPlant("Áloe Vera", "Aloe barbadensis", "🌵", "Luz 🌞"),
-            PredefinedPlant("Manzanilla", "Chamaemelum nobile", "🌼", "Luz 🌞"),
-            PredefinedPlant("Romero", "Salvia rosmarinus", "🌿", "Luz 🌞"),
-            PredefinedPlant("Menta", "Mentha", "🍃", "Sombra 🌥️")
+        val localHerbalDB = listOf(
+            PredefinedPlantInfo("Áloe Vera", "Aloe barbadensis", "🌵", "Luz 🌞"),
+            PredefinedPlantInfo("Manzanilla", "Chamaemelum nobile", "🌼", "Luz 🌞"),
+            PredefinedPlantInfo("Romero", "Salvia rosmarinus", "🌿", "Luz 🌞"),
+            PredefinedPlantInfo("Menta", "Mentha", "🍃", "Sombra 🌥️")
         )
         val plant = localHerbalDB.random() 
         selectPredefinedPlant(plant, "Local 🏠")

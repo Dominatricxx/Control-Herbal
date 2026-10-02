@@ -1,12 +1,14 @@
 package com.example.controlherbal.data.database
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 
 @Dao
 interface PlantDao {
+
     @Insert
     suspend fun insert(plant: Plant): Long
 
@@ -28,6 +30,6 @@ interface PlantDao {
     @Query("SELECT * FROM plants WHERE pendingSync = 1")
     suspend fun getPendingSyncPlants(): List<Plant>
 
-    @androidx.room.Delete
+    @Delete
     suspend fun delete(plant: Plant)
 }

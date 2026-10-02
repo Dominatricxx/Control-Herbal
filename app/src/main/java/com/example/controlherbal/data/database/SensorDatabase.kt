@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(entities = [SensorReading::class, Plant::class], version = 7, exportSchema = false)
 abstract class SensorDatabase : RoomDatabase() {
+
     abstract fun sensorDao(): SensorDao
     abstract fun plantDao(): PlantDao
 
@@ -16,13 +17,14 @@ abstract class SensorDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): SensorDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     SensorDatabase::class.java,
                     "sensor_database"
-                ).build()
-                INSTANCE = instance
-                instance
+                )
+                .fallbackToDestructiveMigration(dropAllTables = false)
+                .build()
+                .also { INSTANCE = it }
             }
         }
     }

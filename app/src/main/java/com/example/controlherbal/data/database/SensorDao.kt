@@ -4,9 +4,11 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SensorDao {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(reading: SensorReading)
 
@@ -26,13 +28,14 @@ interface SensorDao {
     suspend fun deleteAll()
 
     @Query("SELECT * FROM sensor_readings WHERE plantId = :plantId ORDER BY timestamp DESC LIMIT 1")
-    fun getLatestReadingFlow(plantId: Int): kotlinx.coroutines.flow.Flow<SensorReading?>
+    fun getLatestReadingFlow(plantId: Int): Flow<SensorReading?>
 
     @Query("DELETE FROM sensor_readings WHERE plantId = :plantId")
     suspend fun deleteAllByPlantId(plantId: Int)
 
     @Query("DELETE FROM sensor_readings WHERE plantId = :plantId AND timestamp BETWEEN :startTime AND :endTime")
     suspend fun deleteReadingsBetween(plantId: Int, startTime: Long, endTime: Long)
+
     @Query("SELECT COUNT(*) FROM sensor_readings WHERE plantId = :plantId")
     suspend fun getCountByPlantId(plantId: Int): Int
 }

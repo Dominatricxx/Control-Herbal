@@ -3,15 +3,22 @@ package com.example.controlherbal.ui.activities
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
+import android.view.MenuItem
 import android.view.View
-import android.widget.*
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.CompoundButton
+import android.widget.ListView
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.example.controlherbal.R
+import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
@@ -147,7 +154,7 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
                 
                 val listView = dialogView.findViewById<ListView>(R.id.dialogListView)
                 val adapter = object : ArrayAdapter<Plant>(this@ComparisonActivity, R.layout.item_plant_selection, R.id.tvItemPlantName, plants) {
-                    override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                         val row = convertView ?: layoutInflater.inflate(R.layout.item_plant_selection, parent, false)
                         val plant = getItem(position) ?: return row
 
@@ -155,7 +162,7 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
                         val tvDetails = row.findViewById<TextView>(R.id.tvItemPlantDetails)
                         val tvScientific = row.findViewById<TextView>(R.id.tvItemPlantScientific)
 
-                        tvName.text = plant.name
+                        tvName.text = SecurityUtils.sanitizeText(plant.name)
 
                         val fullType = plant.type
                         val category = if (fullType.contains("Categoría:")) fullType.substringAfter("Categoría:").substringBefore("|").trim() else ""
@@ -180,13 +187,14 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
     }
 
     private fun selectPlant(plant: Plant, slot: Int) {
+        val safeName = SecurityUtils.sanitizeText(plant.name)
         if (slot == 1) {
             plant1 = plant
-            btnSelectPlant1.text = plant.name
+            btnSelectPlant1.text = safeName
             loadDataForPlant(plant, 1)
         } else {
             plant2 = plant
-            btnSelectPlant2.text = plant.name
+            btnSelectPlant2.text = safeName
             loadDataForPlant(plant, 2)
         }
     }
@@ -212,7 +220,7 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
             val plant = plant1 ?: return
             val last = readingsP1.lastOrNull()
             cardPlant1.visibility = View.VISIBLE
-            tvNameP1.text = plant.name
+            tvNameP1.text = SecurityUtils.sanitizeText(plant.name)
             tvTempP1.text = "Temp: ${last?.temperature ?: "--"}°C"
             tvHumP1.text = "Hum: ${last?.humidity ?: "--"}%"
             tvSoilP1.text = "Suelo: ${last?.soilMoisture ?: "--"}%"
@@ -224,7 +232,7 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
             val plant = plant2 ?: return
             val last = readingsP2.lastOrNull()
             cardPlant2.visibility = View.VISIBLE
-            tvNameP2.text = plant.name
+            tvNameP2.text = SecurityUtils.sanitizeText(plant.name)
             tvTempP2.text = "Temp: ${last?.temperature ?: "--"}°C"
             tvHumP2.text = "Hum: ${last?.humidity ?: "--"}%"
             tvSoilP2.text = "Suelo: ${last?.soilMoisture ?: "--"}%"
@@ -320,12 +328,12 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
         comparisonChart.invalidate()
     }
 
-    override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_main -> startActivity(Intent(this, MainActivity::class.java))
-            R.id.nav_daily -> startActivity(Intent(this, HistoryActivity::class.java).putExtra("HISTORY_TYPE", "DIARIO"))
-            R.id.nav_weekly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra("HISTORY_TYPE", "SEMANAL"))
-            R.id.nav_monthly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra("HISTORY_TYPE", "MENSUAL"))
+            R.id.nav_daily -> startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO))
+            R.id.nav_weekly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_SEMANAL))
+            R.id.nav_monthly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_MENSUAL))
             R.id.nav_plants -> startActivity(Intent(this, MainActivity::class.java))
         }
         drawerLayout.closeDrawer(GravityCompat.START)

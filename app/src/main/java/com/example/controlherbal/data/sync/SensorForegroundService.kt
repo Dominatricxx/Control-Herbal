@@ -1,23 +1,36 @@
 package com.example.controlherbal.data.sync
 
-import android.app.*
-import android.content.Context
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
-import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.controlherbal.ui.activities.MainActivity
 import com.example.controlherbal.R
 import com.example.controlherbal.ai.HerbalAI
+import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.example.controlherbal.ui.activities.MainActivity
 import com.example.controlherbal.ui.widget.HerbalWidgetManager
-import com.google.firebase.database.*
-import kotlinx.coroutines.*
-import java.util.*
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class SensorForegroundService : Service() {
 
@@ -28,7 +41,6 @@ class SensorForegroundService : Service() {
     private var firebaseListener: ValueEventListener? = null
     private var wakeLock: PowerManager.WakeLock? = null
     
-    private var lastBootCount: Int = -1
     private var startTimeWithoutSun: Long = 0
     private var lastIrh: Double = -1.0
     private var lastSeq: Double = -1.0
@@ -40,33 +52,30 @@ class SensorForegroundService : Service() {
 
     companion object {
         private const val TAG = "SensorService"
-        private const val CHANNEL_ID = "sensor_service_channel"
-        private const val NOTIFICATION_ID = 2001
     }
 
     override fun onCreate() {
         super.onCreate()
         
-        // Solicitar WakeLock para evitar que el sistema mate la conexión al apagar pantalla
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ControlHerbal:SensorSync")
-        wakeLock?.acquire(10 * 60 * 1000L /*10 minutos de gracia si no hay updates*/)
+        wakeLock?.acquire(10 * 60 * 1000L)
 
         databaseLocal = SensorDatabase.getInstance(this)
         herbalAI = HerbalAI(this)
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification("Sincronizando datos en segundo plano..."))
+        startForeground(AppConstants.NOTIFICATION_ID_SERVICE, createNotification("Sincronizando datos en segundo plano..."))
         setupFirebase()
     }
 
     private fun setupFirebase() {
         try {
-            val dbInstance = FirebaseDatabase.getInstance("https://controlherbal-97558-default-rtdb.firebaseio.com/")
-            databaseFirebase = dbInstance.getReference("sensor")
+            val dbInstance = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
+            databaseFirebase = dbInstance.getReference(AppConstants.FIREBASE_SENSOR_NODE)
             databaseFirebase.keepSynced(true)
             startFirebaseListener()
         } catch (e: Exception) {
-            Log.e(TAG, "Error initializing Firebase: ${e.message}")
+            SecureLogger.e(TAG, "Error al inicializar Firebase: ${e.message}")
         }
     }
 
@@ -75,27 +84,19 @@ class SensorForegroundService : Service() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) return
                 
-                // Refrescar WakeLock cada que llegan datos
                 if (wakeLock?.isHeld == false) wakeLock?.acquire(10 * 60 * 1000L)
 
                 serviceScope.launch {
                     try {
-                        val boot = (snapshot.child("boot").value as? Number)?.toInt() ?: -1
-                        val tempRaw = (snapshot.child("temp").value as? Number)?.toDouble() ?: 0.0
-                        val humRaw = (snapshot.child("hum").value as? Number)?.toDouble() ?: 0.0
-                        val luzRaw = (snapshot.child("luz_raw").value as? Number)?.toDouble() ?: (snapshot.child("luz").value as? Number)?.toDouble() ?: 0.0
-                        val soilRaw = (snapshot.child("soil").value as? Number)?.toDouble() ?: 0.0
-                        
-                        // DEBUG para el problema de los 25°C y 50%
-                        if (tempRaw == 25.0 && humRaw == 50.0) {
-                            Log.w(TAG, "AVISO: Recibidos valores estáticos (25/50). ¿Sensor desconectado o valor por defecto?")
-                        }
+                        val tempRaw = SecurityUtils.clampValue((snapshot.child("temp").value as? Number)?.toDouble() ?: 0.0, 0.0, 100.0)
+                        val humRaw = SecurityUtils.clampValue((snapshot.child("hum").value as? Number)?.toDouble() ?: 0.0, 0.0, 100.0)
+                        val luzRaw = SecurityUtils.clampValue((snapshot.child("luz_raw").value as? Number)?.toDouble() ?: (snapshot.child("luz").value as? Number)?.toDouble() ?: 0.0, 0.0, 4095.0)
+                        val soilRaw = SecurityUtils.clampValue((snapshot.child("soil").value as? Number)?.toDouble() ?: 0.0, 0.0, 4095.0)
 
                         if (tempRaw == 0.0 && humRaw == 0.0 && luzRaw == 0.0 && soilRaw == 0.0) return@launch
 
                         val plant = databaseLocal.plantDao().getSelectedPlant() ?: return@launch
                         
-                        // FILTROS DE ESTABILIDAD (Noise Reduction)
                         val humFiltrada = PredictiveTheorem.filtrarSensibilidadHumedad(humRaw)
                         val luzFiltrada = PredictiveTheorem.filtrarSensibilidadLuz(luzRaw)
                         val soilFiltrada = if (soilRaw > 100.0) PredictiveTheorem.filtrarSensibilidadSuelo(soilRaw) else soilRaw
@@ -114,20 +115,16 @@ class SensorForegroundService : Service() {
 
                         lastTemp = sTemp; lastHum = sHum; lastLuz = sLuz; lastSoil = sSoil
 
-                        // --- LÓGICA DE DETECCIÓN DÍA/NOCHE REAFIRMADA ---
                         val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                         val isDayByTime = currentHour in 7..19
                         val isDayByLight = sLuz > 10.0
                         val isDayBySensor = (snapshot.child("is_day").value as? Number)?.toInt() == 1 || 
                                            (snapshot.child("dia").value as? Number)?.toInt() == 1
                         
-                        // Prioridad absoluta al horario y luz: Si el reloj marca día o hay luz detectada, es DÍA.
-                        // Esto evita que fallos en el sensor de luz o nubes marquen "Noche" erróneamente.
                         val isDay = isDayByTime || isDayBySensor || isDayByLight
 
                         val lastReading = databaseLocal.sensorDao().getAllOrderByTimestampDesc(plant.id).firstOrNull()
 
-                        // --- DETECCIÓN AUTOMÁTICA DE RIEGO ---
                         if (lastReading != null && sSoil > lastReading.soilMoisture + 12.0) {
                             val now = System.currentTimeMillis()
                             if (now - plant.lastWateringTime > 1800000) {
@@ -160,7 +157,6 @@ class SensorForegroundService : Service() {
 
                         val historySize = databaseLocal.sensorDao().getCountByPlantId(plant.id)
 
-                        // Calculamos el Factor IA de deshidratación
                         val aiDehydrationFactor = herbalAI.predictDehydrationFactor(sTemp, sHum, sLuz, sSoil, plant.type, isDay)
 
                         val result = PredictiveTheorem.analyze(
@@ -174,11 +170,9 @@ class SensorForegroundService : Service() {
                             historySize = historySize
                         )
 
-                        // REFINAMIENTO IA DEL IRH
                         val irhAI = herbalAI.predictRefinedIRH(sTemp, sHum, sLuz, sSoil, plant.type, isDay)
                         var finalIrh = (result.irh + irhAI) / 2.0
 
-                        // Estabilización final del IRH (Anti-parpadeo 0)
                         if (lastIrh >= 0) {
                             if (finalIrh < 1.0 && lastIrh > 10.0) {
                                 finalIrh = lastIrh * 0.9
@@ -188,7 +182,6 @@ class SensorForegroundService : Service() {
                         }
                         lastIrh = finalIrh
 
-                        // Estabilización de SEQ (Inercia)
                         val finalSeq = if (lastSeq < 0) result.seq else (result.seq * 0.15 + lastSeq * 0.85)
                         lastSeq = finalSeq
 
@@ -208,7 +201,6 @@ class SensorForegroundService : Service() {
                         databaseLocal.sensorDao().insert(reading)
                         databaseLocal.sensorDao().pruneData(plant.id)
 
-                        // Actualizar Widgets sincronizadamente con los datos
                         HerbalWidgetManager.updateWidgets(this@SensorForegroundService)
 
                         updateNotification("Temp: ${String.format("%.1f", sTemp)}°C | Suelo: ${String.format("%.1f", sSoil)}%")
@@ -218,13 +210,13 @@ class SensorForegroundService : Service() {
                         }
 
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error processing data: ${e.message}")
+                        SecureLogger.e(TAG, "Error procesando datos: ${e.message}")
                     }
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Firebase cancelled: ${error.message}")
+                SecureLogger.e(TAG, "Firebase cancelado: ${error.message}")
             }
         }
         firebaseListener?.let { databaseFirebase.addValueEventListener(it) }
@@ -233,7 +225,7 @@ class SensorForegroundService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
+                AppConstants.SERVICE_CHANNEL_ID,
                 "Monitoreo de Sensores",
                 NotificationManager.IMPORTANCE_LOW
             )
@@ -249,7 +241,7 @@ class SensorForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        return NotificationCompat.Builder(this, AppConstants.SERVICE_CHANNEL_ID)
             .setContentTitle("Control Herbal")
             .setContentText(content)
             .setSmallIcon(R.mipmap.ic_launcher_round)
@@ -261,7 +253,7 @@ class SensorForegroundService : Service() {
     private fun updateNotification(content: String) {
         val notification = createNotification(content)
         val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(NOTIFICATION_ID, notification)
+        manager.notify(AppConstants.NOTIFICATION_ID_SERVICE, notification)
     }
 
     private fun sendCriticalAlert(title: String, message: String) {
@@ -269,7 +261,7 @@ class SensorForegroundService : Service() {
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, AppConstants.ALERTS_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher_round)
             .setContentTitle(title)
             .setContentText(message)
