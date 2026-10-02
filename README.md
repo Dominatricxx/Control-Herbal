@@ -1,22 +1,21 @@
 <div align="center">
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1B3B2F,50:2E5E45,100:7AA240&height=170&section=header&text=ControlHerbal&fontSize=40&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Monitoreo%20inteligente%20de%20plantas%20con%20IoT%20%2B%20IA&descAlignY=58&descSize=16" width="100%"/>
-
+  
+<img src="./assets/title.svg" width="100%" alt="ControlHerbal — Tu aplicación ecológica — By Dominic Escobar"/>
 <p>
-  <img src="https://img.shields.io/badge/status-prototipo%20%2F%20PoC-yellow?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/plataforma-Android%20%7C%20Wear%20OS%20%7C%20Desktop-7AA240?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/hardware-ESP32-blue?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/status-prototipo%20%2F%20PoC-yellow?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/plataforma-Android%20%7C%20Wear%20OS%20%7C%20Desktop-7AA240?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/hardware-ESP32-blue?style=for-the-badge"/>
 </p>
-
+<img src="assets/Ícono Control Herbal.png" width="160" alt="Ícono herbal"/>
 </div>
 
-## 🌿 ¿Qué es ControlHerbal?
+## ¿Qué es Control Herbal?
 
-**ControlHerbal** es un sistema de monitoreo inteligente para plantas que combina un microcontrolador **ESP32** con sensores ambientales, una base de datos en tiempo real y un modelo de **inteligencia artificial** que aprende de las lecturas reales para predecir el riesgo de estrés de la planta antes de que ocurra.
+**Control Herbal** es un sistema de monitoreo inteligente para plantas que combina un microcontrolador **ESP32** con sensores ambientales, una base de datos en tiempo real y un modelo de **inteligencia artificial** que aprende de las lecturas reales para predecir el riesgo de estrés de la planta antes de que ocurra.
 
 El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te avisa **cuántas horas de margen tienes** antes de que la planta entre en sequía o exceso de calor/luz.
 
-> 🚧 **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; la integración completa en las apps (Android / Wear OS / Desktop) sigue en desarrollo.
+> **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; la integración completa en las apps (Android / Wear OS / Desktop) sigue en desarrollo.
 
 ---
 
@@ -35,36 +34,15 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 
 ## Arquitectura
 
-```
-┌─────────────┐     WiFi      ┌──────────────────┐     lee datos     ┌────────────────────┐
-│   ESP32     │ ────────────► │  Firebase         │ ─────────────────► │ train_herbal_model  │
-│ + DHT11     │   cada 1s     │  Realtime DB      │                    │ (Python + TF)       │
-│ + LDR       │               │  /sensor          │                    └──────────┬──────────┘
-│ + Soil      │               └──────────┬────────┘                               │
-└─────────────┘                          │                              exporta modelo .tflite
-                                          │ lee estado                            │
-                                          ▼                                       ▼
-                              ┌───────────────────────────────────────────────────────┐
-                              │        App Kotlin Multiplatform (común)                │
-                              │   app/ (Android)  ·  wear/ (Wear OS)  ·  desktop/ (JVM) │
-                              └───────────────────────────────────────────────────────┘
-```
+<div align="center"> <img src="./assets/architecture.svg" width="100%" alt="Arquitectura de ControlHerbal"/> </div>
+
+<sub>El ESP32 lee los sensores y sube los datos a Firebase. Desde ahí, el script de Python entrena el modelo de IA (que se exporta como .tflite), mientras que la app multiplataforma consume tanto el estado en vivo de Firebase como el modelo entrenado.</sub>
 
 ---
 
 ## Estructura del repositorio
 
-```
-ControlHerbal/
-├── app/                     # App Android
-├── wear/                    # App Wear OS
-├── desktop/                 # App de escritorio (JVM)
-├── common/                  # Lógica y UI compartida (Kotlin Multiplatform)
-├── gradle/                  # Wrapper de Gradle
-├── ControlHerbal.ino        # Firmware del ESP32 (sensores + IRH + Firebase)
-├── train_herbal_model.py    # Entrenamiento del modelo IA (TensorFlow → TFLite)
-└── build.gradle.kts
-```
+<div align="left"> <picture> <source media="(prefers-color-scheme: dark)" srcset="./assets/structure-dark.svg"> <img src="./assets/structure.svg" width="745" alt="Estructura del repositorio de Control Herbal: app Android, Wear OS, escritorio, módulo común, firmware del ESP32 y entrenamiento del modelo de IA"/> </picture> </div>
 
 ---
 
@@ -91,12 +69,10 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 ## Capturas de pantalla
 
 <p align="center">
-  <img src="https://placehold.co/220x440/1B3B2F/FFFFFF?text=App+Android" width="200"/>
-  <img src="https://placehold.co/220x440/2E5E45/FFFFFF?text=Wear+OS" width="200"/>
-  <img src="https://placehold.co/380x260/7AA240/FFFFFF?text=Desktop" width="260"/>
+  <img src="./capturas/ss_celular.jpg" width="200" alt="App Android"/>
+  <img src="./capturas/ss_reloj.png" width="200" alt="Wear OS"/>
+  <img src="./capturas/ss_desktop.png" width="260" alt="Desktop"/>
 </p>
-
-> Reemplaza estas imágenes placeholder por capturas reales de tu app cuando las tengas listas.
 
 ---
 
@@ -127,6 +103,14 @@ Esto descarga los datos acumulados en Firebase, entrena una red neuronal simple 
 Abre el proyecto en **Android Studio** y selecciona el módulo que quieras correr (`app`, `wear` o `desktop`).
 
 ---
+## Porcentaje de lenguajes aplicados
+
+<div align="center">
+<img src="./assets/control-herbal-languages-chart.svg" width="50%" alt="grafica"/>
+</div>
+
+---
+
 
 <div align="center">
 

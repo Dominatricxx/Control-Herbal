@@ -16,13 +16,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.platform.Font
 
 @Composable
 fun OpeningScreen(onNavigate: () -> Unit) {
-    val raspbernFamily = FontFamily(
-        Font("font/rasbern.otf", FontWeight.Normal)
-    )
+    // Comentado para evitar crash si el archivo no existe
+    // val raspbernFamily = FontFamily(Font("font/rasbern.otf", FontWeight.Normal))
+    val raspbernFamily = FontFamily.Default
 
     Box(
         modifier = Modifier.fillMaxSize()

@@ -1,0 +1,98 @@
+[
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xxxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/drawable_rounded_button.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/drawable/rounded_button.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-hdpi_ic_launcher_foreground.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-hdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-mdpi_ic_launcher_foreground.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-mdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/drawable_rounded_badge.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/drawable/rounded_badge.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/drawable_rounded_background_wear.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/drawable/rounded_background_wear.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/layout_activity_main.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/drawable_wear_card_bg_light.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/drawable/wear_card_bg_light.xml"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.example.controlherbal.wear-main-38:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.example.controlherbal.wear-debug-36:/drawable_wear_card_bg.xml.flat",
+        "source": "com.example.controlherbal.wear-main-38:/drawable/wear_card_bg.xml"
+    }
+]

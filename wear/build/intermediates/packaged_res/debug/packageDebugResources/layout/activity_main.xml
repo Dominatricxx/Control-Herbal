@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingTop="15dp"
+        android:paddingBottom="40dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp">
+
+        <!-- Header with Logo and Name -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@mipmap/ic_launcher_round"
+                android:contentDescription="Logo" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="Control Herbal"
+                android:textColor="#2E7D32"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Connection State -->
+        <TextView
+            android:id="@+id/tvWatchStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Firebase Conectado"
+            android:textColor="#80000000"
+            android:textSize="6sp"
+            android:layout_marginTop="2dp"/>
+
+        <Button
+            android:id="@+id/btnWatchConnect"
+            android:layout_width="wrap_content"
+            android:layout_height="14dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:layout_marginTop="4dp"
+            android:paddingHorizontal="10dp"
+            android:background="@drawable/rounded_button"
+            android:text="CONECTAR"
+            android:textColor="@android:color/white"
+            android:textSize="5sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- SENSOR DATA CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/wear_card_bg_light"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📊 Datos actuales"
+                android:textColor="#000000"
+                android:textSize="7sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="3dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🌡️ Temp:" android:textColor="#D32F2F" android:textSize="6sp" />
+                <TextView android:id="@+id/tvWatchTemp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--.-°" android:textColor="#000000" android:textSize="8sp" android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="💧 Hum:" android:textColor="#1976D2" android:textSize="6sp" />
+                <TextView android:id="@+id/tvWatchHum" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--%" android:textColor="#000000" android:textSize="8sp" android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="☀️ Luz:" android:textColor="#FBC02D" android:textSize="6sp" />
+                <TextView android:id="@+id/tvWatchLuz" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--%" android:textColor="#000000" android:textSize="8sp" android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⚠️ IRH:" android:textColor="#616161" android:textSize="6sp" />
+                <TextView android:id="@+id/tvWatchIRH" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--.-" android:textColor="#000000" android:textSize="8sp" android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- PREDICTION CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/wear_card_bg_light"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌱 Predicción"
+                android:textColor="#000000"
+                android:textSize="7sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="3dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⏰ Sequía:" android:textColor="#795548" android:textSize="6sp" />
+                <TextView android:id="@+id/tvWatchSeq" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-- h" android:textColor="#000000" android:textSize="8sp" android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🌥️ Sombra:" android:textColor="#388E3C" android:textSize="6sp" />
+                <TextView android:id="@+id/tvWatchSomb" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-- h" android:textColor="#000000" android:textSize="8sp" android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ALERT BAR -->
+        <TextView
+            android:id="@+id/tvWatchAlert"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="#E0E0E0"
+            android:gravity="center"
+            android:padding="3dp"
+            android:text="CARGANDO..."
+            android:textColor="#000000"
+            android:textSize="6sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvWatchAction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:text="--"
+            android:textColor="#E65100"
+            android:textSize="6sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+</ScrollView>

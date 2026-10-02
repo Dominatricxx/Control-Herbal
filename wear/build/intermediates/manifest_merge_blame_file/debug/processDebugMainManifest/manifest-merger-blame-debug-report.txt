@@ -1,0 +1,225 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.controlherbal.wear"
+4    android:versionCode="2"
+5    android:versionName="2.0" >
+6
+7    <uses-sdk
+7-->INJECTED
+8        android:minSdkVersion="26"
+8-->INJECTED
+9        android:targetSdkVersion="34" />
+9-->INJECTED
+10
+11    <uses-feature
+11-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:6:5-88
+12        android:name="android.hardware.type.watch"
+12-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:6:19-61
+13        android:required="true" />
+13-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:6:62-85
+14
+15    <uses-permission android:name="android.permission.WAKE_LOCK" />
+15-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:8:5-68
+15-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:8:22-65
+16    <uses-permission android:name="android.permission.INTERNET" />
+16-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:9:5-67
+16-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:9:22-64
+17
+18    <!-- Although the *SdkVersion is captured in gradle build files, this is required for non gradle builds -->
+19    <!-- <uses-sdk android:minSdkVersion="21"/> -->
+20    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+20-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:22:5-79
+20-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:22:22-76
+21
+22    <permission
+22-->[androidx.core:core:1.13.0] /home/dominic/.gradle/caches/9.6.0/transforms/f8261124941ccfcd33d9957ef1252df7/transformed/core-1.13.0/AndroidManifest.xml:22:5-24:47
+23        android:name="com.example.controlherbal.wear.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+23-->[androidx.core:core:1.13.0] /home/dominic/.gradle/caches/9.6.0/transforms/f8261124941ccfcd33d9957ef1252df7/transformed/core-1.13.0/AndroidManifest.xml:23:9-81
+24        android:protectionLevel="signature" />
+24-->[androidx.core:core:1.13.0] /home/dominic/.gradle/caches/9.6.0/transforms/f8261124941ccfcd33d9957ef1252df7/transformed/core-1.13.0/AndroidManifest.xml:24:9-44
+25
+26    <uses-permission android:name="com.example.controlherbal.wear.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+26-->[androidx.core:core:1.13.0] /home/dominic/.gradle/caches/9.6.0/transforms/f8261124941ccfcd33d9957ef1252df7/transformed/core-1.13.0/AndroidManifest.xml:26:5-97
+26-->[androidx.core:core:1.13.0] /home/dominic/.gradle/caches/9.6.0/transforms/f8261124941ccfcd33d9957ef1252df7/transformed/core-1.13.0/AndroidManifest.xml:26:22-94
+27
+28    <application
+28-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:11:5-32:19
+29        android:allowBackup="true"
+29-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:12:9-35
+30        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+30-->[androidx.core:core:1.13.0] /home/dominic/.gradle/caches/9.6.0/transforms/f8261124941ccfcd33d9957ef1252df7/transformed/core-1.13.0/AndroidManifest.xml:28:18-86
+31        android:debuggable="true"
+32        android:extractNativeLibs="false"
+32-->INJECTED
+33        android:icon="@mipmap/ic_launcher"
+33-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:13:9-43
+34        android:label="@string/app_name"
+34-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:14:9-41
+35        android:supportsRtl="true"
+35-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:15:9-35
+36        android:testOnly="true"
+37        android:theme="@style/Theme.ControlHerbal.Wear" >
+37-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:16:9-56
+38        <uses-library
+38-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:19:9-21:39
+39            android:name="com.google.android.wearable"
+39-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:20:13-55
+40            android:required="true" />
+40-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:21:13-36
+41
+42        <activity
+42-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:23:9-31:20
+43            android:name="com.example.controlherbal.wear.MainActivity"
+43-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:24:13-41
+44            android:exported="true"
+44-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:25:13-36
+45            android:label="@string/app_name" >
+45-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:26:13-45
+46            <intent-filter>
+46-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:27:13-30:29
+47                <action android:name="android.intent.action.MAIN" />
+47-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:28:17-69
+47-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:28:25-66
+48
+49                <category android:name="android.intent.category.LAUNCHER" />
+49-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:29:17-77
+49-->/home/dominic/Escritorio/UABC/ControlHerbal/wear/src/main/AndroidManifest.xml:29:27-74
+50            </intent-filter>
+51        </activity>
+52
+53        <service
+53-->[com.google.firebase:firebase-database-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/b4aaa6b0d424b9c37d7e8e7d49bec9b8/transformed/firebase-database-ktx-21.0.0/AndroidManifest.xml:9:9-15:19
+54            android:name="com.google.firebase.components.ComponentDiscoveryService"
+54-->[com.google.firebase:firebase-database-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/b4aaa6b0d424b9c37d7e8e7d49bec9b8/transformed/firebase-database-ktx-21.0.0/AndroidManifest.xml:10:13-84
+55            android:directBootAware="true"
+55-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:32:13-43
+56            android:exported="false" >
+56-->[com.google.firebase:firebase-database-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/b4aaa6b0d424b9c37d7e8e7d49bec9b8/transformed/firebase-database-ktx-21.0.0/AndroidManifest.xml:11:13-37
+57            <meta-data
+57-->[com.google.firebase:firebase-database-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/b4aaa6b0d424b9c37d7e8e7d49bec9b8/transformed/firebase-database-ktx-21.0.0/AndroidManifest.xml:12:13-14:85
+58                android:name="com.google.firebase.components:com.google.firebase.database.ktx.FirebaseDatabaseLegacyRegistrar"
+58-->[com.google.firebase:firebase-database-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/b4aaa6b0d424b9c37d7e8e7d49bec9b8/transformed/firebase-database-ktx-21.0.0/AndroidManifest.xml:13:17-127
+59                android:value="com.google.firebase.components.ComponentRegistrar" />
+59-->[com.google.firebase:firebase-database-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/b4aaa6b0d424b9c37d7e8e7d49bec9b8/transformed/firebase-database-ktx-21.0.0/AndroidManifest.xml:14:17-82
+60            <meta-data
+60-->[com.google.firebase:firebase-common-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/77ac6dfbc8128667e51a6a4465b03ac1/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:12:13-14:85
+61                android:name="com.google.firebase.components:com.google.firebase.ktx.FirebaseCommonLegacyRegistrar"
+61-->[com.google.firebase:firebase-common-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/77ac6dfbc8128667e51a6a4465b03ac1/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:13:17-116
+62                android:value="com.google.firebase.components.ComponentRegistrar" />
+62-->[com.google.firebase:firebase-common-ktx:21.0.0] /home/dominic/.gradle/caches/9.6.0/transforms/77ac6dfbc8128667e51a6a4465b03ac1/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:14:17-82
+63            <meta-data
+63-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:29:13-31:85
+64                android:name="com.google.firebase.components:com.google.firebase.database.FirebaseDatabaseKtxRegistrar"
+64-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:30:17-120
+65                android:value="com.google.firebase.components.ComponentRegistrar" />
+65-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:31:17-82
+66            <meta-data
+66-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:32:13-34:85
+67                android:name="com.google.firebase.components:com.google.firebase.database.DatabaseRegistrar"
+67-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:33:17-109
+68                android:value="com.google.firebase.components.ComponentRegistrar" />
+68-->[com.google.firebase:firebase-database:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/f649a820817f0c670f40b729b0724fc9/transformed/firebase-database-22.0.1/AndroidManifest.xml:34:17-82
+69            <meta-data
+69-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:35:13-37:85
+70                android:name="com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar"
+70-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:36:17-109
+71                android:value="com.google.firebase.components.ComponentRegistrar" />
+71-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:37:17-82
+72        </service>
+73
+74        <provider
+74-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:23:9-28:39
+75            android:name="com.google.firebase.provider.FirebaseInitProvider"
+75-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:24:13-77
+76            android:authorities="com.example.controlherbal.wear.firebaseinitprovider"
+76-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:25:13-72
+77            android:directBootAware="true"
+77-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:26:13-43
+78            android:exported="false"
+78-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:27:13-37
+79            android:initOrder="100" />
+79-->[com.google.firebase:firebase-common:22.0.1] /home/dominic/.gradle/caches/9.6.0/transforms/8330f3e9245c1eea3b077ec1ee3ba9b0/transformed/firebase-common-22.0.1/AndroidManifest.xml:28:13-36
+80        <provider
+80-->[androidx.emoji2:emoji2:1.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/e96cd9acebbb8ea897f7fab1d66b8626/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+81            android:name="androidx.startup.InitializationProvider"
+81-->[androidx.emoji2:emoji2:1.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/e96cd9acebbb8ea897f7fab1d66b8626/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+82            android:authorities="com.example.controlherbal.wear.androidx-startup"
+82-->[androidx.emoji2:emoji2:1.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/e96cd9acebbb8ea897f7fab1d66b8626/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+83            android:exported="false" >
+83-->[androidx.emoji2:emoji2:1.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/e96cd9acebbb8ea897f7fab1d66b8626/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+84            <meta-data
+84-->[androidx.emoji2:emoji2:1.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/e96cd9acebbb8ea897f7fab1d66b8626/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+85                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+85-->[androidx.emoji2:emoji2:1.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/e96cd9acebbb8ea897f7fab1d66b8626/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+86                android:value="androidx.startup" />
+86-->[androidx.emoji2:emoji2:1.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/e96cd9acebbb8ea897f7fab1d66b8626/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+87            <meta-data
+87-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/dominic/.gradle/caches/9.6.0/transforms/08440b59886878ced6ac573ded55cfe6/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
+88                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+88-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/dominic/.gradle/caches/9.6.0/transforms/08440b59886878ced6ac573ded55cfe6/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
+89                android:value="androidx.startup" />
+89-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/dominic/.gradle/caches/9.6.0/transforms/08440b59886878ced6ac573ded55cfe6/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+90            <meta-data
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+91                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+92                android:value="androidx.startup" />
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+93        </provider>
+94
+95        <activity
+95-->[com.google.android.gms:play-services-base:18.1.0] /home/dominic/.gradle/caches/9.6.0/transforms/5b26c1ab9a8d0811868e75ff544b0c54/transformed/play-services-base-18.1.0/AndroidManifest.xml:20:9-22:45
+96            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+96-->[com.google.android.gms:play-services-base:18.1.0] /home/dominic/.gradle/caches/9.6.0/transforms/5b26c1ab9a8d0811868e75ff544b0c54/transformed/play-services-base-18.1.0/AndroidManifest.xml:20:19-85
+97            android:exported="false"
+97-->[com.google.android.gms:play-services-base:18.1.0] /home/dominic/.gradle/caches/9.6.0/transforms/5b26c1ab9a8d0811868e75ff544b0c54/transformed/play-services-base-18.1.0/AndroidManifest.xml:22:19-43
+98            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+98-->[com.google.android.gms:play-services-base:18.1.0] /home/dominic/.gradle/caches/9.6.0/transforms/5b26c1ab9a8d0811868e75ff544b0c54/transformed/play-services-base-18.1.0/AndroidManifest.xml:21:19-78
+99
+100        <meta-data
+100-->[com.google.android.gms:play-services-basement:18.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/23ddac9bc2643deeeb9f3706e41795f3/transformed/play-services-basement-18.3.0/AndroidManifest.xml:21:9-23:69
+101            android:name="com.google.android.gms.version"
+101-->[com.google.android.gms:play-services-basement:18.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/23ddac9bc2643deeeb9f3706e41795f3/transformed/play-services-basement-18.3.0/AndroidManifest.xml:22:13-58
+102            android:value="@integer/google_play_services_version" />
+102-->[com.google.android.gms:play-services-basement:18.3.0] /home/dominic/.gradle/caches/9.6.0/transforms/23ddac9bc2643deeeb9f3706e41795f3/transformed/play-services-basement-18.3.0/AndroidManifest.xml:23:13-66
+103
+104        <receiver
+104-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+105            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+105-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+106            android:directBootAware="false"
+106-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+107            android:enabled="true"
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+108            android:exported="true"
+108-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+109            android:permission="android.permission.DUMP" >
+109-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+110            <intent-filter>
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+111                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+111-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+111-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+112            </intent-filter>
+113            <intent-filter>
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+114                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+114-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+114-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+115            </intent-filter>
+116            <intent-filter>
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+117                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+117-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+117-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+118            </intent-filter>
+119            <intent-filter>
+119-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+120                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/dominic/.gradle/caches/9.6.0/transforms/95f70b2e64fd446b17142446e7c30ec2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+121            </intent-filter>
+122        </receiver>
+123    </application>
+124
+125</manifest>
