@@ -8,7 +8,7 @@ import org.json.JSONObject
 import java.util.Scanner
 
 class FirebaseService {
-    private val dbUrl = "https://controlherbal-97558-default-rtdb.firebaseio.com/sensor.json"
+    private val dbUrl = "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/sensor.json"
 
     data class SensorData(val temp: Double, val hum: Double, val luz: Int, val soil: Double)
 

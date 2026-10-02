@@ -3,6 +3,22 @@
 *.ap_
 *.aab
 
+# Keystores & Signing Keys
+*.jks
+*.keystore
+*.pepk
+*.p12
+
+# Firebase / Secrets files (Usar google-services.json.example como plantilla)
+google-services.json
+**/google-services.json
+!google-services.json.example
+!**/google-services.json.example
+secrets.properties
+**/secrets.properties
+secrets.h
+**/secrets.h
+
 # Files for the Dalvik VM
 *.dex
 
@@ -45,4 +61,3 @@ local.properties
 
 # Captures
 captures/
-docs/screenshots/

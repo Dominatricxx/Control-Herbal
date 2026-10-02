@@ -17,14 +17,14 @@
 // ----------------------------- CONFIGURACIÓN DE REDES -----------------------------
 WiFiMulti wifiMulti;
 const char* redes[][2] = {
-  {"Internet 1", "Password"},
-  {"Internet 2", "Password"},
+  {"YOUR_WIFI_SSID_1", "YOUR_WIFI_PASSWORD_1"},
+  {"YOUR_WIFI_SSID_2", "YOUR_WIFI_PASSWORD_2"},
 };
 const int numRedes = sizeof(redes) / sizeof(redes[0]);
 
 // ----------------------------- CONFIGURACIÓN DE FIREBASE -----------------------------
-#define FIREBASE_HOST   "controlherbal-97558-default-rtdb.firebaseio.com"
-#define FIREBASE_API_KEY "AIzaSyCCTQmeObzKv24qT265O2eNQOA_HblTcgc"
+#define FIREBASE_HOST   "YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
+#define FIREBASE_API_KEY "YOUR_FIREBASE_API_KEY"
 
 FirebaseData firebaseData;
 FirebaseConfig firebaseConfig;

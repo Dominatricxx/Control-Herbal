@@ -7,8 +7,8 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-# 1. Configuración de tu Firebase (Obtenida de tu .ino)
-FIREBASE_URL = "https://controlherbal-97558-default-rtdb.firebaseio.com/sensor.json"
+# 1. Configuración de tu Firebase
+FIREBASE_URL = "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/sensor.json"
 
 def train_automatic_model():
     print("📡 Descargando datos desde Firebase para entrenamiento automático...")

@@ -7,7 +7,7 @@ package com.example.controlherbal.common
 object AppConstants {
 
     // Firebase Realtime Database
-    const val FIREBASE_DATABASE_URL = "https://controlherbal-97558-default-rtdb.firebaseio.com/"
+    const val FIREBASE_DATABASE_URL = "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/"
     const val FIREBASE_SENSOR_NODE = "sensor"
 
     // Canales e IDs de Notificación
