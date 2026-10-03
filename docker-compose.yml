@@ -1,0 +1,53 @@
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    container_name: control-herbal-mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: control-herbal-influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=controlherbal2026
+      - DOCKER_INFLUXDB_INIT_ORG=herbal-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=telemetry-bucket
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: control-herbal-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - influxdb
+
+  app-scripts:
+    build: .
+    container_name: control-herbal-app
+    volumes:
+      - .:/app
+    environment:
+      - MQTT_HOST=mqtt-broker
+      - MQTT_PORT=1883
+      - INFLUX_HOST=influxdb
+      - INFLUX_PORT=8086
+    depends_on:
+      - mqtt-broker
+      - influxdb
+    command: python -c "print('¡Contenedor de Control-Herbal con MQTT e InfluxDB inicializado!')"
+
+volumes:
+  influxdb_data:
+  grafana_data:
