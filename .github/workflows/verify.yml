@@ -1,0 +1,86 @@
+name: Verificación (compilación completa, firmware, reglas)
+
+# Estas comprobaciones requieren redes que no siempre están disponibles en local
+# (Google Maven, Arduino, emulador de Firebase), por eso se ejecutan en CI.
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  android-modules:
+    name: Compilar wear + escritorio y pruebas de la app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - name: Plantillas de google-services.json
+        run: |
+          [ -f app/google-services.json ]  || cp app/google-services.json.example app/google-services.json
+          [ -f wear/google-services.json ] || cp wear/google-services.json.example wear/google-services.json
+      - run: chmod +x gradlew
+      - name: Wear OS (debug) y release con R8
+        run: ./gradlew :wear:assembleDebug :app:assembleRelease -x lintVitalRelease
+      - name: Escritorio
+        run: ./gradlew :desktop:compileKotlin
+      - name: Pruebas unitarias de la app
+        run: ./gradlew :app:testDebugUnitTest
+
+  firmware:
+    name: Compilar firmware ESP32
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Preparar sketch (la carpeta debe llamarse como el .ino) y secrets.h de CI
+        run: |
+          mkdir -p build-sketch/ControlHerbal
+          cp firmware/ControlHerbal.ino build-sketch/ControlHerbal/
+          cat > build-sketch/ControlHerbal/secrets.h <<'EOT'
+          #define WIFI_SSID_1  "ci"
+          #define WIFI_PASS_1  "ci"
+          #define FIREBASE_HOST     "https://ci-default-rtdb.firebaseio.com"
+          #define FIREBASE_API_KEY  "ci"
+          #define FIREBASE_DEVICE_EMAIL     "ci@example.invalid"
+          #define FIREBASE_DEVICE_PASSWORD  "ci"
+          #define FIREBASE_ROOT_CA "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----\n"
+          EOT
+      - uses: arduino/compile-sketches@d7af6619a62e765d91f0a4d65b40cf061537a15d # v1.1.3
+        with:
+          fqbn: esp32:esp32:esp32
+          sketch-paths: |
+            - build-sketch/ControlHerbal
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          libraries: |
+            - name: DHT sensor library
+            - name: Adafruit Unified Sensor
+            - name: Firebase Arduino Client Library for ESP8266 and ESP32
+
+  firebase-rules-offline:
+    name: Reglas de Firebase (evaluador local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Pruebas con el evaluador local
+        working-directory: firebase
+        run: node --test test-offline/*.test.mjs

@@ -21,10 +21,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
-import java.io.File
 import logic.PredictiveTheorem
 import ai.HerbalAI
 import network.FirebaseService
+import storage.PlantRecord
+import storage.PlantStorage
 import kotlinx.coroutines.delay
 
 data class DesktopPlant(
@@ -44,32 +45,11 @@ data class SensorState(
     val analysis: PredictiveTheorem.AnalysisResult? = null
 )
 
-private val persistenceFile = File(System.getProperty("user.home"), ".controlherbal_plants.txt")
+private fun savePlants(plants: List<DesktopPlant>) =
+    PlantStorage.save(plants.map { PlantRecord(it.name, it.type, it.environment, it.isSelected, it.lastWateringTime) })
 
-private fun savePlants(plants: List<DesktopPlant>) {
-    try {
-        val lines = plants.map { "${it.name}|${it.type}|${it.environment}|${it.isSelected}|${it.lastWateringTime}" }
-        persistenceFile.writeText(lines.joinToString("\n"))
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-}
-
-private fun loadPlants(): List<DesktopPlant> {
-    if (!persistenceFile.exists()) return emptyList()
-    return try {
-        persistenceFile.readLines().mapNotNull { line ->
-            val parts = line.split("|")
-            if (parts.size >= 4) {
-                val lastWatering = if (parts.size >= 5) parts[4].toLong() else 0L
-                DesktopPlant(parts[0], parts[1], parts[2], parts[3].toBoolean(), lastWatering)
-            } else null
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        emptyList()
-    }
-}
+private fun loadPlants(): List<DesktopPlant> =
+    PlantStorage.load().map { DesktopPlant(it.name, it.type, it.environment, it.isSelected, it.lastWateringTime) }
 
 data class PredefinedPlant(
     val name: String,

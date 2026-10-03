@@ -81,7 +81,7 @@ class HerbalAI {
             }
             biasOutput = props.getProperty("b_o", "0").toFloat()
         } catch (e: Exception) {
-            e.printStackTrace()
+            java.util.logging.Logger.getLogger("ControlHerbal.HerbalAI").warning("No se pudieron cargar los pesos: ${e.javaClass.simpleName}")
         }
     }
 }

@@ -15,9 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import com.example.controlherbal.ai.ModelLoader
 import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
-import java.nio.channels.FileChannel
 import java.util.Calendar
 
 data class SensorUiState(
@@ -96,17 +95,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun loadModel() {
-        try {
-            val assetFileDescriptor = getApplication<Application>().assets.openFd(AppConstants.TFLITE_MODEL_ASSET)
-            val inputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
-            val fileChannel = inputStream.channel
-            val startOffset = assetFileDescriptor.startOffset
-            val declaredLength = assetFileDescriptor.declaredLength
-            val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
-            tflite = Interpreter(modelBuffer)
-        } catch (e: Exception) {
-            SecureLogger.e(TAG, "Error al cargar modelo TFLite: ${e.message}")
-        }
+        tflite = ModelLoader.load(getApplication<Application>())
     }
 
     fun updateFromFirebase(
@@ -209,10 +198,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
                 
                 try {
                     tflite?.let { interpreter ->
-                        val input = arrayOf(floatArrayOf(sTemp.toFloat(), sHum.toFloat(), sLuz.toFloat(), sSoil.toFloat(), if (isDay) 1f else 0f))
+                        val input = arrayOf(ModelLoader.buildInput(sTemp, sHum, sLuz, sSoil, isDay))
                         val output = arrayOf(floatArrayOf(0f))
                         interpreter.run(input, output)
-                        combinedIrh = (combinedIrh + output[0][0].toDouble()) / 2.0
+                        ModelLoader.sanitizeIrh(output[0][0])?.let { modelIrh ->
+                            combinedIrh = (combinedIrh + modelIrh) / 2.0
+                        }
                     }
                 } catch (e: Exception) {
                     SecureLogger.e(TAG, "Error en inferencia TFLite: ${e.message}")

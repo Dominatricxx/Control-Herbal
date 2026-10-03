@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvAction: TextView
 
     private val databaseFirebase = FirebaseDatabase.getInstance().getReference("sensor")
+    private var sensorListener: ValueEventListener? = null
     private val CHANNEL_ID = "control_herbal_alerts"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,19 +54,51 @@ class MainActivity : AppCompatActivity() {
         tvAction = findViewById(R.id.tvWatchAction)
 
         btnConnect.setOnClickListener {
-            startFirebaseListener()
             btnConnect.visibility = View.GONE
+            signInThen { startFirebaseListener() }
         }
 
         createNotificationChannel()
-        startFirebaseListener()
+        signInThen { startFirebaseListener() }
+    }
+
+    /**
+     * El reloj entra con una cuenta de SOLO LECTURA ("viewer", ver firebase/database.rules.json).
+     * Las credenciales se inyectan en tiempo de compilación (gradle.properties de usuario o
+     * variables de entorno), nunca se versionan. Todo lo embebido en un APK es extraíble, por eso
+     * esa cuenta únicamente puede leer /sensor y es revocable desde la consola de Firebase.
+     */
+    private fun signInThen(onReady: () -> Unit) {
+        val auth = FirebaseAuth.getInstance()
+        if (auth.currentUser != null) {
+            onReady()
+            return
+        }
+        if (BuildConfig.VIEWER_EMAIL.isBlank() || BuildConfig.VIEWER_PASSWORD.isBlank()) {
+            tvStatus.text = "Sin credenciales configuradas"
+            tvStatus.setTextColor(Color.RED)
+            return
+        }
+        tvStatus.text = "Iniciando sesión..."
+        tvStatus.setTextColor(Color.GRAY)
+        auth.signInWithEmailAndPassword(BuildConfig.VIEWER_EMAIL, BuildConfig.VIEWER_PASSWORD)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onReady()
+                } else {
+                    tvStatus.text = "Error de acceso"
+                    tvStatus.setTextColor(Color.RED)
+                    btnConnect.visibility = View.VISIBLE
+                }
+            }
     }
 
     private fun startFirebaseListener() {
         tvStatus.text = "Sincronizando..."
         tvStatus.setTextColor(Color.GRAY)
         
-        databaseFirebase.addValueEventListener(object : ValueEventListener {
+        sensorListener?.let { databaseFirebase.removeEventListener(it) }
+        val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     tvStatus.text = "Firebase Conectado"
@@ -77,7 +111,10 @@ class MainActivity : AppCompatActivity() {
                     val irh = snapshot.child("irh").getValue(Double::class.java) ?: 0.0
                     val seq = snapshot.child("seq").getValue(Double::class.java) ?: 0.0
                     val somb = snapshot.child("somb").getValue(Double::class.java) ?: 0.0
-                    val accion = snapshot.child("acc").getValue(String::class.java) ?: "Sin datos"
+                    // Texto remoto: se acota y se eliminan caracteres de control antes de mostrarlo.
+                    val accion = (snapshot.child("acc").getValue(String::class.java) ?: "Sin datos")
+                        .filter { !it.isISOControl() }
+                        .take(200)
 
                     updateUI(temp, hum, luz, irh, seq, somb, accion)
                     checkAlerts(irh, accion)
@@ -89,7 +126,15 @@ class MainActivity : AppCompatActivity() {
                 tvStatus.setTextColor(Color.RED)
                 btnConnect.visibility = View.VISIBLE
             }
-        })
+        }
+        sensorListener = listener
+        databaseFirebase.addValueEventListener(listener)
+    }
+
+    override fun onDestroy() {
+        sensorListener?.let { databaseFirebase.removeEventListener(it) }
+        sensorListener = null
+        super.onDestroy()
     }
 
     private fun updateUI(temp: Double, hum: Double, luz: Int, irh: Double, seq: Double, somb: Double, accion: String) {

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.AuthManager
 import com.example.controlherbal.common.SecureLogger
 import com.example.controlherbal.data.database.SensorDatabase
 import com.google.firebase.database.FirebaseDatabase
@@ -16,14 +17,16 @@ class WateringSyncWorker(context: Context, params: WorkerParameters) : Worker(co
     }
 
     override fun doWork(): Result {
+        if (!AuthManager.isSignedIn()) return Result.retry()   // se reintenta cuando haya sesión
         val databaseLocal = SensorDatabase.getInstance(applicationContext)
         val plantDao = databaseLocal.plantDao()
         val pendingPlants = runBlocking { plantDao.getPendingSyncPlants() }
 
         if (pendingPlants.isEmpty()) return Result.success()
 
+        // Nodo propio (solo el rol "owner" puede escribirlo; ver reglas). Antes colgaba de /sensor.
         val firebaseRef = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
-            .getReference(AppConstants.FIREBASE_SENSOR_NODE)
+            .getReference(AppConstants.FIREBASE_WATERING_HISTORY_NODE)
 
         for (plant in pendingPlants) {
             val wateringData = mapOf(
@@ -32,13 +35,13 @@ class WateringSyncWorker(context: Context, params: WorkerParameters) : Worker(co
             )
             
             try {
-                firebaseRef.child("watering_history").child(plant.id.toString()).setValue(wateringData)
+                firebaseRef.child(plant.id.toString()).setValue(wateringData)
                 
                 runBlocking {
                     plantDao.update(plant.copy(pendingSync = false))
                 }
             } catch (e: Exception) {
-                SecureLogger.e(TAG, "Error al sincronizar riego: ${e.message}")
+                SecureLogger.e(TAG, "Error al sincronizar riego: ${e.javaClass.simpleName}")
                 return Result.retry()
             }
         }

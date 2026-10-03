@@ -43,6 +43,8 @@ import com.example.controlherbal.ui.widget.HerbalWidgetManager
 import com.github.mikephil.charting.charts.CombinedChart
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.database.DatabaseReference
+import com.example.controlherbal.common.AuthManager
+import java.security.SecureRandom
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
@@ -50,9 +52,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.controlherbal.ai.ModelLoader
 import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
-import java.nio.channels.FileChannel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -121,6 +122,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!AuthManager.isSignedIn()) {
+            startActivity(Intent(this, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+            finish()
+            return
+        }
         databaseLocal = SensorDatabase.getInstance(this)
         setContentView(R.layout.activity_main_drawer)
         initializeUI()
@@ -296,17 +302,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun loadModel() {
-        try {
-            val assetFileDescriptor = assets.openFd(AppConstants.TFLITE_MODEL_ASSET)
-            val inputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
-            val fileChannel = inputStream.channel
-            val startOffset = assetFileDescriptor.startOffset
-            val declaredLength = assetFileDescriptor.declaredLength
-            val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
-            tflite = Interpreter(modelBuffer)
-        } catch (e: Exception) {
-            SecureLogger.e(TAG, "Error TFLite: ${e.message}")
-        }
+        tflite = ModelLoader.load(this)
     }
 
     private fun registerWatering() {
@@ -328,34 +324,66 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         btnAction.setOnClickListener {
+            val uid = AuthManager.uid()
+            if (uid == null) {
+                Toast.makeText(this, "Inicia sesión para enviar órdenes de riego", Toast.LENGTH_LONG).show()
+                dialog.dismiss()
+                return@setOnClickListener
+            }
+
+            // Tope de frecuencia en el cliente (el servidor impone además 30 s mínimo por regla).
+            val guardPrefs = getSharedPreferences(AppConstants.PREFS_WATERING, MODE_PRIVATE)
             val now = System.currentTimeMillis()
+            val last = guardPrefs.getLong(AppConstants.KEY_LAST_WATERING_COMMAND, 0L)
+            if (now - last in 0 until AppConstants.WATERING_COOLDOWN_MS) {
+                val wait = (AppConstants.WATERING_COOLDOWN_MS - (now - last)) / 1000 + 1
+                Toast.makeText(this, "Espera $wait s antes de enviar otra orden de riego", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            guardPrefs.edit().putLong(AppConstants.KEY_LAST_WATERING_COMMAND, now).apply()
+
             ioScope.launch {
                 val updatedPlant = plant.copy(lastWateringTime = now, pendingSync = true)
                 databaseLocal.plantDao().update(updatedPlant)
                 currentPlant = updatedPlant
-                
+
+                val duracion = when {
+                    plant.environment.contains("Luz", ignoreCase = true) -> 10
+                    plant.environment.contains("Sombra", ignoreCase = true) -> 30
+                    else -> 20
+                }.coerceIn(1, AppConstants.MAX_WATERING_SECONDS)
+
+                // Nonce aleatorio (anti-replay): el firmware debe procesar cada nonce una sola vez.
+                val nonceBytes = ByteArray(16).also { SecureRandom().nextBytes(it) }
+                val nonce = nonceBytes.joinToString("") { "%02x".format(it) }
+
+                val command = mapOf(
+                    "activar" to 1,
+                    "duracion" to duracion,
+                    "timestamp" to ServerValue.TIMESTAMP,
+                    "uid" to uid,
+                    "nonce" to nonce,
+                    "fuente" to "App_Android"
+                )
                 try {
-                    val controlRef = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL).getReference("control/riego")
-                    val duracion = when {
-                        plant.environment.contains("Luz", ignoreCase = true) -> 10
-                        plant.environment.contains("Sombra", ignoreCase = true) -> 30
-                        else -> 20
-                    }
-                    val command = mapOf(
-                        "activar" to 1,
-                        "duracion" to duracion,
-                        "timestamp" to ServerValue.TIMESTAMP,
-                        "fuente" to "App_Android"
-                    )
-                    controlRef.setValue(command)
+                    FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
+                        .getReference(AppConstants.FIREBASE_WATERING_COMMAND)
+                        .setValue(command)
+                        .addOnSuccessListener {
+                            Toast.makeText(this@MainActivity, "Comando enviado al sistema de riego 💧", Toast.LENGTH_SHORT).show()
+                        }
+                        .addOnFailureListener { e ->
+                            // Las reglas del servidor rechazan órdenes sin permiso, fuera de tope o demasiado seguidas.
+                            SecureLogger.e(TAG, "Orden de riego rechazada: ${e.javaClass.simpleName}")
+                            Toast.makeText(this@MainActivity, "El servidor rechazó la orden de riego", Toast.LENGTH_LONG).show()
+                        }
                 } catch (e: Exception) {
-                    SecureLogger.e(TAG, "Error enviando comando de riego: ${e.message}")
+                    SecureLogger.e(TAG, "Error enviando comando de riego: ${e.javaClass.simpleName}")
                 }
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Comando enviado al sistema de riego 💧", Toast.LENGTH_SHORT).show()
                     btnWatering.isEnabled = false
-                    handler.postDelayed({ btnWatering.isEnabled = true }, 10000)
+                    handler.postDelayed({ btnWatering.isEnabled = true }, AppConstants.WATERING_COOLDOWN_MS)
                     dialog.dismiss()
                 }
             }
@@ -577,10 +605,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_plants -> { showPlantsSelectionDialog(); return true }
             R.id.nav_comparison -> { startActivity(Intent(this, ComparisonActivity::class.java)); return true }
             R.id.nav_chat -> { startActivity(Intent(this, ChatActivity::class.java)); return true }
+            R.id.nav_logout -> { signOutAndExit(); return true }
         }
         startActivity(intent)
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun signOutAndExit() {
+        stopService(Intent(this, SensorForegroundService::class.java))
+        AuthManager.signOut()
+        startActivity(Intent(this, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+        finish()
     }
 
     private fun showPlantsSelectionDialog() {
@@ -622,7 +658,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             databaseLocal.plantDao().deselectAll()
             databaseLocal.plantDao().update(plant.copy(isSelected = true))
             val tipoInt = when { plant.environment.contains("Luz", ignoreCase = true) -> 1; plant.environment.contains("Sombra", ignoreCase = true) -> 3; else -> 2 }
-            FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL).getReference("config/tipoPlanta").setValue(tipoInt)
+            if (AuthManager.isSignedIn()) {
+                FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
+                    .getReference(AppConstants.FIREBASE_CONFIG_PLANT_TYPE)
+                    .setValue(tipoInt)
+                    .addOnFailureListener { e -> SecureLogger.e(TAG, "No se pudo actualizar tipoPlanta: ${e.javaClass.simpleName}") }
+            }
             withContext(Dispatchers.Main) { val intent = Intent(this@MainActivity, MainActivity::class.java); intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK; startActivity(intent); finish() }
         }
     }

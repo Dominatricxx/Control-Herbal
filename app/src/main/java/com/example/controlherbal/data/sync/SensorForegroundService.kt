@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.example.controlherbal.R
 import com.example.controlherbal.ai.HerbalAI
 import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.AuthManager
 import com.example.controlherbal.common.SecureLogger
 import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.SensorDatabase
@@ -69,6 +70,11 @@ class SensorForegroundService : Service() {
     }
 
     private fun setupFirebase() {
+        if (!AuthManager.isSignedIn()) {
+            SecureLogger.w(TAG, "Sin sesión: el servicio se detiene")
+            stopSelf()
+            return
+        }
         try {
             val dbInstance = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
             databaseFirebase = dbInstance.getReference(AppConstants.FIREBASE_SENSOR_NODE)

@@ -1,0 +1,89 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "roles": {
+      ".read": false,
+      ".write": false
+    },
+
+    "sensor": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'owner' || root.child('roles').child(auth.uid).val() === 'device' || root.child('roles').child(auth.uid).val() === 'viewer')",
+      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'device'",
+
+      "temp":        { ".validate": "newData.isNumber() && newData.val() >= -40 && newData.val() <= 85" },
+      "hum":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+      "luz":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+      "luz_raw":     { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+      "soil":        { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+      "irh":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+      "seq":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+      "somb":        { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+      "acc":         { ".validate": "newData.isString() && newData.val().length <= 200" },
+      "tipo":        { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3" },
+      "boot":        { ".validate": "newData.isNumber() && newData.val() >= 0" },
+      "sensores_ok": { ".validate": "newData.isNumber() && (newData.val() === 0 || newData.val() === 1)" },
+      "timestamp":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+
+      "ts": {
+        ".validate": "newData.val() === now && (!data.exists() || now - data.val() >= 4000)"
+      },
+
+      "$other": { ".validate": false }
+    },
+
+    "config": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'owner' || root.child('roles').child(auth.uid).val() === 'device')",
+      "tipoPlanta": {
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+        ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3)"
+      },
+      "$other": { ".validate": false }
+    },
+
+    "control": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'owner' || root.child('roles').child(auth.uid).val() === 'device')",
+
+      "riego": {
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+        ".validate": "newData.hasChildren(['activar', 'duracion', 'timestamp', 'uid', 'nonce'])",
+
+        "activar":   { ".validate": "newData.isNumber() && (newData.val() === 0 || newData.val() === 1)" },
+        "duracion":  { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 60" },
+        "timestamp": {
+          ".validate": "newData.val() === now && (!data.exists() || now - data.val() >= 30000)"
+        },
+        "uid":    { ".validate": "newData.val() === auth.uid" },
+        "nonce":  { ".validate": "newData.isString() && newData.val().length >= 16 && newData.val().length <= 64" },
+        "fuente": { ".validate": "newData.isString() && newData.val().length <= 32" },
+        "$other": { ".validate": false }
+      },
+
+      "estado": {
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'device'",
+        ".validate": "newData.hasChildren(['nonce', 'resultado', 'ts'])",
+        "nonce":     { ".validate": "newData.isString() && newData.val().length <= 64" },
+        "resultado": { ".validate": "newData.isString() && newData.val().length <= 32" },
+        "segundos":  { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 60" },
+        "ts":        { ".validate": "newData.val() === now" },
+        "$other": { ".validate": false }
+      },
+
+      "$other": { ".validate": false }
+    },
+
+    "watering_history": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+      "$plantId": {
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+        ".validate": "newData.hasChildren(['lastWateringTime', 'syncTimestamp'])",
+        "lastWateringTime": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "syncTimestamp":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "$other": { ".validate": false }
+  }
+}

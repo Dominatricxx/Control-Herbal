@@ -38,7 +38,8 @@ import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.ui.activities.MainActivity
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /**
@@ -51,24 +52,30 @@ object HerbalWidgetManager {
             HerbalWidgetStatus().updateAll(context)
             HerbalWidgetAlert().updateAll(context)
         } catch (e: Exception) {
-            SecureLogger.e("HerbalWidget", "Error al actualizar widgets: ${e.message}")
+            SecureLogger.e("HerbalWidget", "Error al actualizar widgets: ${e.javaClass.simpleName}")
         }
     }
 }
+
+/** Lee la planta seleccionada y su última lectura; el nombre se normaliza antes de mostrarse. */
+private suspend fun loadWidgetData(context: Context): Pair<String, SensorReading?> =
+    withContext(Dispatchers.IO) {
+        val db = SensorDatabase.getInstance(context)
+        val plant = db.plantDao().getSelectedPlant()
+        val reading = plant?.let { db.sensorDao().getAllOrderByTimestampDesc(it.id).firstOrNull() }
+        SecurityUtils.sanitizeText(plant?.name ?: "Sin Planta") to reading
+    }
 
 /**
  * Widget Principal: Información completa y estado de la planta
  */
 class HerbalWidgetSummary : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val db = SensorDatabase.getInstance(context)
+        // Los datos se leen aquí (corrutina de Glance, fuera del hilo principal) y no con
+        // runBlocking dentro de la composición, que podía bloquear la UI.
+        val (safeName, reading) = loadWidgetData(context)
         provideContent {
             GlanceTheme {
-                val plant = runBlocking { db.plantDao().getSelectedPlant() }
-                val reading = runBlocking { 
-                    plant?.let { db.sensorDao().getAllOrderByTimestampDesc(it.id).firstOrNull() }
-                }
-                val safeName = SecurityUtils.sanitizeText(plant?.name ?: "Sin Planta")
                 UnifiedWidgetContent(safeName, reading)
             }
         }
@@ -80,14 +87,11 @@ class HerbalWidgetSummary : GlanceAppWidget() {
  */
 class HerbalWidgetStatus : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val db = SensorDatabase.getInstance(context)
+        // Los datos se leen aquí (corrutina de Glance, fuera del hilo principal) y no con
+        // runBlocking dentro de la composición, que podía bloquear la UI.
+        val (safeName, reading) = loadWidgetData(context)
         provideContent {
             GlanceTheme {
-                val plant = runBlocking { db.plantDao().getSelectedPlant() }
-                val reading = runBlocking { 
-                    plant?.let { db.sensorDao().getAllOrderByTimestampDesc(it.id).firstOrNull() }
-                }
-                val safeName = SecurityUtils.sanitizeText(plant?.name ?: "Sin Planta")
                 UnifiedWidgetContent(safeName, reading, showAI = true)
             }
         }
@@ -99,14 +103,11 @@ class HerbalWidgetStatus : GlanceAppWidget() {
  */
 class HerbalWidgetAlert : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val db = SensorDatabase.getInstance(context)
+        // Los datos se leen aquí (corrutina de Glance, fuera del hilo principal) y no con
+        // runBlocking dentro de la composición, que podía bloquear la UI.
+        val (safeName, reading) = loadWidgetData(context)
         provideContent {
             GlanceTheme {
-                val plant = runBlocking { db.plantDao().getSelectedPlant() }
-                val reading = runBlocking { 
-                    plant?.let { db.sensorDao().getAllOrderByTimestampDesc(it.id).firstOrNull() }
-                }
-                val safeName = SecurityUtils.sanitizeText(plant?.name ?: "Sin Planta")
                 UnifiedWidgetContent(safeName, reading, isAlertVersion = true)
             }
         }
@@ -210,6 +211,9 @@ private fun SensorItem(modifier: GlanceModifier, label: String, value: String, i
     }
 }
 
+// Los receivers deben estar exportados para que el launcher envíe APPWIDGET_UPDATE. No leen
+// ningún dato del Intent: solo vuelven a dibujar el contenido desde la base local, así que un
+// broadcast falso no puede inyectar datos ni provocar acciones (ver docs/CAMBIOS-SEGURIDAD.md).
 class HerbalWidgetSummaryReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HerbalWidgetSummary()
 }

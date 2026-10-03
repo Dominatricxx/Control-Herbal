@@ -1,3 +1,5 @@
+import java.security.MessageDigest
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -21,6 +23,7 @@ android {
 
     buildTypes {
         release {
+            isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -48,7 +51,7 @@ android {
 }
 
 dependencies {
-    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation(platform(libs.firebase.bom))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
@@ -61,14 +64,15 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    // Vertex AI for Firebase (Actualizado para mayor estabilidad)
-    implementation("com.google.firebase:firebase-vertexai:16.0.0-beta04")
     
+    // Firebase AI Logic & Auth & App Check
+    implementation(libs.firebase.ai)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.appcheck.playintegrity)
+    debugImplementation(libs.firebase.appcheck.debug)
+
     // Firebase Realtime Database
     implementation(libs.firebase.database)
-    
-    // SDK Directo de Gemini (Fallback si Firebase falla)
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
     implementation(libs.tensorflow.lite)
     testImplementation(libs.junit)
@@ -97,3 +101,36 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
 }
+
+val verifyModelIntegrity = tasks.register("verifyModelIntegrity") {
+    group = "verification"
+    description = "Verifica que herbal_model.tflite coincide con su huella SHA-256 versionada."
+    val assetsDir = layout.projectDirectory.dir("src/main/assets")
+    doLast {
+        val model = assetsDir.file("herbal_model.tflite").asFile
+        val shaFile = assetsDir.file("herbal_model.tflite.sha256").asFile
+        if (!model.exists()) {
+            logger.lifecycle("verifyModelIntegrity: no hay modelo embebido, se omite.")
+            return@doLast
+        }
+        if (!shaFile.exists()) {
+            throw GradleException("Falta ${shaFile.name}: genera el modelo con ml/train_herbal_model.py o calcula su SHA-256.")
+        }
+        val expected = shaFile.readText().trim().split(Regex("\\s+")).first().lowercase()
+        val digest = MessageDigest.getInstance("SHA-256")
+        model.inputStream().use { input ->
+            val buf = ByteArray(8192)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                digest.update(buf, 0, n)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        if (actual != expected) {
+            throw GradleException("herbal_model.tflite no coincide con su huella SHA-256 (esperada $expected, real $actual).")
+        }
+        logger.lifecycle("verifyModelIntegrity: OK ($actual)")
+    }
+}
+tasks.named("preBuild") { dependsOn(verifyModelIntegrity) }

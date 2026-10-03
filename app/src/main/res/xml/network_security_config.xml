@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Enforce TLS/HTTPS across the entire application -->
+    <!--
+      Solo HTTPS en toda la app. No hay tráfico en claro hacia el ESP32 (la comunicación
+      pasa por Firebase), por lo que se eliminaron las excepciones de cleartext para
+      192.168.1.1, 192.168.4.1, 10.0.2.2 y localhost.
+      Si en el futuro se añade una API local, declara aquí SOLO ese host y solo en un
+      <debug-overrides>, nunca en la configuración de release.
+    -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-
-    <!-- Excepción explícita de seguridad para comunicación local con microcontroladores ESP32 en la red local -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.1.1</domain>
-        <domain includeSubdomains="true">192.168.4.1</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain>
-        <domain includeSubdomains="true">localhost</domain>
-    </domain-config>
 </network-security-config>

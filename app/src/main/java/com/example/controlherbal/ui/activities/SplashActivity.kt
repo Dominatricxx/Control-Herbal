@@ -6,6 +6,7 @@ import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.controlherbal.R
+import com.example.controlherbal.common.AuthManager
 import com.example.controlherbal.data.database.SensorDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,6 +23,12 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun navigateNext() {
+        // Sin sesión no se accede a datos: primero el login.
+        if (!AuthManager.isSignedIn()) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
         val databaseLocal = SensorDatabase.getInstance(this)
         lifecycleScope.launch(Dispatchers.IO) {
             val selectedPlant = databaseLocal.plantDao().getSelectedPlant()

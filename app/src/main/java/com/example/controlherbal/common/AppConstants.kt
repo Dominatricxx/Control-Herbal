@@ -9,6 +9,9 @@ object AppConstants {
     // Firebase Realtime Database
     const val FIREBASE_DATABASE_URL = "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/"
     const val FIREBASE_SENSOR_NODE = "sensor"
+    const val FIREBASE_WATERING_HISTORY_NODE = "watering_history"
+    const val FIREBASE_CONFIG_PLANT_TYPE = "config/tipoPlanta"
+    const val FIREBASE_WATERING_COMMAND = "control/riego"
 
     // Canales e IDs de Notificación
     const val ALERTS_CHANNEL_ID = "herbal_alerts_channel"
@@ -21,7 +24,15 @@ object AppConstants {
     const val NOTIFICATION_ID_SERVICE = 2001
 
     // Modelos de Inteligencia Artificial
-    const val VERTEX_AI_MODEL = "gemini-2.0-flash-exp"
+    // Un único lugar para cambiar el modelo (idealmente se movería a Firebase Remote Config).
+    // gemini-2.5-flash se retira a mediados de octubre de 2026; gemini-3.5-flash es la versión
+    // estable vigente (verifica la tabla de "supported models" de Firebase AI Logic al actualizar).
+    const val GEMINI_MODEL = "gemini-3.5-flash"
+    const val AI_REQUEST_TIMEOUT_MS = 30_000L
+    const val MAX_AI_RESPONSE_CHARS = 2_000
+    const val MAX_IMAGE_DIMENSION_PX = 1_024
+    const val PREFS_AI_CONSENT = "ai_consent_v1"
+    const val KEY_AI_CONSENT_GRANTED = "granted"
     const val TFLITE_MODEL_ASSET = "herbal_model.tflite"
 
     // Claves de SharedPreferences
@@ -30,6 +41,11 @@ object AppConstants {
     // Límites de seguridad y calibración
     const val MAX_NAME_LENGTH = 50
     const val MAX_INPUT_TEXT_LENGTH = 500
+    // Riego: topes que además imponen las reglas del servidor (firebase/database.rules.json)
+    const val MAX_WATERING_SECONDS = 60
+    const val WATERING_COOLDOWN_MS = 60_000L
+    const val PREFS_WATERING = "watering_guard"
+    const val KEY_LAST_WATERING_COMMAND = "last_command_ms"
     const val MIN_SOIL_CRITICAL = 5.0
     const val MAX_SOIL_NORMAL = 100.0
 

@@ -1,0 +1,38 @@
+name: Generar gradle/verification-metadata.xml
+
+# Ejecución MANUAL. Genera las sumas SHA-256 de todas las dependencias y las sube como artefacto.
+# Descárgalo, revísalo, súbelo a gradle/verification-metadata.xml y haz commit.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - name: Plantillas de google-services.json
+        run: |
+          [ -f app/google-services.json ]  || cp app/google-services.json.example app/google-services.json
+          [ -f wear/google-services.json ] || cp wear/google-services.json.example wear/google-services.json
+      - run: chmod +x gradlew
+      - name: Escribir metadatos de verificación
+        run: >
+          ./gradlew --write-verification-metadata sha256
+          :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest
+          :wear:assembleDebug :desktop:compileKotlin -x lintVitalRelease
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: verification-metadata
+          path: gradle/verification-metadata.xml
+          if-no-files-found: error

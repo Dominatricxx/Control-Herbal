@@ -1,7 +1,7 @@
 // ========================================================================
 // CONTROLADOR HERBAL - RESPUESTA RÁPIDA Y SENSIBILIDAD AJUSTADA
 // ========================================================================
-// - Muestreo cada 1 segundo (anterior 3s)
+// - Muestreo cada 1 segundo; envío a Firebase cada 5 s (límite impuesto por las reglas)
 // - Ventana de mediana reducida a 3 muestras
 // - Curva de corrección de luz más agresiva (potencia 2.5)
 // - Sin alertas de exceso de luz aislado
@@ -10,21 +10,38 @@
 #include <DHT.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
-#include <FirebaseESP32.h>
+#include <Firebase_ESP_Client.h>   // mobizt/Firebase Arduino Client Library for ESP8266 and ESP32 (sustituye a FirebaseESP32, obsoleta)
 #include <Preferences.h>
 #include "addons/TokenHelper.h"
 
+// Credenciales fuera del código fuente: copia secrets.h.example -> secrets.h (está en .gitignore).
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #error "Falta firmware/secrets.h. Copia secrets.h.example a secrets.h y completa tus datos."
+#endif
+#ifndef FIREBASE_ROOT_CA
+  #error "Define FIREBASE_ROOT_CA en secrets.h (certificado raíz para validar TLS)."
+#endif
+
 // ----------------------------- CONFIGURACIÓN DE REDES -----------------------------
+// SSID/contraseñas definidos en secrets.h (WIFI_SSID_1, WIFI_PASS_1, WIFI_SSID_2, WIFI_PASS_2)
 WiFiMulti wifiMulti;
 const char* redes[][2] = {
-  {"YOUR_WIFI_SSID_1", "YOUR_WIFI_PASSWORD_1"},
-  {"YOUR_WIFI_SSID_2", "YOUR_WIFI_PASSWORD_2"},
+  {WIFI_SSID_1, WIFI_PASS_1},
+#ifdef WIFI_SSID_2
+  {WIFI_SSID_2, WIFI_PASS_2},
+#endif
 };
 const int numRedes = sizeof(redes) / sizeof(redes[0]);
 
 // ----------------------------- CONFIGURACIÓN DE FIREBASE -----------------------------
-#define FIREBASE_HOST   "YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
-#define FIREBASE_API_KEY "YOUR_FIREBASE_API_KEY"
+// FIREBASE_HOST, FIREBASE_API_KEY, FIREBASE_DEVICE_EMAIL y FIREBASE_DEVICE_PASSWORD vienen de secrets.h.
+// Cada ESP32 usa SU PROPIA cuenta de Firebase Auth con rol "device" en /roles/{uid}
+// (ver firebase/database.rules.json); así se puede revocar individualmente.
+// Intervalo mínimo entre escrituras: las reglas rechazan lecturas separadas por menos de 4 s.
+const unsigned long INTERVALO_ENVIO_MS = 5000;
+unsigned long lastEnvio = 0;
 
 FirebaseData firebaseData;
 FirebaseConfig firebaseConfig;
@@ -170,7 +187,10 @@ void loop() {
   ciclo++;
   leerSensores();
   aplicarTeorema();
-  enviarFirebase();
+  if (millis() - lastEnvio >= INTERVALO_ENVIO_MS) {
+    lastEnvio = millis();
+    enviarFirebase();
+  }
   actualizarLED();
   if (millis() - lastTipoRead > TIPO_INTERVALO) {
     leerTipoPlanta();
@@ -194,23 +214,24 @@ void conectarWiFiMulti() {
 void conectarFirebase() {
   firebaseConfig.api_key = FIREBASE_API_KEY;
   firebaseConfig.database_url = FIREBASE_HOST;
-  firebaseAuth.user.email = "";
-  firebaseAuth.user.password = "";
-  if (Firebase.signUp(&firebaseConfig, &firebaseAuth, "", "")) {
-    Serial.println("✅ Firebase autenticado");
-    errorCom = false;
-  } else {
-    Serial.printf("❌ Firebase error: %s\n", firebaseConfig.signer.signupError.message.c_str());
-    errorCom = true;
-    return;
-  }
+  firebaseConfig.cert.data = FIREBASE_ROOT_CA;          // validación de TLS contra la CA raíz
+  firebaseAuth.user.email = FIREBASE_DEVICE_EMAIL;      // cuenta propia del dispositivo (no anónima)
+  firebaseAuth.user.password = FIREBASE_DEVICE_PASSWORD;
+  firebaseConfig.token_status_callback = tokenStatusCallback;
+  firebaseConfig.timeout.serverResponse = 10 * 1000;
+  firebaseData.setResponseSize(2048);
+
   Firebase.begin(&firebaseConfig, &firebaseAuth);
   Firebase.reconnectWiFi(true);
+  Serial.println("Firebase: iniciando sesión del dispositivo...");
+  unsigned long t0 = millis();
+  while (!Firebase.ready() && millis() - t0 < 15000) delay(200);
+  errorCom = !Firebase.ready();
+  Serial.println(errorCom ? "Firebase: sin sesión (se reintentará)" : "Firebase: sesión de dispositivo activa");
 }
-
 void leerTipoPlanta() {
-  if (WiFi.status() != WL_CONNECTED) return;
-  if (Firebase.getInt(firebaseData, "/config/tipoPlanta")) {
+  if (WiFi.status() != WL_CONNECTED || !Firebase.ready()) return;
+  if (Firebase.RTDB.getInt(&firebaseData, "/config/tipoPlanta")) {
     int nuevo = firebaseData.intData();
     if (nuevo >= 1 && nuevo <= 3 && nuevo != tipoPlanta) {
       tipoPlanta = nuevo;
@@ -518,6 +539,7 @@ void enviarFirebase() {
       return;
     }
   }
+  if (!Firebase.ready()) { errorCom = true; return; }
   FirebaseJson json;
   json.set("temp", tempC);
   json.set("hum", humAmb);
@@ -532,8 +554,9 @@ void enviarFirebase() {
   json.set("boot", (int)ciclo);
   json.set("sensores_ok", sensoresOk ? 1 : 0);
   json.set("timestamp", millis());
+  json.set("ts/.sv", "timestamp");   // marca de tiempo del SERVIDOR (la exigen las reglas)
 
-  if (Firebase.updateNode(firebaseData, "/sensor", json)) {
+  if (Firebase.RTDB.updateNode(&firebaseData, "/sensor", &json)) {
     Serial.println("✅ Datos enviados a Firebase");
     errorCom = false;
   } else {

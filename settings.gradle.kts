@@ -9,7 +9,6 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
-        maven { url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
     }
 }
 plugins {
@@ -20,8 +19,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
-        maven { url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
+        // JitPack es un repositorio de terceros que compila desde GitHub: se limita
+        // EXCLUSIVAMENTE al grupo de MPAndroidChart para que no pueda servir ningún otro artefacto.
+        exclusiveContent {
+            forRepository { maven { url = uri("https://jitpack.io") } }
+            filter { includeGroup("com.github.PhilJay") }
+        }
     }
 }
 

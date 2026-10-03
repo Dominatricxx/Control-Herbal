@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <external-files-path name="my_images" path="Pictures" />
+    <!-- Solo el subdirectorio de fotos temporales de la cámara, en el caché interno de la app -->
+    <cache-path name="camera" path="camera/" />
 </paths>

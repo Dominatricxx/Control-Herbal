@@ -65,3 +65,18 @@ captures/
 # Salida del contenedor de entrenamiento
 output/*
 !output/.gitkeep
+
+# --- Seguridad / higiene (añadido) ---
+# Credenciales y secretos locales
+.env
+*.env
+firmware/secrets.h
+deploy/mosquitto/passwd
+firebase/.firebaserc
+# Salidas de build de release que nunca deben versionarse
+app/release/
+*.dm
+# Dependencias de Node (tests de reglas)
+node_modules/
+firebase/*-debug.log
+firebase-debug.log

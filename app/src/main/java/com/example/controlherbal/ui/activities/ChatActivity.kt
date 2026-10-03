@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,18 +21,19 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.controlherbal.R
+import com.example.controlherbal.ai.AiGateway
+import com.example.controlherbal.common.AiConsent
 import com.example.controlherbal.common.AppConstants
+import com.example.controlherbal.common.ImageUtils
 import com.example.controlherbal.common.SecureLogger
 import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
-import com.google.firebase.Firebase
-import com.google.firebase.vertexai.type.content
-import com.google.firebase.vertexai.vertexAI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlinx.coroutines.TimeoutCancellationException
 
 data class ChatMessage(
     val text: String,
@@ -59,15 +59,26 @@ class ChatActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "ChatActivity"
+        private const val CAMERA_DIR = "camera"
     }
 
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && currentPhotoPath != null) {
-            val bitmap = BitmapFactory.decodeFile(currentPhotoPath)
-            selectedImage = bitmap
-            val userMsg = ChatMessage("Analizando esta planta...", true, bitmap)
-            addMessage(userMsg)
-            sendMessageToAI(userMsg)
+        val path = currentPhotoPath
+        currentPhotoPath = null
+        if (success && path != null) {
+            // Se reduce la imagen (memoria, datos enviados, sin EXIF) y se borra el archivo original.
+            val bitmap = ImageUtils.decodeScaled(path)
+            ImageUtils.deleteQuietly(path)
+            if (bitmap == null) {
+                Toast.makeText(this, "No se pudo leer la foto", Toast.LENGTH_SHORT).show()
+            } else {
+                selectedImage = bitmap
+                val userMsg = ChatMessage("Analizando esta planta...", true, bitmap)
+                addMessage(userMsg)
+                sendMessageToAI(userMsg)
+            }
+        } else {
+            ImageUtils.deleteQuietly(path)
         }
     }
 
@@ -85,13 +96,16 @@ class ChatActivity : AppCompatActivity() {
         rvChat.layoutManager = LinearLayoutManager(this)
         rvChat.adapter = adapter
 
+        ImageUtils.purgeCameraCache(File(cacheDir, CAMERA_DIR), maxAgeMs = 0L)
+
         findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
 
         btnSend.setOnClickListener {
             val text = etInput.text.toString().trim()
             if (text.isNotEmpty()) {
-                val sanitizedText = SecurityUtils.sanitizePrompt(text)
-                val msg = ChatMessage(sanitizedText, true)
+                val cleanedText = SecurityUtils.cleanUserPrompt(text)
+                if (cleanedText.isEmpty()) return@setOnClickListener
+                val msg = ChatMessage(cleanedText, true)
                 addMessage(msg)
                 etInput.text.clear()
                 sendMessageToAI(msg)
@@ -114,54 +128,53 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun openCamera() {
-        try {
-            val photoFile = File.createTempFile("IMG_", ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES))
-            currentPhotoPath = photoFile.absolutePath
-            val photoURI = FileProvider.getUriForFile(this, "${packageName}.fileprovider", photoFile)
-            takePictureLauncher.launch(photoURI)
-        } catch (e: Exception) {
-            SecureLogger.e(TAG, "Error al abrir la cámara: ${e.message}")
-            Toast.makeText(this, "Error al abrir la cámara", Toast.LENGTH_SHORT).show()
+        AiConsent.ensure(this) {
+            try {
+                // Almacenamiento interno de la app (cacheDir): no accesible por otras apps.
+                val dir = File(cacheDir, CAMERA_DIR).apply { mkdirs() }
+                val photoFile = File.createTempFile("IMG_", ".jpg", dir)
+                currentPhotoPath = photoFile.absolutePath
+                val photoURI = FileProvider.getUriForFile(this, "${packageName}.fileprovider", photoFile)
+                takePictureLauncher.launch(photoURI)
+            } catch (e: Exception) {
+                SecureLogger.e(TAG, "Error al abrir la cámara: ${e.javaClass.simpleName}")
+                Toast.makeText(this, "Error al abrir la cámara", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun sendMessageToAI(userMsg: ChatMessage) {
+        if (pbLoading.visibility == View.VISIBLE) return   // una petición a la vez
+        AiConsent.ensure(this) { runAiRequest(userMsg) }
+    }
+
+    private fun runAiRequest(userMsg: ChatMessage) {
         pbLoading.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                val model = Firebase.vertexAI.generativeModel(AppConstants.VERTEX_AI_MODEL)
-                val sanitizedPlantType = SecurityUtils.sanitizeText(currentPlant?.type ?: "desconocida")
-                val sanitizedPlantName = SecurityUtils.sanitizeText(currentPlant?.name ?: "")
-                
-                val promptText = if (userMsg.image != null) {
-                    "Actúa como un experto botánico. Analiza la imagen de esta planta ($sanitizedPlantType). Identifica si tiene algún problema. Responde brevemente: 1. Diagnóstico, 2. Causa, 3. Recomendación. Si hay problema grave, termina con [ALERTA: Nombre]."
-                } else {
-                    "Asistente botánico para la planta: $sanitizedPlantName ($sanitizedPlantType). Responde brevemente."
-                }
+                val plantName = currentPlant?.name ?: ""
+                val plantType = currentPlant?.type ?: "desconocida"
 
-                val sanitizedUserText = SecurityUtils.sanitizePrompt(userMsg.text)
+                val responseText = withContext(Dispatchers.IO) {
+                    if (userMsg.image != null) AiGateway.diagnose(userMsg.image, plantName, plantType)
+                    else AiGateway.chat(userMsg.text, plantName, plantType)
+                }.ifEmpty { "No pude procesar tu solicitud." }
 
-                val response = if (userMsg.image != null) {
-                    model.generateContent(content { image(userMsg.image); text(promptText) })
-                } else {
-                    model.generateContent("$sanitizedUserText\nContexto: $promptText")
-                }
+                // La respuesta del modelo es entrada NO confiable: solo se acepta una etiqueta
+                // con formato estricto en la última línea; el resto se muestra como texto plano.
+                val alert = SecurityUtils.extractAlert(responseText)
 
-                val responseText = response.text ?: "No pude procesar tu solicitud."
-                withContext(Dispatchers.Main) {
-                    addMessage(ChatMessage(responseText, false))
-                    pbLoading.visibility = View.GONE
-                    if (responseText.contains("[ALERTA:")) {
-                        val diagnosis = responseText.substringAfter("[ALERTA:").substringBefore("]").trim()
-                        updatePlantHealth(SecurityUtils.sanitizeText(diagnosis), responseText)
-                    }
-                }
+                addMessage(ChatMessage(responseText, false))
+                pbLoading.visibility = View.GONE
+                if (alert != null) updatePlantHealth(alert, responseText)
+            } catch (e: TimeoutCancellationException) {
+                SecureLogger.e(TAG, "Tiempo de espera agotado en la IA")
+                pbLoading.visibility = View.GONE
+                Toast.makeText(this@ChatActivity, "El servicio de IA tardó demasiado", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
-                SecureLogger.e(TAG, "Error de IA: ${e.message}")
-                withContext(Dispatchers.Main) {
-                    pbLoading.visibility = View.GONE
-                    Toast.makeText(this@ChatActivity, "Error de conexión con el servicio de IA", Toast.LENGTH_SHORT).show()
-                }
+                SecureLogger.e(TAG, "Error de IA: ${e.javaClass.simpleName}")
+                pbLoading.visibility = View.GONE
+                Toast.makeText(this@ChatActivity, "Error de conexión con el servicio de IA", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -169,7 +182,10 @@ class ChatActivity : AppCompatActivity() {
     private fun updatePlantHealth(diagnosis: String, fullResponse: String) {
         val plant = currentPlant ?: return
         lifecycleScope.launch(Dispatchers.IO) {
-            val updatedPlant = plant.copy(aiDiagnosis = diagnosis, aiRecommendation = fullResponse)
+            val updatedPlant = plant.copy(
+                aiDiagnosis = SecurityUtils.sanitizeText(diagnosis, 60),
+                aiRecommendation = SecurityUtils.sanitizeModelOutput(fullResponse)
+            )
             databaseLocal.plantDao().update(updatedPlant)
             currentPlant = updatedPlant
             withContext(Dispatchers.Main) { Toast.makeText(this@ChatActivity, "Salud actualizada", Toast.LENGTH_SHORT).show() }

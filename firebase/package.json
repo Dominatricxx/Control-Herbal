@@ -1,0 +1,19 @@
+{
+  "name": "control-herbal-firebase-rules-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tests de las reglas de seguridad de Realtime Database (emulador)",
+  "type": "module",
+  "scripts": {
+    "test": "firebase emulators:exec --only database --project demo-control-herbal \"node --test test/*.test.js\"",
+    "test:offline": "node --test test-offline/*.test.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0",
+    "firebase-tools": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

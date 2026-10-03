@@ -1,10 +1,12 @@
-# Uso (desde la raíz del repo o desde deploy/):
+# Uso (desde la raíz del repo):
+#   export HERBAL_DB_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com"
+#   export HERBAL_API_KEY="..."  HERBAL_USER_EMAIL="viewer@..."  HERBAL_USER_PASSWORD="..."
 #   docker compose -f deploy/docker-compose.yml build
-#   FIREBASE_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com/sensor.json" \
-#     docker compose -f deploy/docker-compose.yml run --rm trainer
+#   docker compose -f deploy/docker-compose.yml run --rm trainer
+# El modelo (y su .sha256) quedan en ./output -> cópialos a app/src/main/assets/ y versiona ambos.
 #
-# El modelo queda en ./output/herbal_model.tflite (copialo a app/src/main/assets/).
-# Broker MQTT opcional (el proyecto hoy usa Firebase, no MQTT):
+# Broker MQTT opcional (el proyecto hoy usa Firebase, no MQTT). Solo escucha en 127.0.0.1 y exige
+# usuario/contraseña; ver deploy/mosquitto/README.md para crear el archivo de contraseñas:
 #   docker compose -f deploy/docker-compose.yml --profile mqtt up -d mqtt-broker
 
 name: control-herbal
@@ -12,18 +14,26 @@ name: control-herbal
 services:
   trainer:
     build:
-      context: ..                 # raíz del repo
+      context: ..
       dockerfile: deploy/Dockerfile
     image: control-herbal-trainer:latest
     container_name: control-herbal-trainer
     environment:
-      FIREBASE_URL: ${FIREBASE_URL:?Define FIREBASE_URL con la URL de tu Realtime Database (.../sensor.json)}
+      HERBAL_DB_URL: ${HERBAL_DB_URL:?Define HERBAL_DB_URL (https://<proyecto>-default-rtdb.firebaseio.com)}
+      HERBAL_API_KEY: ${HERBAL_API_KEY:?Define HERBAL_API_KEY}
+      HERBAL_USER_EMAIL: ${HERBAL_USER_EMAIL:?Define HERBAL_USER_EMAIL (cuenta con rol viewer)}
+      HERBAL_USER_PASSWORD: ${HERBAL_USER_PASSWORD:?Define HERBAL_USER_PASSWORD}
       MODEL_OUTPUT_PATH: /app/output/herbal_model.tflite
       HOME: /tmp
-    # Evita problemas de permisos en el bind mount (Linux): exporta HOST_UID/HOST_GID si no son 1000
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     volumes:
-      - ../output:/app/output     # el .tflite generado queda en ./output del host
+      - ../output:/app/output
     restart: "no"
 
   mqtt-broker:
@@ -31,11 +41,18 @@ services:
     container_name: control-herbal-mqtt
     profiles: ["mqtt"]
     ports:
-      - "1883:1883"   # MQTT
-      - "9001:9001"   # MQTT sobre WebSockets
+      - "127.0.0.1:1883:1883"   # MQTT, solo loopback
+      - "127.0.0.1:9001:9001"   # MQTT sobre WebSockets, solo loopback
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/passwd:/mosquitto/config/passwd:ro
       - mosquitto-data:/mosquitto/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
 volumes:

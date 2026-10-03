@@ -23,16 +23,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.controlherbal.R
+import com.example.controlherbal.ai.AiGateway
+import com.example.controlherbal.common.AiConsent
 import com.example.controlherbal.common.PlantCategoriesCatalog
 import com.example.controlherbal.common.PredefinedPlantInfo
 import com.example.controlherbal.common.SecureLogger
 import com.example.controlherbal.common.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
-import com.google.firebase.Firebase
-import com.google.firebase.vertexai.type.content
-import com.google.firebase.vertexai.vertexAI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -288,7 +288,7 @@ class PlantSetupActivity : AppCompatActivity() {
 
     private fun identifyPlantWithAI(bitmap: Bitmap) {
         if (isInternetAvailable()) {
-            identifyOnline(bitmap)
+            AiConsent.ensure(this) { identifyOnline(bitmap) }
         } else {
             identifyOffline()
         }
@@ -300,25 +300,13 @@ class PlantSetupActivity : AppCompatActivity() {
             .setCancelable(false)
             .show()
 
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val model = Firebase.vertexAI.generativeModel(modelName = "gemini-1.5-flash")
-                val prompt = "Actúa como experto botánico. Analiza la imagen. " +
-                            "Si es una planta, responde ÚNICAMENTE con este formato: " +
-                            "Nombre común [Emoji] (Nombre científico) | Ambiente: [Luz/Sombra/Híbrido]. " +
-                            "Ejemplo: Romero 🌿 (Salvia rosmarinus) | Ambiente: Luz. " +
-                            "Si no es una planta, responde: No es una planta."
-                
-                val response = model.generateContent(
-                    content {
-                        image(bitmap)
-                        text(prompt)
-                    }
-                )
+                val aiText = AiGateway.identify(bitmap)
 
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
-                    val result = SecurityUtils.sanitizePrompt(response.text?.trim() ?: "Planta Desconocida 🌿")
+                    val result = aiText.ifBlank { "Planta Desconocida 🌿" }
                     
                     if (result.contains("No es una planta", ignoreCase = true)) {
                         Toast.makeText(this@PlantSetupActivity, "No se detectó una planta.", Toast.LENGTH_LONG).show()
@@ -326,7 +314,7 @@ class PlantSetupActivity : AppCompatActivity() {
                     } else {
                         if (result.contains("| Ambiente:")) {
                             val parts = result.split("| Ambiente:")
-                            customPlantType = parts[0].trim()
+                            customPlantType = SecurityUtils.sanitizeText(parts[0], 80)
                             val envText = parts[1].trim()
                             
                             val envIndex = environments.indexOfFirst { envText.contains(it.split(" ").first(), ignoreCase = true) }
@@ -336,7 +324,7 @@ class PlantSetupActivity : AppCompatActivity() {
                                 spinnerEnvironment.alpha = 0.6f
                             }
                         } else {
-                            customPlantType = result
+                            customPlantType = SecurityUtils.sanitizeText(result, 80)
                             resetEnvironmentSpinner()
                         }
                         selectedPlantData = null
@@ -344,7 +332,7 @@ class PlantSetupActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                SecureLogger.e(TAG, "Error identificación online: ${e.message}")
+                SecureLogger.e(TAG, "Error identificación online: ${e.javaClass.simpleName}")
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
                     identifyOffline()

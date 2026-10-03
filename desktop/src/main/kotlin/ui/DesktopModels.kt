@@ -1,7 +1,8 @@
 package ui
 
-import java.io.File
 import logic.PredictiveTheorem
+import storage.PlantRecord
+import storage.PlantStorage
 
 data class DesktopPlant(
     val name: String,
@@ -20,32 +21,11 @@ data class SensorState(
     val analysis: PredictiveTheorem.AnalysisResult? = null
 )
 
-private val persistenceFile = File(System.getProperty("user.home"), ".controlherbal_plants.txt")
+fun savePlants(plants: List<DesktopPlant>) =
+    PlantStorage.save(plants.map { PlantRecord(it.name, it.type, it.environment, it.isSelected, it.lastWateringTime) })
 
-fun savePlants(plants: List<DesktopPlant>) {
-    try {
-        val lines = plants.map { "${it.name}|${it.type}|${it.environment}|${it.isSelected}|${it.lastWateringTime}" }
-        persistenceFile.writeText(lines.joinToString("\n"))
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-}
-
-fun loadPlants(): List<DesktopPlant> {
-    if (!persistenceFile.exists()) return emptyList()
-    return try {
-        persistenceFile.readLines().mapNotNull { line ->
-            val parts = line.split("|")
-            if (parts.size >= 4) {
-                val lastWatering = if (parts.size >= 5) parts[4].toLong() else 0L
-                DesktopPlant(parts[0], parts[1], parts[2], parts[3].toBoolean(), lastWatering)
-            } else null
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        emptyList()
-    }
-}
+fun loadPlants(): List<DesktopPlant> =
+    PlantStorage.load().map { DesktopPlant(it.name, it.type, it.environment, it.isSelected, it.lastWateringTime) }
 
 data class PredefinedPlant(
     val name: String,

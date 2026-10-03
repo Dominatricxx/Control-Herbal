@@ -19,6 +19,7 @@
         android:required="false" />
 
     <application
+        android:name=".ControlHerbalApp"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -49,6 +50,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Acceso con cuenta autorizada (no exportada: solo se abre desde la propia app) -->
+        <activity
+            android:name=".ui.activities.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ControlHerbal" />
 
         <!-- Actividades internas no exportadas para prevenir Intent Redirection -->
         <activity
