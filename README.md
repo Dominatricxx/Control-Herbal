@@ -13,9 +13,13 @@
 
 **Control Herbal** es un sistema de monitoreo inteligente para plantas que combina un microcontrolador **ESP32** con sensores ambientales, una base de datos en tiempo real y un modelo de **inteligencia artificial** que aprende de las lecturas reales para predecir el riesgo de estrés de la planta antes de que ocurra.
 
-El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te avisa **cuántas horas de margen tienes** antes de que la planta entre en sequía o exceso de calor/luz.
+Una planta no avisa cuando algo va mal: para cuando las hojas se marchitan, el daño ya está hecho. El proyecto nace de ese problema y del deseo de cuidar mejor lo que crece en casa, reemplazando el "regué cuando me acordé" por información concreta: **cuántas horas de margen tienes** antes de que la planta entre en sequía o sufra exceso de calor o de luz.
 
-> **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; la integración completa en las apps (Android / Wear OS / Desktop) sigue en desarrollo.
+Para lograrlo, un ESP32 mide cada segundo la temperatura, la humedad ambiente, la luminosidad y la humedad del suelo, y envía las lecturas a **Firebase Realtime Database**. Con los datos acumulados, un contenedor **Docker** con Python y TensorFlow entrena un modelo que se exporta a **TensorFlow Lite**. Las aplicaciones en Kotlin (Android, Wear OS y escritorio) comparten un módulo común que lee el estado en vivo, aplica el modelo y presenta recomendaciones claras.
+
+El flujo también funciona en sentido contrario: desde la app se elige el tipo de planta, ese dato se guarda en Firebase y el ESP32 lo lee para ajustar los rangos que considera óptimos. Así, cada planta se evalúa con sus propias necesidades y no con un criterio único para todas.
+
+> **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; Continuamente se realizan mejoras de optimización, seguridad y automatización.
 
 ---
 
@@ -24,11 +28,17 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 - **Lectura en tiempo real** de temperatura, humedad ambiente, luz y humedad de suelo (ciclo de 1s)
 - **IRH (Índice de Riesgo Herbal)** — métrica propia que combina el estado actual de cada sensor con su *tendencia* (ej. qué tan rápido se está secando el suelo)
 - **Predicción de sequía y necesidad de sombra**, estimando horas de margen antes de que la planta entre en riesgo
--  Perfiles configurables por tipo de planta (luz directa / híbrida / sombra), cada uno con sus propios rangos óptimos
--  Calibración automática del sensor de luz (LDR) con persistencia en memoria
--  Sincronización con **Firebase Realtime Database**
--  Script en **Python + TensorFlow** que entrena un modelo con los datos reales recolectados y lo exporta a **TensorFlow Lite** para correr directo en la app
--  Indicador LED de estado (sensores OK / error de comunicación)
+- **Recomendaciones en texto** (riego, sombra, ventilación, etc.) generadas a partir del IRH y de las tendencias
+- **Perfiles configurables por tipo de planta** (luz directa / híbrida / sombra), cada uno con sus propios rangos óptimos
+- **Configuración bidireccional:** la app escribe el tipo de planta en Firebase (`/config`) y el ESP32 lo lee para adaptarse
+- **Calibración automática del sensor de luz (LDR)** con persistencia en memoria
+- **Sincronización con Firebase Realtime Database**, con los datos de sensores en `/sensor`
+- Script en **Python + TensorFlow** que entrena un modelo con los datos reales recolectados y lo exporta a **TensorFlow Lite** para correr directo en la app
+- **Entrenamiento reproducible con Docker**, sin necesidad de instalar TensorFlow en el equipo
+- **Apps multiplataforma en Kotlin** (Android, Wear OS y Desktop JVM) que comparten un módulo común
+- **Automatización con GitHub Actions:** compilación y validación de la imagen Docker, y actualización automática del gráfico de lenguajes
+- **Broker MQTT opcional** (Mosquitto) para extender la comunicación del sistema
+- **Indicador LED de estado** (sensores OK / error de comunicación)
 
 ---
 
@@ -57,11 +67,7 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 ## Tech Stack
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,py,arduino,firebase,git,github,gradle" />
-</p>
-<p align="center">
-  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white"/>
-  <img src="https://img.shields.io/badge/ESP32-000000?style=for-the-badge&logo=espressif&logoColor=white"/>
+  <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,py,cpp,java,arduino,firebase,docker,git,github,githubactions,gradle" />
 </p>
 
 ---
@@ -121,7 +127,7 @@ Abre el proyecto en **Android Studio** y selecciona el módulo que quieras corre
 
 <div align="center">
 
-Hecho por [**Dominic Escobar**](https://github.com/Dominatricxx) 🌱
+Hecho por [**Dominic Escobar**](https://github.com/Dominatricxx)
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:7AA240,50:2E5E45,100:1B3B2F&height=90&section=footer" width="100%"/>
 
