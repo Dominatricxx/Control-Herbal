@@ -13,10 +13,13 @@
 
 **Control Herbal** es un sistema de monitoreo inteligente para plantas que combina un microcontrolador **ESP32** con sensores ambientales, una base de datos en tiempo real y un modelo de **inteligencia artificial** que aprende de las lecturas reales para predecir el riesgo de estrés de la planta antes de que ocurra.
 
-El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te avisa **cuántas horas de margen tienes** antes de que la planta entre en sequía o exceso de calor/luz.
+Una planta no avisa cuando algo va mal: para cuando las hojas se marchitan, el daño ya está hecho. El proyecto nace de ese problema y del deseo de cuidar mejor lo que crece en casa, reemplazando el "regué cuando me acordé" por información concreta: **cuántas horas de margen tienes** antes de que la planta entre en sequía o sufra exceso de calor o de luz.
 
-> **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; la integración completa en las apps (Android / Wear OS / Desktop) sigue en desarrollo.
+Para lograrlo, un ESP32 mide cada segundo la temperatura, la humedad ambiente, la luminosidad y la humedad del suelo, y envía las lecturas a **Firebase Realtime Database**. Con los datos acumulados, un contenedor **Docker** con Python y TensorFlow entrena un modelo que se exporta a **TensorFlow Lite**. Las aplicaciones en Kotlin (Android, Wear OS y escritorio) comparten un módulo común que lee el estado en vivo, aplica el modelo y presenta recomendaciones claras.
 
+El flujo también funciona en sentido contrario: desde la app se elige el tipo de planta, ese dato se guarda en Firebase y el ESP32 lo lee para ajustar los rangos que considera óptimos. Así, cada planta se evalúa con sus propias necesidades y no con un criterio único para todas.
+
+> **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; Continuamente recibe adaptaciones de optimicidad, parches de seguridad y estructuramiento más ordenado.
 ---
 
 ## Características
@@ -24,11 +27,17 @@ El objetivo: pasar de "regué la planta cuando me acordé" a un sistema que te a
 - **Lectura en tiempo real** de temperatura, humedad ambiente, luz y humedad de suelo (ciclo de 1s)
 - **IRH (Índice de Riesgo Herbal)** — métrica propia que combina el estado actual de cada sensor con su *tendencia* (ej. qué tan rápido se está secando el suelo)
 - **Predicción de sequía y necesidad de sombra**, estimando horas de margen antes de que la planta entre en riesgo
--  Perfiles configurables por tipo de planta (luz directa / híbrida / sombra), cada uno con sus propios rangos óptimos
--  Calibración automática del sensor de luz (LDR) con persistencia en memoria
--  Sincronización con **Firebase Realtime Database**
--  Script en **Python + TensorFlow** que entrena un modelo con los datos reales recolectados y lo exporta a **TensorFlow Lite** para correr directo en la app
--  Indicador LED de estado (sensores OK / error de comunicación)
+- **Recomendaciones en texto** (riego, sombra, ventilación, etc.) generadas a partir del IRH y de las tendencias
+- **Perfiles configurables por tipo de planta** (luz directa / híbrida / sombra), cada uno con sus propios rangos óptimos
+- **Configuración bidireccional:** la app escribe el tipo de planta en Firebase (`/config`) y el ESP32 lo lee para adaptarse
+- **Calibración automática del sensor de luz (LDR)** con persistencia en memoria
+- **Sincronización con Firebase Realtime Database**, con los datos de sensores en `/sensor`
+- Script en **Python + TensorFlow** que entrena un modelo con los datos reales recolectados y lo exporta a **TensorFlow Lite** para correr directo en la app
+- **Entrenamiento reproducible con Docker**, sin necesidad de instalar TensorFlow en el equipo
+- **Apps multiplataforma en Kotlin** (Android, Wear OS y Desktop JVM) que comparten un módulo común
+- **Automatización con GitHub Actions:** compilación y validación de la imagen Docker, y actualización automática del gráfico de lenguajes
+- **Broker MQTT opcional** (Mosquitto) para extender la comunicación del sistema
+- **Indicador LED de estado** (sensores OK / error de comunicación)
 
 ---
 
@@ -57,11 +66,7 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 ## Tech Stack
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,py,arduino,firebase,git,github,gradle" />
-</p>
-<p align="center">
-  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white"/>
-  <img src="https://img.shields.io/badge/ESP32-000000?style=for-the-badge&logo=espressif&logoColor=white"/>
+  <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,py,cpp,java,arduino,firebase,docker,git,github,githubactions,gradle" />
 </p>
 
 ---
@@ -78,32 +83,32 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 
 ## Instalación y uso
 
-### 0. Seguridad (léelo antes de nada)
-La app, el reloj, el escritorio y el ESP32 se autentican con **Firebase Auth** y la base está protegida
-por reglas por rol (`firebase/database.rules.json`). Sigue la guía [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md)
-para crear usuarios, asignar roles, activar App Check y configurar los secretos. Nada de esto se
-guarda en el repositorio.
-
 ### 1. Firmware (ESP32)
-1. Instala en Arduino IDE: `DHT sensor library`, `Firebase Arduino Client Library for ESP8266 and ESP32` (mobizt; sustituye a la obsoleta `FirebaseESP32`) y las incluidas en el core de ESP32 (`WiFi`, `WiFiMulti`, `Preferences`)
-2. Crea tu proyecto en [Firebase](https://console.firebase.google.com/), habilita Realtime Database y Authentication (correo/contraseña)
-3. Copia `firmware/secrets.h.example` a `firmware/secrets.h` y rellena WiFi, API key, la cuenta **propia de ese ESP32** y el certificado raíz TLS. `secrets.h` está en `.gitignore`; el firmware no compila sin él
+1. Instala en Arduino IDE las librerías: `DHT sensor library`, `WiFiMulti`, `FirebaseESP32`, `Preferences`
+2. Crea tu propio proyecto en [Firebase](https://console.firebase.google.com/) y habilita Realtime Database
+3. **Importante:** no dejes tus credenciales de WiFi ni tu API key de Firebase escritas directamente en el `.ino`. Sepáralas en un archivo `secrets.h` (ejemplo abajo) y agrégalo a tu `.gitignore`
 4. Conecta los sensores a los pines definidos (`DHTPIN`, `LDRPIN`, `SOIL_PIN`) y flashea el ESP32
+
+```cpp
+// secrets.h (NO subir este archivo a GitHub — agrégalo a .gitignore)
+#define WIFI_SSID     "tu_red"
+#define WIFI_PASSWORD "tu_password"
+#define FIREBASE_HOST "tu-proyecto.firebaseio.com"
+#define FIREBASE_API_KEY "tu_api_key"
+```
 
 ### 2. Entrenamiento del modelo (Python)
 ```bash
-export HERBAL_DB_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com"
-export HERBAL_API_KEY="..." HERBAL_USER_EMAIL="viewer@..." HERBAL_USER_PASSWORD="..."
-pip install -r ml/requirements.txt
-python ml/train_herbal_model.py
+pip install requests pandas numpy tensorflow scikit-learn
+python train_herbal_model.py
 ```
-Descarga los datos (autenticado), los valida, entrena, comprueba el error en validación y guarda
-`app/src/main/assets/herbal_model.tflite` junto a su `.sha256` (versiona ambos).
+Esto descarga los datos acumulados en Firebase, entrena una red neuronal simple y guarda el modelo listo para la app en `app/src/main/assets/herbal_model.tflite`.
 
 #### Con Docker (sin instalar TensorFlow)
 ```bash
+export FIREBASE_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com/sensor.json"
 docker compose -f deploy/docker-compose.yml run --rm trainer
-# el modelo y su .sha256 quedan en ./output -> cópialos a app/src/main/assets/
+# el modelo queda en ./output/herbal_model.tflite -> cópialo a app/src/main/assets/
 ```
 
 ### 3. Apps (Android / Wear OS / Desktop)
@@ -121,7 +126,7 @@ Abre el proyecto en **Android Studio** y selecciona el módulo que quieras corre
 
 <div align="center">
 
-Hecho por [**Dominic Escobar**](https://github.com/Dominatricxx) 🌱
+Hecho por [**Dominic Escobar**](https://github.com/Dominatricxx)
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:7AA240,50:2E5E45,100:1B3B2F&height=90&section=footer" width="100%"/>
 
