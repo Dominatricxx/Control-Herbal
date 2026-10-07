@@ -2,7 +2,7 @@
 #   pip install pip-tools && pip-compile --generate-hashes ml/requirements.txt -o ml/requirements.lock
 #   pip install --require-hashes -r ml/requirements.lock
 requests>=2.32.3,<3
-pandas>=2.2,<3
+pandas>=3.0.6,<4
 numpy>=1.26,<2.2
 scikit-learn>=1.5,<2
 tensorflow-cpu>=2.16,<2.20
