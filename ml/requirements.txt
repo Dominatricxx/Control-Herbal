@@ -3,7 +3,7 @@
 #   pip install --require-hashes -r ml/requirements.lock
 requests>=2.32.3,<3
 pandas>=2.2,<3
-numpy>=1.26,<2.2
+numpy>=2.5.3,<2.6
 scikit-learn>=1.5,<2
 tensorflow-cpu>=2.16,<2.20
 paho-mqtt>=2.0,<3
