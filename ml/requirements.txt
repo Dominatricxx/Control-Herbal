@@ -1,7 +1,7 @@
 # Versiones acotadas. Para builds reproducibles y verificables genera un lockfile con hashes:
 #   pip install pip-tools && pip-compile --generate-hashes ml/requirements.txt -o ml/requirements.lock
 #   pip install --require-hashes -r ml/requirements.lock
-requests>=2.32.3,<3
+requests>=2.34.2,<3
 pandas>=2.2,<3
 numpy>=1.26,<2.2
 scikit-learn>=1.5,<2
