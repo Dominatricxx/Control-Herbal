@@ -42,7 +42,7 @@ jobs:
       - name: Ensure google-services.json configuration exists
         run: |
           if [ ! -f app/google-services.json ]; then
-            cp app/google-services.json.example app/google-services.json
+            cp app/goo gle-services.json.example app/google-services.json
           fi
           if [ ! -f wear/google-services.json ]; then
             cp wear/google-services.json.example wear/google-services.json

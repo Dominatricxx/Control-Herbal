@@ -223,6 +223,13 @@
             android:text="Última actualización: --"
             android:textSize="12sp" />
 
+        <!-- Dashboard de Sensores con Tarjetas Animadas (Jetpack Compose + Coil GIFs) -->
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/composeSensorDashboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" />
+
         <!-- Tarjeta de datos ambientales rediseñada -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

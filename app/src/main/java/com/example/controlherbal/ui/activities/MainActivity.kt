@@ -39,6 +39,11 @@ import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.data.sync.SensorForegroundService
 import com.example.controlherbal.domain.logic.PredictiveTheorem
 import com.example.controlherbal.ui.viewmodel.SensorViewModel
+import com.example.controlherbal.ui.components.SensorDashboardSection
+import com.example.controlherbal.ui.theme.ControlHerbalTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.ComposeView
 import com.example.controlherbal.ui.widget.HerbalWidgetManager
 import com.github.mikephil.charting.charts.CombinedChart
 import com.google.android.material.navigation.NavigationView
@@ -260,6 +265,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         btnEditNameIcon.setOnClickListener { showEditNameDialog() }
         btnDeletePlant.setOnClickListener { showDeletePlantDialog() }
         btnConnect.setOnClickListener { startFirebaseListener() }
+
+        viewModel = ViewModelProvider(this@MainActivity).get(SensorViewModel::class.java)
+        val composeSensorDashboard = findViewById<ComposeView>(R.id.composeSensorDashboard)
+        composeSensorDashboard?.setContent {
+            val uiState by viewModel.uiState.collectAsState()
+            ControlHerbalTheme {
+                SensorDashboardSection(
+                    temp = uiState.temp,
+                    hum = uiState.hum,
+                    soil = uiState.soil,
+                    luz = uiState.luz,
+                    isDay = uiState.isDay
+                )
+            }
+        }
 
         ioScope.launch {
             loadModel()

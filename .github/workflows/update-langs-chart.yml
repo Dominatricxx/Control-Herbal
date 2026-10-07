@@ -3,11 +3,11 @@ name: Update languages chart
 on:
   push:
     branches: [main]
-    # evita que el propio commit del chart vuelva a disparar el workflow
+
     paths-ignore:
       - "assets/control-herbal-languages-chart.svg"
   schedule:
-    # refresco semanal aunque no haya push (corrige cualquier desfase de la API)
+
     - cron: "0 6 * * 1"
   workflow_dispatch: {}
 
