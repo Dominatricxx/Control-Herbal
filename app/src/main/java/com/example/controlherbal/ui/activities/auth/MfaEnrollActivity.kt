@@ -93,7 +93,7 @@ class MfaEnrollActivity : AppCompatActivity() {
             !AuthManager.isSignedIn() -> signOutToLogin()
             // Ya tiene 2FA (p. ej. caché antigua): vuelve al flujo normal de acceso.
             !AuthManager.needsMfaEnrollment() -> {
-                startActivity(Intent(this, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+                startActivity(Intent(this, SplashActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
                 finish()
             }
             !AuthManager.isEmailVerified() -> {
@@ -185,7 +185,7 @@ class MfaEnrollActivity : AppCompatActivity() {
 
     private fun signOutToLogin() {
         AuthManager.signOut()
-        startActivity(Intent(this, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+        startActivity(Intent(this, SplashActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
         finish()
     }
 

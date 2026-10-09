@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glass Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bar: #353535;
+    --green: #5fa22a;
+    --radius: 16px;
+    --bar-h: 34px;
+
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  }
+
+  /* ---------- Temas del cristal ---------- */
+  .window, .window[data-theme="dark"], .window[data-theme="light"] {
+    --glass-blur: 44px;
+    --glass-tint: rgba(18, 22, 28, 0.65);
+    --glass-fallback: rgba(28, 32, 40, 0.96);
+    --sheen-a: .25; --sheen-b: .15;
+    --frost: .35;
+    --edge: rgba(255, 255, 255, .45);
+    --ink: #ffffff !important;
+    --text: #ffffff !important;
+    --muted: rgba(255, 255, 255, 0.82) !important;
+    --line: rgba(255, 255, 255, 0.50) !important;
+    --icon: #ffffff !important;
+    --chip-bg: rgba(255, 255, 255, 0.18);
+    --chip-border: rgba(255, 255, 255, 0.40);
+    --check-border: rgba(255, 255, 255, 0.70);
+    --thumb: rgba(255, 255, 255, 0.95);
+    --thumb-on: #121212;
+    --alert: #ff8a80;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: transparent; }
+
+  /* Sin fondo propio: lo que haya detrás se verá esmerilado a través del cristal */
+  body {
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    font-family: "Poppins", system-ui, sans-serif;
+    background: transparent;
+  }
+
+  /* ---------- Ventana (transparente: solo cristal) ---------- */
+  .window {
+    position: relative;
+    height: min(780px, calc(100dvh - 48px));
+    aspect-ratio: 9 / 19.5;
+    max-width: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: transparent;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+  }
+  .window::after {
+    content: "";
+    position: absolute; inset: 0; z-index: 6;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px var(--edge), inset 1px 1px 0 rgba(255,255,255,.55),
+                inset -1px -1px 0 rgba(255,255,255,.16), inset 0 0 36px rgba(255,255,255,.08);
+  }
+
+  /* ---------- Capa de cristal esmerilado ----------
+     Desenfoque fuerte + saturación + velo, para que cualquier superficie
+     detrás quede difuminada y no se distinga su contenido. */
+  .glass {
+    position: absolute; inset: 0; z-index: 0;
+    /* Frosted dark glass overlay for high text contrast */
+    background: rgba(18, 22, 28, 0.65);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+  }
+  /* Reflejos de superficie (brillos suaves como en vidrio real) */
+  .glass::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 55% at 12% 0%, rgba(255,255,255,.16), transparent 55%),
+      radial-gradient(90% 40% at 100% 100%, rgba(255,255,255,.08), transparent 60%);
+  }
+  /* Textura de vidrio granulado: relieve irregular (luz sobre ruido) + grano fino.
+     Ajusta la intensidad con --grain (0 a 1). */
+  .glass::after {
+    --grain: .2;
+    content: ""; position: absolute; inset: 0;
+    opacity: var(--grain); mix-blend-mode: overlay;
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='r' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.045' numOctaves='3' seed='7' stitchTiles='stitch' result='t'/><feDiffuseLighting in='t' surfaceScale='4' diffuseConstant='1.1' lighting-color='white'><feDistantLight azimuth='40' elevation='58'/></feDiffuseLighting></filter><rect width='100%' height='100%' filter='url(%23r)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='g' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='3' stitchTiles='stitch' result='t'/><feDiffuseLighting in='t' surfaceScale='2' diffuseConstant='1' lighting-color='white'><feDistantLight azimuth='225' elevation='65'/></feDiffuseLighting></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+    background-size: 300px 300px, 140px 140px;
+  }
+  /* Navegadores sin backdrop-filter: más opacidad para conservar legibilidad y tapar */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass { background: var(--glass-fallback); }
+  }
+
+  /* ---------- Barra superior estilo macOS ---------- */
+  .titlebar {
+    position: relative; z-index: 5;
+    flex: 0 0 var(--bar-h);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px;
+    background: var(--bar);
+  }
+  .traffic { display: flex; gap: 6px; }
+  .traffic span { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.25); }
+  .traffic .close { background: #ff5f57; }
+  .traffic .min   { background: #febc2e; }
+  .traffic .max   { background: #28c840; }
+  .tools { display: flex; gap: 12px; color: #f2f2f2; }
+  .tools svg { width: 13px; height: 13px; display: block; }
+
+  /* ---------- Contenido ---------- */
+  .content {
+    position: relative; z-index: 2;
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    padding: var(--sp-5) 24px 24px;
+    overflow-y: auto; scrollbar-width: none;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* ---------- Selector unido con diagonal ---------- */
+  .switch {
+    position: relative;
+    flex: 0 0 auto;
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid var(--chip-border);
+    background: var(--chip-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08), inset 0 0 0 1px rgba(255,255,255,.15);
+    overflow: hidden;
+  }
+  .switch .thumb {
+    position: absolute; inset: 0;
+    background: var(--thumb);
+    clip-path: polygon(0 0, 53% 0, 47% 100%, 0 100%);
+    transition: clip-path .4s cubic-bezier(.6,.05,.2,1);
+  }
+  .switch[data-mode="register"] .thumb {
+    clip-path: polygon(53% 0, 100% 0, 100% 100%, 47% 100%);
+  }
+  .switch button {
+    position: absolute; top: 0; bottom: 0;
+    width: 52%;
+    border: 0; background: none;
+    font: 500 12px/1 "Poppins", sans-serif;
+    color: var(--text);
+    cursor: pointer;
+    transition: color .3s ease;
+  }
+  .switch button:first-of-type { left: 0; padding-right: 8%; }
+  .switch button:nth-of-type(2) { right: 0; padding-left: 8%; }
+  .switch button[aria-selected="true"] { color: var(--thumb-on); }
+  .switch button:focus-visible { outline: 2px solid var(--green); outline-offset: -4px; border-radius: 999px; }
+
+  /* ---------- Encabezado ---------- */
+  .head { margin-top: var(--sp-6); }
+  h1 { font-size: 26px; font-weight: 600; line-height: 1.15; letter-spacing: -.2px; color: var(--ink); }
+  h1 span { display: block; font-weight: 300; font-size: 22px; letter-spacing: 0; margin-top: var(--sp-1); }
+  .sub { margin-top: var(--sp-3); font-size: 12px; line-height: 1.6; color: var(--text); max-width: 260px; }
+
+  /* ---------- Paneles ---------- */
+  .panels { position: relative; margin-top: var(--sp-5); flex: 1 0 auto; display: flex; flex-direction: column; }
+  .panel { display: flex; flex-direction: column; }
+  .panel:not(.active) { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; pointer-events: none; }
+  .panel.active { flex: 1; animation: in .3s ease; }
+  @keyframes in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .field { position: relative; display: flex; align-items: center; gap: 12px;
+    height: 48px; border-bottom: 1.5px solid var(--line);
+    transition: border-color .2s ease; }
+  .field + .field { margin-top: var(--sp-4); }
+  .field:focus-within { border-color: var(--green); }
+  .field svg { width: 17px; height: 17px; flex: none; color: var(--icon); }
+  .field:focus-within svg { color: var(--green); }
+  .field input { flex: 1; min-width: 0; border: 0; background: none; outline: 0;
+    font: 400 14px "Poppins", sans-serif; color: var(--ink); }
+  .field input::placeholder { color: var(--muted); }
+  .eye { color: var(--icon); border: 0; background: none; cursor: pointer; display: grid; place-items: center; padding: 4px; }
+  .eye svg { width: 17px; height: 17px; }
+
+  .row { display: flex; align-items: center; justify-content: space-between;
+    margin: var(--sp-4) 0 var(--sp-5); font-size: 12px; line-height: 1.4; color: var(--text); }
+  .check { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; }
+  .check input { appearance: none; -webkit-appearance: none; width: 17px; height: 17px;
+    border-radius: 5px; background: var(--chip-bg); border: 1.5px solid var(--check-border);
+    display: grid; place-items: center; cursor: pointer; flex: none; }
+  .check input:checked { background: var(--thumb); border-color: var(--thumb); }
+  .check input:checked::after { content: ""; width: 4px; height: 8px; border: solid var(--thumb-on); border-width: 0 1.8px 1.8px 0; transform: rotate(45deg) translate(-1px,-1px); }
+  .check input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+  .row a, .terms a { color: var(--ink); font-weight: 500; text-decoration: none; }
+  .row a:hover, .terms a:hover { text-decoration: underline; }
+  .alert { margin-top: var(--sp-2); min-height: 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 10.5px; line-height: 1.3; color: var(--alert); }
+  .alert[hidden] { display: flex; visibility: hidden; }
+  .alert a[hidden] { display: none; }
+  .alert a { color: var(--ink); font-weight: 500; font-style: italic; text-decoration: none; white-space: nowrap; }
+  .alert a:hover { text-decoration: underline; }
+  .terms { align-items: flex-start; line-height: 1.5; }
+  .terms input { margin-top: 1px; }
+
+  /* ---------- Botón principal ---------- */
+  .cta { margin: auto auto 0;
+    display: grid; place-items: center;
+    width: 40px; height: 40px; flex: none; aspect-ratio: 1; padding: 0;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,.45);
+    background: var(--green); cursor: pointer;
+    box-shadow: 0 8px 18px -8px rgba(40,90,10,.6);
+    transition: transform .2s ease, filter .2s ease; }
+  .cta:hover { filter: brightness(1.08); }
+  .cta:active { transform: scale(.94); }
+  .cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .cta svg { width: 18px; height: 18px; }
+
+  /* ---------- Zona inferior: Google ---------- */
+  .bottom { flex: 0 0 auto; margin-top: var(--sp-5); }
+  .divider { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--text); }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .google {
+    margin: var(--sp-4) auto 0;
+    display: grid; place-items: center;
+    width: 40px; height: 40px; flex: none; aspect-ratio: 1; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.8);
+    background: rgba(255,255,255,.7);
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    cursor: pointer; transition: background .2s ease, transform .2s ease;
+  }
+  .google:hover { background: rgba(255,255,255,.9); }
+  .google:active { transform: scale(.94); }
+  .google:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .google svg { width: 18px; height: 18px; }
+
+  .swap { margin-top: var(--sp-5); text-align: center; font-size: 12px; color: var(--text); }
+  .swap button { border: 0; background: none; font: 600 12px "Poppins", sans-serif; color: var(--ink); cursor: pointer; margin-left: 4px; text-decoration: underline; text-underline-offset: 3px; }
+
+  @media (max-width: 420px) { body { padding: 0; } .window { border-radius: 0; height: 100dvh; width: 100%; aspect-ratio: auto; max-width: none; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<main class="window" data-theme="dark" data-mode="login" aria-label="Pantalla de acceso">
+
+  <!-- Cristal esmerilado: desenfoca y cubre lo que haya detrás del componente -->
+  <div class="glass" aria-hidden="true"></div>
+
+  <header class="titlebar">
+    <div class="traffic" aria-hidden="true"><span class="close"></span><span class="min"></span><span class="max"></span></div>
+    <div class="tools" aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10V2M5.2 4.6 8 1.8l2.8 2.8M4 7H3v7h10V7h-1"/></svg>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2.5v11M2.5 8h11"/></svg>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><rect x="5" y="5" width="8.5" height="8.5" rx="1.6"/><path d="M3.5 10.5h-.4A1.6 1.6 0 0 1 1.5 8.9V3.1A1.6 1.6 0 0 1 3.1 1.5h5.8a1.6 1.6 0 0 1 1.6 1.6v.4"/></svg>
+    </div>
+  </header>
+
+  <section class="content">
+
+    <!-- Selector Iniciar sesión / Registrarse -->
+    <div class="switch" id="switch" data-mode="login" role="tablist" aria-label="Acceso">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" role="tab" id="tab-login" aria-selected="true" aria-controls="panel-login" data-mode="login">Iniciar sesión</button>
+      <button type="button" role="tab" id="tab-register" aria-selected="false" aria-controls="panel-register" data-mode="register" tabindex="-1">Registrarse</button>
+    </div>
+
+    <div class="head">
+      <h1 id="title">Bienvenido<span>de nuevo</span></h1>
+      <p class="sub" id="subtitle">Ingresa tus datos para continuar donde lo dejaste.</p>
+    </div>
+
+    <div class="panels">
+
+      <!-- INICIAR SESIÓN -->
+      <form class="panel active" id="panel-login" role="tabpanel" aria-labelledby="tab-login" autocomplete="on">
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="4" width="16" height="12" rx="2"/><path d="m2.5 5.5 7.5 5.5 7.5-5.5"/></svg>
+          <input type="email" name="email" placeholder="Correo electrónico" autocomplete="email" required>
+        </label>
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3.5" y="8.5" width="13" height="9" rx="2"/><path d="M6.5 8.5V6a3.5 3.5 0 0 1 7 0v2.5"/></svg>
+          <input type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required>
+          <button class="eye" type="button" aria-label="Mostrar contraseña"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.5"/></svg></button>
+        </label>
+        <div class="alert" id="login-alert" role="alert" aria-live="polite" hidden>
+          <span id="login-msg"></span>
+          <a href="#" id="forgot" hidden>¿Olvidaste tu contraseña?</a>
+        </div>
+        <div class="row">
+          <label class="check"><input type="checkbox" checked> Recordarme</label>
+        </div>
+        <button class="cta" type="submit" aria-label="Iniciar sesión" title="Iniciar sesión"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+      </form>
+
+      <!-- REGISTRARSE -->
+      <form class="panel" id="panel-register" role="tabpanel" aria-labelledby="tab-register" autocomplete="on">
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.5"/><path d="M3.5 17c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5"/></svg>
+          <input type="text" name="name" placeholder="Nombre completo" autocomplete="name" required>
+        </label>
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="4" width="16" height="12" rx="2"/><path d="m2.5 5.5 7.5 5.5 7.5-5.5"/></svg>
+          <input type="email" name="email" placeholder="Correo electrónico" autocomplete="email" required>
+        </label>
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3.5" y="8.5" width="13" height="9" rx="2"/><path d="M6.5 8.5V6a3.5 3.5 0 0 1 7 0v2.5"/></svg>
+          <input type="password" name="password" placeholder="Crea una contraseña" autocomplete="new-password" required>
+          <button class="eye" type="button" aria-label="Mostrar contraseña"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.5"/></svg></button>
+        </label>
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5 16.5 5v4.5c0 4-2.7 6.7-6.5 8-3.8-1.3-6.5-4-6.5-8V5L10 2.5Z"/><path d="m7 10 2.2 2.2L13 8.4"/></svg>
+          <input type="password" name="confirm" placeholder="Confirmar contraseña" autocomplete="new-password" required>
+        </label>
+        <div class="row">
+          <label class="check terms"><input type="checkbox" required> <span>Acepto los <a href="#">Términos</a> y la <a href="#">Privacidad</a></span></label>
+        </div>
+        <button class="cta" type="submit" aria-label="Crear cuenta" title="Crear cuenta"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+      </form>
+
+    </div>
+
+    <!-- Espacio inferior: Google -->
+    <div class="bottom">
+      <div class="divider" id="divider">o inicia sesión con</div>
+      <button class="google" type="button" aria-label="Continuar con Google" title="Continuar con Google">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.4 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      </button>
+      <div style="margin-top: 14px; text-align: center;">
+        <button id="btn-bypass" type="button" style="background: rgba(46, 125, 50, 0.45); border: 1px dashed rgba(255,255,255,0.7); color: #ffffff; padding: 8px 18px; border-radius: 20px; font: 600 12px 'Poppins', sans-serif; cursor: pointer; transition: transform .2s;">⚡ Omitir Login (Modo Pruebas)</button>
+      </div>
+      <p class="swap" id="swap"><span id="swap-text">¿Aún no tienes cuenta?</span><button type="button" id="swap-btn">Regístrate</button></p>
+    </div>
+
+  </section>
+</main>
+
+<script>
+  const sw = document.getElementById('switch');
+  const tabs = sw.querySelectorAll('button');
+  const copy = {
+    login: {
+      title: 'Bienvenido<span>de nuevo</span>',
+      sub: 'Ingresa tus datos para continuar donde lo dejaste.',
+      divider: 'o inicia sesión con',
+      swapText: '¿Aún no tienes cuenta?', swapBtn: 'Regístrate'
+    },
+    register: {
+      title: 'Crea tu<span>cuenta</span>',
+      sub: 'Solo toma un minuto. Completa tus datos para empezar.',
+      divider: 'o regístrate con',
+      swapText: '¿Ya tienes cuenta?', swapBtn: 'Inicia sesión'
+    }
+  };
+
+  function setMode(mode) {
+    sw.dataset.mode = mode;
+    document.querySelector('.window').dataset.mode = mode;
+    tabs.forEach(t => {
+      const on = t.dataset.mode === mode;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+    });
+    document.getElementById('panel-login').classList.toggle('active', mode === 'login');
+    document.getElementById('panel-register').classList.toggle('active', mode === 'register');
+    const c = copy[mode];
+    document.getElementById('title').innerHTML = c.title;
+    document.getElementById('subtitle').textContent = c.sub;
+    document.getElementById('divider').textContent = c.divider;
+    document.getElementById('swap-text').textContent = c.swapText;
+    document.getElementById('swap-btn').textContent = c.swapBtn;
+  }
+
+  tabs.forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
+  document.getElementById('swap-btn').addEventListener('click', () =>
+    setMode(sw.dataset.mode === 'login' ? 'register' : 'login'));
+
+  document.querySelectorAll('.eye').forEach(b => b.addEventListener('click', () => {
+    const i = b.parentElement.querySelector('input');
+    i.type = i.type === 'password' ? 'text' : 'password';
+  }));
+  document.getElementById('panel-register').addEventListener('submit', e => e.preventDefault());
+
+  let fails = 0;
+  const alertBox = document.getElementById('login-alert');
+  const msg = document.getElementById('login-msg');
+  const forgot = document.getElementById('forgot');
+
+  // Integración con Android Native Bridge (AndroidAuthBridge)
+  document.getElementById('btn-bypass').addEventListener('click', function() {
+    if (window.AndroidAuthBridge && window.AndroidAuthBridge.bypassLogin) {
+      window.AndroidAuthBridge.bypassLogin();
+    }
+  });
+
+  document.querySelector('.google').addEventListener('click', function() {
+    if (window.AndroidAuthBridge && window.AndroidAuthBridge.loginWithGoogle) {
+      window.AndroidAuthBridge.loginWithGoogle();
+    }
+  });
+
+  document.getElementById('forgot').addEventListener('click', function(e) {
+    e.preventDefault();
+    const email = document.querySelector('#panel-login input[name="email"]').value;
+    if (window.AndroidAuthBridge && window.AndroidAuthBridge.forgotPassword) {
+      window.AndroidAuthBridge.forgotPassword(email);
+    }
+  });
+
+  document.getElementById('panel-login').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = this.email.value;
+    const pass = this.password.value;
+    if (window.AndroidAuthBridge && window.AndroidAuthBridge.login) {
+      window.AndroidAuthBridge.login(email, pass);
+    }
+  });
+
+  document.getElementById('panel-register').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = this.name.value;
+    const email = this.email.value;
+    const pass = this.password.value;
+    const confirm = this.confirm.value;
+    if (window.AndroidAuthBridge && window.AndroidAuthBridge.register) {
+      window.AndroidAuthBridge.register(name, email, pass, confirm);
+    }
+  });
+
+  window.showLoginError = function(msgText, showForgot) {
+    fails++;
+    alertBox.hidden = false;
+    msg.textContent = msgText || 'Error de autenticación.';
+    forgot.hidden = !showForgot;
+  };
+
+  window.showRegisterError = function(msgText) {
+    alert(msgText);
+  };
+</script>
+</body>
+</html>

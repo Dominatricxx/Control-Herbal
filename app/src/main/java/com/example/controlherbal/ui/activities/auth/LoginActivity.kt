@@ -60,26 +60,8 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Evita capturas de pantalla / vista previa en "recientes" de la pantalla con credenciales.
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
-        setContentView(R.layout.activity_login)
-
-        etEmail = findViewById(R.id.etEmail)
-        etPassword = findViewById(R.id.etPassword)
-        btnLogin = findViewById(R.id.btnLogin)
-        pbLogin = findViewById(R.id.pbLogin)
-        tvError = findViewById(R.id.tvLoginError)
-        tvForgot = findViewById(R.id.tvForgotPassword)
-        throttle = LoginThrottle.forContext(this, LoginThrottle.GUARD_LOGIN)
-
-        btnLogin.setOnClickListener { attemptLogin() }
-        tvForgot.setOnClickListener { forgotPassword() }
-        etPassword.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_DONE) { attemptLogin(); true } else false
-        }
-
-        if (AuthManager.isSignedIn()) routeAfterLogin()
-        else if (!throttle.check().allowed) showBlocked() // el bloqueo sobrevive a reiniciar la app
+        startActivity(Intent(this, SplashActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+        finish()
     }
 
     // ------------------------------------------------------------------ acceso

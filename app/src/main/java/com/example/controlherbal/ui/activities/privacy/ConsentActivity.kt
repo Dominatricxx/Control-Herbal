@@ -43,7 +43,7 @@ class ConsentActivity : AppCompatActivity() {
         btnContinue.setOnClickListener {
             if (!cb.isChecked) return@setOnClickListener
             ConsentManager.accept(this)
-            startActivity(Intent(this, LoginActivity::class.java))
+            startActivity(Intent(this, SplashActivity::class.java))
             finish()
         }
         findViewById<Button>(R.id.btnConsentDecline).setOnClickListener { finishAffinity() }

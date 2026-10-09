@@ -26,6 +26,9 @@
     <string name="login_error_empty">Escribe tu correo y tu contraseña.</string>
     <string name="menu_logout">Cerrar sesión</string>
 
+    <!-- Google Web Client ID Fallback -->
+    <string name="default_web_client_id" translatable="false">YOUR_WEB_CLIENT_ID</string>
+
     <!-- Seguridad de acceso -->
     <string name="login_error_throttled">Demasiados intentos. Espera unos minutos antes de volver a intentarlo.</string>
     <string name="login_error_network">No hay conexión con el servidor. Inténtalo de nuevo.</string>

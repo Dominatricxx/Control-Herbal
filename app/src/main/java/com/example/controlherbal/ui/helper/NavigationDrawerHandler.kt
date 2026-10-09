@@ -73,7 +73,7 @@ object NavigationDrawerHandler {
     private fun signOutAndExit(activity: Activity) {
         activity.stopService(Intent(activity, SensorForegroundService::class.java))
         AuthManager.signOut()
-        val intent = Intent(activity, LoginActivity::class.java).apply {
+        val intent = Intent(activity, SplashActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         activity.startActivity(intent)

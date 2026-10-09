@@ -222,7 +222,7 @@ class ChangePasswordActivity : AppCompatActivity() {
             // Sesión limpia con la contraseña nueva.
             stopService(Intent(this, SensorForegroundService::class.java))
             AuthManager.signOut()
-            startActivity(Intent(this, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+            startActivity(Intent(this, SplashActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
             finish()
         } else {
             setBusy(false)

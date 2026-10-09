@@ -105,6 +105,43 @@ object AuthManager {
             }
         }
 
+    suspend fun signInWithCredential(credential: com.google.firebase.auth.AuthCredential): SignInResult =
+        suspendCancellableCoroutine { cont ->
+            auth.signInWithCredential(credential).addOnCompleteListener { task ->
+                val result: SignInResult = if (task.isSuccessful) {
+                    SignInResult.Success
+                } else {
+                    when (val e = task.exception) {
+                        is FirebaseAuthMultiFactorException -> {
+                            val resolver = e.resolver
+                            val hint = resolver.hints.firstOrNull { it.factorId == TOTP }
+                            if (hint != null) SignInResult.SecondFactorRequired(resolver, hint.uid) else SignInResult.Failed
+                        }
+                        is FirebaseTooManyRequestsException -> SignInResult.Throttled
+                        is FirebaseNetworkException -> SignInResult.Unavailable
+                        else -> SignInResult.Failed
+                    }
+                }
+                if (cont.isActive) cont.resume(result)
+            }
+        }
+
+    suspend fun signUp(email: String, password: String): SignInResult =
+        suspendCancellableCoroutine { cont ->
+            auth.createUserWithEmailAndPassword(email.trim(), password).addOnCompleteListener { task ->
+                val result: SignInResult = if (task.isSuccessful) {
+                    SignInResult.Success
+                } else {
+                    when (task.exception) {
+                        is FirebaseTooManyRequestsException -> SignInResult.Throttled
+                        is FirebaseNetworkException -> SignInResult.Unavailable
+                        else -> SignInResult.Failed
+                    }
+                }
+                if (cont.isActive) cont.resume(result)
+            }
+        }
+
     /** Completa un inicio de sesión (o una reautenticación) con el código TOTP de 6 dígitos. */
     suspend fun completeSecondFactor(resolver: MultiFactorResolver, enrollmentId: String, code: String): Boolean {
         if (!code.matches(Regex("\\d{6}"))) return false

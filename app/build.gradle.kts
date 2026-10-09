@@ -70,8 +70,9 @@ dependencies {
     // Firebase AI Logic (sustituye a firebase-vertexai beta, ya retirada). Versión gestionada por el BoM.
     implementation(libs.firebase.ai)
 
-    // Autenticación de usuario + App Check (Play Integrity en release, proveedor debug solo en debug)
+    // Autenticación de usuario + App Check + Google Auth
     implementation(libs.firebase.auth)
+    implementation(libs.play.services.auth)
     implementation(libs.firebase.functions)
     implementation(libs.zxcvbn)
     implementation(libs.zxing.core)
