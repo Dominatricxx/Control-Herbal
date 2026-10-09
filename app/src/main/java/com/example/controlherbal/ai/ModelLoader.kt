@@ -1,20 +1,23 @@
 package com.example.controlherbal.ai
 
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.main.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
 import android.content.Context
-import com.example.controlherbal.common.AppConstants
-import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.utils.AppConstants
+import com.example.controlherbal.common.security.SecureLogger
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
 
-/**
- * ModelLoader: carga el modelo TFLite embebido aplicando comprobaciones defensivas.
- *
- * La integridad del archivo en el APK la garantiza la firma del APK; en tiempo de compilación,
- * la tarea Gradle `verifyModelIntegrity` exige que el .tflite coincida con su huella SHA-256
- * versionada. Aquí se limita el tamaño y se valida la FORMA de los tensores, de modo que un
- * modelo incompatible o manipulado se descarta en lugar de producir resultados arbitrarios.
- */
 object ModelLoader {
 
     private const val TAG = "ModelLoader"

@@ -6,13 +6,15 @@
     <!-- Permisos de red, sensores y notificaciones -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Minimización de datos: la app NO declara CAMERA (la foto la toma la app de cámara del sistema
+         vía ACTION_IMAGE_CAPTURE), ni ubicación, contactos, micrófono, almacenamiento ni identificadores. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Evita que SDKs transitivos añadan el ID de publicidad -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -23,7 +25,6 @@
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
@@ -32,6 +33,11 @@
         android:theme="@style/Theme.ControlHerbal"
         android:usesCleartextTraffic="false"
         tools:targetApi="34">
+        <!-- Sin analítica ni publicidad: se desactivan explícitamente por si un SDK transitivo las incluyera -->
+        <meta-data android:name="firebase_analytics_collection_deactivated" android:value="true" />
+        <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
+        <meta-data android:name="google_analytics_ssaid_collection_enabled" android:value="false" />
+        <meta-data android:name="firebase_crashlytics_collection_enabled" android:value="false" />
 
         <!-- Servicio de monitoreo en segundo plano -->
         <service
@@ -42,7 +48,7 @@
 
         <!-- Punto de entrada principal (Launcher) -->
         <activity
-            android:name=".ui.activities.SplashActivity"
+            android:name=".ui.activities.main.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.ControlHerbal">
             <intent-filter>
@@ -51,40 +57,55 @@
             </intent-filter>
         </activity>
 
+        <!-- Consentimiento y documentos legales (no exportadas) -->
+        <activity android:name=".ui.activities.privacy.ConsentActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
+        <activity android:name=".ui.activities.privacy.LegalActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
+        <activity android:name=".ui.activities.privacy.PrivacyActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
+
         <!-- Acceso con cuenta autorizada (no exportada: solo se abre desde la propia app) -->
         <activity
-            android:name=".ui.activities.LoginActivity"
+            android:name=".ui.activities.auth.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ControlHerbal" />
+
+        <activity
+            android:name=".ui.activities.auth.MfaEnrollActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ControlHerbal" />
+
+        <activity
+            android:name=".ui.activities.auth.ChangePasswordActivity"
             android:exported="false"
             android:theme="@style/Theme.ControlHerbal" />
 
         <!-- Actividades internas no exportadas para prevenir Intent Redirection -->
         <activity
-            android:name=".ui.activities.MainActivity"
+            android:name=".ui.activities.main.MainActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.activities.HistoryActivity"
+            android:name=".ui.activities.plant.HistoryActivity"
             android:exported="false"
             android:label="Historial de Sensores"
-            android:parentActivityName=".ui.activities.MainActivity" />
+            android:parentActivityName=".ui.activities.main.MainActivity" />
 
         <activity
-            android:name=".ui.activities.PlantSetupActivity"
+            android:name=".ui.activities.plant.PlantSetupActivity"
             android:exported="false"
             android:label="Configuración de Planta" />
 
         <activity
-            android:name=".ui.activities.ComparisonActivity"
+            android:name=".ui.activities.plant.ComparisonActivity"
             android:exported="false"
             android:label="Comparador de Plantas"
-            android:parentActivityName=".ui.activities.MainActivity" />
+            android:parentActivityName=".ui.activities.main.MainActivity" />
 
         <activity
-            android:name=".ui.activities.ChatActivity"
+            android:name=".ui.activities.plant.ChatActivity"
             android:exported="false"
             android:label="Asistente Herbal AI"
-            android:parentActivityName=".ui.activities.MainActivity" />
+            android:parentActivityName=".ui.activities.main.MainActivity" />
 
         <!-- Receivers para Widgets de Pantalla de Inicio -->
         <receiver

@@ -1,0 +1,16 @@
+{
+  "name": "control-herbal-functions",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Códigos de respaldo de 2FA con limitación de intentos (Control Herbal)",
+  "main": "index.js",
+  "engines": { "node": "22" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.3.0"
+  }
+}

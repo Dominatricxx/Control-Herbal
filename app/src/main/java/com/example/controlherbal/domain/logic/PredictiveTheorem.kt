@@ -1,7 +1,18 @@
 package com.example.controlherbal.domain.logic
 
-import com.example.controlherbal.common.AppConstants
-import com.example.controlherbal.common.SecurityUtils
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.main.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
+import com.example.controlherbal.common.utils.AppConstants
+import com.example.controlherbal.common.security.SecurityUtils
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.pow

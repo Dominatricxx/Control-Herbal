@@ -22,6 +22,8 @@ workManager = "2.10.0"
 glance = "1.1.1"
 firebaseBom = "34.19.0"
 playServicesWearable = "18.1.0"
+zxcvbn = "1.9.0"
+zxing = "3.5.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,6 +45,9 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 # Los módulos siguientes toman su versión del BoM (no declarar versión aquí)
 firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-functions = { group = "com.google.firebase", name = "firebase-functions" }
+zxcvbn = { group = "com.nulab-inc", name = "zxcvbn", version.ref = "zxcvbn" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
 firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug" }
 play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }

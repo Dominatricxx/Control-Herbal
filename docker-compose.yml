@@ -3,21 +3,23 @@ services:
     image: eclipse-mosquitto:latest
     container_name: control-herbal-mqtt
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      # Solo accesible desde esta máquina. Para exponerlo usa deploy/ (TLS + usuarios + ACL).
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:9001:9001"
     restart: unless-stopped
 
   influxdb:
     image: influxdb:2.7-alpine
     container_name: control-herbal-influxdb
     ports:
-      - "8086:8086"
+      - "127.0.0.1:8086:8086"
     volumes:
       - influxdb_data:/var/lib/influxdb2
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME=admin
-      - DOCKER_INFLUXDB_INIT_PASSWORD=controlherbal2026
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_ADMIN_PASSWORD:?Define INFLUX_ADMIN_PASSWORD en .env}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN:?Define INFLUX_TOKEN en .env}
       - DOCKER_INFLUXDB_INIT_ORG=herbal-org
       - DOCKER_INFLUXDB_INIT_BUCKET=telemetry-bucket
     restart: unless-stopped
@@ -26,9 +28,12 @@ services:
     image: grafana/grafana:latest
     container_name: control-herbal-grafana
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Define GRAFANA_ADMIN_PASSWORD en .env}
+      - GF_USERS_ALLOW_SIGN_UP=false
     restart: unless-stopped
     depends_on:
       - influxdb
@@ -43,6 +48,7 @@ services:
       - MQTT_PORT=1883
       - INFLUX_HOST=influxdb
       - INFLUX_PORT=8086
+      - INFLUX_TOKEN=${INFLUX_TOKEN:?Define INFLUX_TOKEN en .env}
     depends_on:
       - mqtt-broker
       - influxdb

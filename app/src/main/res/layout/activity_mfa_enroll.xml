@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/mfa_title"
+            android:textColor="#2E7D32"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvMfaStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/mfa_intro"
+            android:textColor="#424242"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/panelVerifyEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btnSendVerification"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="#2E7D32"
+                android:text="@string/mfa_send_verification"
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/btnEmailVerified"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/mfa_email_verified" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/panelEnroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ivQr"
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:layout_gravity="center_horizontal"
+                android:background="#FFFFFF"
+                android:contentDescription="@string/mfa_qr_description" />
+
+            <Button
+                android:id="@+id/btnOpenAuthenticator"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/mfa_open_app" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/mfa_manual_key"
+                android:textColor="#616161"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvSharedKey"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="#212121"
+                android:textIsSelectable="true"
+                android:textSize="16sp" />
+
+            <EditText
+                android:id="@+id/etMfaCode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:autofillHints="smsOTPCode"
+                android:gravity="center"
+                android:hint="@string/mfa_code_hint"
+                android:importantForAutofill="no"
+                android:inputType="numberPassword"
+                android:maxLength="6"
+                android:textSize="22sp" />
+
+            <Button
+                android:id="@+id/btnMfaConfirm"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="12dp"
+                android:backgroundTint="#2E7D32"
+                android:text="@string/mfa_activate"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/pbMfa"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnMfaCancel"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/mfa_cancel" />
+    </LinearLayout>
+</ScrollView>

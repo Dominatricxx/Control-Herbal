@@ -1,5 +1,16 @@
 package com.example.controlherbal.data.sync
 
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.main.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -12,14 +23,14 @@ import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.example.controlherbal.R
 import com.example.controlherbal.ai.HerbalAI
-import com.example.controlherbal.common.AppConstants
-import com.example.controlherbal.common.AuthManager
-import com.example.controlherbal.common.SecureLogger
-import com.example.controlherbal.common.SecurityUtils
+import com.example.controlherbal.common.utils.AppConstants
+import com.example.controlherbal.common.auth.AuthManager
+import com.example.controlherbal.common.security.SecureLogger
+import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.domain.logic.PredictiveTheorem
-import com.example.controlherbal.ui.activities.MainActivity
+import com.example.controlherbal.ui.activities.main.MainActivity
 import com.example.controlherbal.ui.widget.HerbalWidgetManager
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError

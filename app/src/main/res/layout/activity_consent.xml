@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#FFFFFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/tvConsentTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:accessibilityHeading="true"
+            android:text="@string/consent_title"
+            android:textColor="#1B5E20"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:lineSpacingMultiplier="1.15"
+            android:text="@string/consent_summary"
+            android:textColor="#212121"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnReadPrivacy"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/consent_read_privacy"
+            android:textColor="#1B5E20" />
+
+        <Button
+            android:id="@+id/btnReadTerms"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/consent_read_terms"
+            android:textColor="#1B5E20" />
+
+        <Button
+            android:id="@+id/btnReadCookies"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/consent_read_cookies"
+            android:textColor="#1B5E20" />
+
+        <!-- Casilla SIN marcar por defecto: el consentimiento debe ser una acción afirmativa -->
+        <CheckBox
+            android:id="@+id/cbAccept"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:layout_marginTop="20dp"
+            android:checked="false"
+            android:paddingStart="8dp"
+            android:text="@string/consent_checkbox"
+            android:textColor="#212121"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnConsentContinue"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#2E7D32"
+            android:enabled="false"
+            android:text="@string/consent_continue"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btnConsentDecline"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/consent_decline"
+            android:textColor="#424242" />
+    </LinearLayout>
+</ScrollView>

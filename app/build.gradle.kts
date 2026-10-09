@@ -23,6 +23,7 @@ android {
 
     buildTypes {
         release {
+            // Copias de seguridad desactivadas y depuración deshabilitada en release
             isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true
@@ -41,9 +42,6 @@ android {
         buildConfig = true
     }
     packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -68,10 +66,15 @@ dependencies {
     // Coil con soporte para GIFs
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("io.coil-kt:coil-gif:2.6.0")
-    
-    // Firebase AI Logic & Auth & App Check
+
+    // Firebase AI Logic (sustituye a firebase-vertexai beta, ya retirada). Versión gestionada por el BoM.
     implementation(libs.firebase.ai)
+
+    // Autenticación de usuario + App Check (Play Integrity en release, proveedor debug solo en debug)
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.functions)
+    implementation(libs.zxcvbn)
+    implementation(libs.zxing.core)
     implementation(libs.firebase.appcheck.playintegrity)
     debugImplementation(libs.firebase.appcheck.debug)
 
@@ -106,6 +109,9 @@ dependencies {
     implementation(libs.androidx.glance.material3)
 }
 
+// ---------------------------------------------------------------------------
+// Integridad del modelo TFLite
+// ---------------------------------------------------------------------------
 val verifyModelIntegrity = tasks.register("verifyModelIntegrity") {
     group = "verification"
     description = "Verifica que herbal_model.tflite coincide con su huella SHA-256 versionada."
@@ -138,3 +144,45 @@ val verifyModelIntegrity = tasks.register("verifyModelIntegrity") {
     }
 }
 tasks.named("preBuild") { dependsOn(verifyModelIntegrity) }
+
+// ---------------------------------------------------------------------------
+// Documentos legales: la carpeta /legal es la ÚNICA fuente; se empaqueta como assets de la app.
+// ---------------------------------------------------------------------------
+android {
+    sourceSets {
+        getByName("main") {
+            assets.srcDir(rootProject.file("legal"))
+        }
+    }
+}
+
+val verifyLegalDocs = tasks.register("verifyLegalDocs") {
+    group = "verification"
+    description = "Valida versión y marcadores de los documentos legales de /legal."
+    val legalDir = rootProject.file("legal")
+    val constants = layout.projectDirectory.file("src/main/java/com/example/controlherbal/common/utils/AppConstants.kt").asFile
+    val requireFinal = (project.findProperty("herbal.requireLegal") as String?) == "true"
+    doLast {
+        val appVersion = Regex("LEGAL_VERSION\\s*=\\s*\"([^\"]+)\"").find(constants.readText())?.groupValues?.get(1)
+            ?: throw GradleException("No se encontró LEGAL_VERSION en AppConstants.kt")
+        val docs = legalDir.listFiles { f -> f.extension == "md" }?.sortedBy { it.name }.orEmpty()
+        if (docs.isEmpty()) throw GradleException("La carpeta /legal no contiene documentos.")
+        val pending = mutableListOf<String>()
+        docs.forEach { f ->
+            val text = f.readText()
+            val declared = Regex("Versi[oó]n\\s+([0-9][0-9A-Za-z.\\-]*)").find(text)?.groupValues?.get(1)
+            if (declared != appVersion) {
+                throw GradleException("${f.name} declara la versión '$declared' pero AppConstants.LEGAL_VERSION es '$appVersion'.")
+            }
+            Regex("\\{\\{[A-Z_]+}}").findAll(text).map { it.value }.toSet().forEach { pending += "${f.name}: $it" }
+        }
+        if (pending.isNotEmpty()) {
+            val msg = "Marcadores legales sin rellenar (${pending.size}):\n  " + pending.joinToString("\n  ")
+            if (requireFinal) throw GradleException("$msg\nRellénalos antes de publicar (ver docs/LEGAL.md).")
+            logger.warn("AVISO: $msg")
+        } else {
+            logger.lifecycle("verifyLegalDocs: OK (versión $appVersion, sin marcadores pendientes)")
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(verifyLegalDocs) }

@@ -16,6 +16,7 @@
     <string name="continue_description">Continuar</string>
     <string name="splash_plant_description">Icono de planta en pantalla de inicio</string>
     <string name="splash_title">Control\nHerbal</string>
+    <string name="splash_tap_to_continue">Toca la pantalla para continuar</string>
     <string name="login_title">Iniciar sesión</string>
     <string name="login_subtitle">Accede con la cuenta autorizada de tu sistema Control Herbal</string>
     <string name="login_email_hint">Correo electrónico</string>
@@ -24,4 +25,136 @@
     <string name="login_error_generic">No se pudo iniciar sesión. Revisa tus datos y tu conexión.</string>
     <string name="login_error_empty">Escribe tu correo y tu contraseña.</string>
     <string name="menu_logout">Cerrar sesión</string>
+
+    <!-- Seguridad de acceso -->
+    <string name="login_error_throttled">Demasiados intentos. Espera unos minutos antes de volver a intentarlo.</string>
+    <string name="login_error_network">No hay conexión con el servidor. Inténtalo de nuevo.</string>
+    <string name="login_locked">Acceso bloqueado por demasiados intentos fallidos. Inténtalo de nuevo en %1$s.</string>
+    <string name="login_wait">Espera %1$s antes del siguiente intento.</string>
+    <string name="login_forgot">¿Olvidaste tu contraseña?</string>
+    <string name="reset_need_email">Escribe un correo válido en el campo de correo.</string>
+    <string name="reset_sent">Si la cuenta existe, recibirás un correo con las instrucciones.</string>
+    <string name="reset_wait">Espera unos minutos antes de solicitar otro correo.</string>
+    <string name="menu_change_password">Cambiar contraseña</string>
+    <string name="menu_backup_codes">Códigos de respaldo 2FA</string>
+
+    <!-- Verificación en dos pasos -->
+    <string name="mfa_title">Verificación en dos pasos</string>
+    <string name="mfa_intro">Preparando la verificación en dos pasos…</string>
+    <string name="mfa_need_verified_email">Es obligatorio activar la verificación en dos pasos. Primero verifica tu correo: te enviaremos un enlace.</string>
+    <string name="mfa_send_verification">Enviar correo de verificación</string>
+    <string name="mfa_email_verified">Ya lo verifiqué</string>
+    <string name="mfa_verification_sent">Correo enviado. Abre el enlace y vuelve aquí.</string>
+    <string name="mfa_email_not_verified_yet">Todavía no aparece verificado. Abre el enlace del correo e inténtalo de nuevo.</string>
+    <string name="mfa_scan_instructions">Escanea el código QR con tu app autenticadora (Google Authenticator, Aegis, Authy…) o ábrelo directamente en ella, y escribe el código de 6 dígitos.</string>
+    <string name="mfa_qr_description">Código QR para la app autenticadora</string>
+    <string name="mfa_open_app">Abrir en mi app autenticadora</string>
+    <string name="mfa_manual_key">O introduce esta clave manualmente:</string>
+    <string name="mfa_activate">ACTIVAR</string>
+    <string name="mfa_cancel">Cerrar sesión</string>
+    <string name="mfa_enabled">Verificación en dos pasos activada. Inicia sesión de nuevo con tu código.</string>
+    <string name="mfa_relogin">Por seguridad, vuelve a iniciar sesión para continuar.</string>
+    <string name="mfa_no_authenticator_app">No hay ninguna app autenticadora instalada. Usa la clave manual o instala una.</string>
+    <string name="mfa_error_generic">No se pudo configurar la verificación en dos pasos. Inténtalo de nuevo más tarde.</string>
+    <string name="mfa_prompt_title">Verificación en dos pasos</string>
+    <string name="mfa_prompt_message">Escribe el código de 6 dígitos de tu app autenticadora.</string>
+    <string name="mfa_code_hint">Código de 6 dígitos</string>
+    <string name="mfa_code_wrong">Código incorrecto. Inténtalo de nuevo.</string>
+    <string name="mfa_verify">Verificar</string>
+    <string name="mfa_session_without_factor">La sesión no incluye la verificación en dos pasos. Inicia sesión de nuevo con tu código; si se repite, vuelve a enrolar tu autenticador.</string>
+    <string name="mfa_use_backup">Código de respaldo</string>
+
+    <!-- Códigos de respaldo -->
+    <string name="backup_codes_title">Tus códigos de respaldo</string>
+    <string name="backup_codes_message">Guárdalos en un lugar seguro (gestor de contraseñas o papel). Cada código sirve una sola vez para recuperar el acceso si pierdes tu autenticador. No se volverán a mostrar.</string>
+    <string name="backup_codes_saved">Los guardé</string>
+    <string name="backup_codes_copy">Copiar</string>
+    <string name="backup_codes_copied">Códigos copiados</string>
+    <string name="backup_regen_title">Generar nuevos códigos</string>
+    <string name="backup_regen_message">Los códigos anteriores dejarán de funcionar. ¿Continuar?</string>
+    <string name="backup_regen_confirm">Generar</string>
+    <string name="backup_error">No se pudieron generar los códigos. Inténtalo más tarde.</string>
+    <string name="backup_prompt_title">Código de respaldo</string>
+    <string name="backup_prompt_message">Introduce uno de tus códigos de respaldo. Se desactivará el autenticador perdido y tendrás que configurar uno nuevo.</string>
+    <string name="backup_use">Usar código</string>
+    <string name="backup_reset_done">Código aceptado. Configura ahora un autenticador nuevo.</string>
+    <string name="backup_throttled">Demasiados intentos. Inténtalo de nuevo en unos %1$d min.</string>
+
+    <!-- Cambio de contraseña -->
+    <string name="pw_title">Cambiar contraseña</string>
+    <string name="pw_current_hint">Contraseña actual</string>
+    <string name="pw_new_hint">Contraseña nueva</string>
+    <string name="pw_confirm_hint">Repite la contraseña nueva</string>
+    <string name="pw_change_button">CAMBIAR CONTRASEÑA</string>
+    <string name="pw_need_current">Escribe tu contraseña actual.</string>
+    <string name="pw_mismatch">Las contraseñas nuevas no coinciden.</string>
+    <string name="pw_same_as_old">La contraseña nueva debe ser distinta de la actual.</string>
+    <string name="pw_loading">Cargando comprobaciones de seguridad… inténtalo en un segundo.</string>
+    <string name="pw_policy_fail">La contraseña no cumple los requisitos.</string>
+    <string name="pw_pwned">Esa contraseña aparece en filtraciones de datos conocidas. Elige otra.</string>
+    <string name="pw_current_wrong">La contraseña actual no es correcta.</string>
+    <string name="pw_server_rejected">El servidor rechazó la contraseña o la sesión caducó. Vuelve a iniciar sesión e inténtalo de nuevo.</string>
+    <string name="pw_changed">Contraseña cambiada. Inicia sesión de nuevo.</string>
+    <string name="pw_rule_length">Al menos 12 caracteres</string>
+    <string name="pw_rule_upper">Una mayúscula (A-Z)</string>
+    <string name="pw_rule_lower">Una minúscula (a-z)</string>
+    <string name="pw_rule_digit">Un número (0-9)</string>
+    <string name="pw_rule_symbol">Un símbolo (por ejemplo ! @ # % - _ +)</string>
+    <string name="pw_rule_max">Como máximo 128 caracteres</string>
+    <string name="pw_rule_personal">No incluyas tu correo ni tu nombre</string>
+    <string name="pw_rule_repeat">Evita 4 o más caracteres iguales seguidos</string>
+    <string name="pw_rule_sequence">Evita secuencias como 12345 o qwerty</string>
+    <string name="pw_rule_common">Es una contraseña demasiado común</string>
+    <string name="pw_rule_weak">Es fácil de adivinar: añade palabras poco relacionadas entre sí</string>
+    <string-array name="pw_levels">
+        <item>Muy débil</item>
+        <item>Débil</item>
+        <item>Aceptable</item>
+        <item>Fuerte</item>
+        <item>Muy fuerte</item>
+    </string-array>
+    <!-- Consentimiento y documentos legales -->
+    <string name="plant_name_helper">No escribas datos personales. Este nombre se guarda solo en tu dispositivo y no se envía a la IA.</string>
+    <string name="consent_title">Antes de empezar</string>
+    <string name="consent_summary">Control Herbal guarda tu cuenta, tus plantas y las lecturas de tus sensores. No usa analítica, publicidad, rastreo ni cookies, y no pide tu ubicación ni tus contactos. Las funciones de inteligencia artificial son opcionales y se te pedirá permiso por separado.</string>
+    <string name="consent_read_privacy">Leer el Aviso de Privacidad</string>
+    <string name="consent_read_terms">Leer los Términos de Servicio</string>
+    <string name="consent_read_cookies">Leer la Política de Cookies</string>
+    <string name="consent_checkbox">He leído y acepto el Aviso de Privacidad y los Términos de Servicio</string>
+    <string name="consent_continue">Continuar</string>
+    <string name="consent_decline">No acepto</string>
+    <string name="legal_back">Volver</string>
+    <string name="cd_chat_camera">Tomar una foto de la planta para analizarla</string>
+    <string name="cd_chat_send">Enviar mensaje</string>
+    <string name="cd_open_menu">Abrir el menú</string>
+    <string name="cd_chat_message_image">Foto de la planta enviada al asistente</string>
+    <string name="input_hint">Escribe aquí</string>
+    <string name="cd_back">Volver a la pantalla anterior</string>
+    <string name="login_legal_note">Al iniciar sesión usas la app bajo el Aviso de Privacidad y los Términos de Servicio que aceptaste.</string>
+    <string name="login_view_privacy">Aviso de Privacidad</string>
+    <string name="login_view_terms">Términos de Servicio</string>
+
+    <!-- Privacidad y accesibilidad -->
+    <string name="privacy_title">Privacidad y accesibilidad</string>
+    <string name="privacy_docs_header">Documentos</string>
+    <string name="privacy_ai_header">Inteligencia artificial</string>
+    <string name="privacy_ai_switch">Permitir enviar fotos y texto a la IA (Google)</string>
+    <string name="privacy_ai_hint">Si lo desactivas, la app pedirá permiso de nuevo antes de usar la IA.</string>
+    <string name="privacy_palette_header">Colores para distintas condiciones visuales</string>
+    <string name="privacy_palette_hint">Los estados siempre llevan también un símbolo y un texto, no solo color.</string>
+    <string name="privacy_preview_ok">Óptimo</string>
+    <string name="privacy_preview_warn">Atención</string>
+    <string name="privacy_preview_critical">Riesgo</string>
+    <string name="privacy_data_header">Tus datos</string>
+    <string name="privacy_export">Exportar mis datos locales</string>
+    <string name="privacy_wipe">Borrar datos locales</string>
+    <string name="privacy_delete_account">Eliminar mi cuenta</string>
+    <string name="privacy_accepted_info">Documentos aceptados: versión %1$s, el %2$s</string>
+    <string name="privacy_wipe_confirm">Se borrarán las plantas, lecturas y diagnósticos guardados en este dispositivo. Esta acción no se puede deshacer. Los datos de la nube no se tocan.</string>
+    <string name="privacy_delete_confirm">Se eliminará tu historial de riego en la nube, tu cuenta y los datos de este dispositivo. Esta acción no se puede deshacer.</string>
+    <string name="privacy_delete_relogin">Por seguridad, cierra sesión, vuelve a iniciar sesión e inténtalo de nuevo.</string>
+    <string name="privacy_delete_failed">No se pudo eliminar la cuenta. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="privacy_export_empty">No hay datos locales para exportar.</string>
+    <string name="privacy_export_chooser">Compartir mis datos</string>
+    <string name="privacy_done">Listo</string>
 </resources>

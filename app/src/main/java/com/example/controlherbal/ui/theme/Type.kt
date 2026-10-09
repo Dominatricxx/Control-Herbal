@@ -1,5 +1,16 @@
 package com.example.controlherbal.ui.theme
 
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.main.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily

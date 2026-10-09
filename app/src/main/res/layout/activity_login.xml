@@ -96,6 +96,16 @@
             android:text="@string/login_button"
             android:textColor="#FFFFFF" />
 
+        <TextView
+            android:id="@+id/tvForgotPassword"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:padding="8dp"
+            android:text="@string/login_forgot"
+            android:textColor="#2E7D32"
+            android:textSize="14sp" />
+
         <ProgressBar
             android:id="@+id/pbLogin"
             android:layout_width="wrap_content"

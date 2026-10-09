@@ -1,12 +1,23 @@
 package com.example.controlherbal.ui.viewmodel
 
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.main.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.controlherbal.ai.HerbalAI
-import com.example.controlherbal.common.AppConstants
-import com.example.controlherbal.common.SecureLogger
-import com.example.controlherbal.common.SecurityUtils
+import com.example.controlherbal.common.utils.AppConstants
+import com.example.controlherbal.common.security.SecureLogger
+import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.data.database.Plant
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading

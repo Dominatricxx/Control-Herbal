@@ -1,9 +1,20 @@
 package com.example.controlherbal.ai
 
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.main.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.controlherbal.common.AppConstants
-import com.example.controlherbal.common.SecureLogger
+import com.example.controlherbal.common.utils.AppConstants
+import com.example.controlherbal.common.security.SecureLogger
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.domain.logic.PredictiveTheorem
 import kotlin.math.exp

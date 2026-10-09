@@ -75,8 +75,8 @@
 
     "watering_history": {
       ".read": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
       "$plantId": {
-        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
         ".validate": "newData.hasChildren(['lastWateringTime', 'syncTimestamp'])",
         "lastWateringTime": { ".validate": "newData.isNumber() && newData.val() >= 0" },
         "syncTimestamp":    { ".validate": "newData.isNumber() && newData.val() >= 0" },

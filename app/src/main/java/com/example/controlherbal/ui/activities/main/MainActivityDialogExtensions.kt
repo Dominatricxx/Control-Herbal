@@ -1,0 +1,250 @@
+package com.example.controlherbal.ui.activities.main
+
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
+import android.app.AlertDialog
+import android.content.Intent
+import android.text.InputFilter
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
+import com.example.controlherbal.R
+import com.example.controlherbal.common.security.SecureLogger
+import com.example.controlherbal.common.security.SecurityUtils
+import com.example.controlherbal.data.database.SensorReading
+import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+fun MainActivity.showPlantInfo() {
+    currentPlant?.let { plant ->
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_options, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val name = SecurityUtils.sanitizeText(plant.name)
+        val type = SecurityUtils.sanitizeText(plant.type)
+        val env = SecurityUtils.sanitizeText(plant.environment)
+        tvTitle.text = "Planta: $name\nEspecie: $type\nEntorno: $env"
+
+        AlertDialog.Builder(this)
+            .setTitle("Detalles de la Planta")
+            .setView(dialogView)
+            .setPositiveButton("Cerrar", null)
+            .show()
+    }
+}
+
+fun MainActivity.clearAiDiagnosis() {
+    currentPlant?.let { plant ->
+        val activity = this
+        ioScope.launch {
+            databaseLocal.plantDao().update(plant.copy(aiDiagnosis = null, aiRecommendation = null))
+            currentPlant = databaseLocal.plantDao().getSelectedPlant()
+            withContext(Dispatchers.Main) {
+                cardAiDiagnosis.visibility = View.GONE
+                Toast.makeText(activity, "Diagnóstico limpiado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}
+
+fun MainActivity.showDataControlDialog() {
+    val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_data_control, null)
+    val dialog = AlertDialog.Builder(this)
+        .setView(dialogView)
+        .create()
+
+    dialogView.findViewById<View>(R.id.btnImportFirebase)?.setOnClickListener {
+        dialog.dismiss()
+        importDataFromFirebase()
+    }
+    dialogView.findViewById<View>(R.id.btnResetLocal)?.setOnClickListener {
+        dialog.dismiss()
+        showResetDataDialog()
+    }
+    dialogView.findViewById<View>(R.id.btnCancelControl)?.setOnClickListener {
+        dialog.dismiss()
+    }
+    dialog.show()
+}
+
+fun MainActivity.importDataFromFirebase() {
+    val plant = currentPlant ?: return
+    val activity = this
+    val progressDialog = AlertDialog.Builder(activity).setMessage("Importando registros...").setCancelable(false).show()
+    val ref = com.google.firebase.database.FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL).getReference(AppConstants.FIREBASE_SENSOR_NODE)
+    ref.addListenerForSingleValueEvent(object : ValueEventListener {
+        override fun onDataChange(snapshot: DataSnapshot) {
+            ioScope.launch {
+                try {
+                    if (snapshot.exists()) {
+                        val readingsToInsert = mutableListOf<SensorReading>()
+                        fun processNode(data: DataSnapshot) {
+                            val temp = (data.child("temp").value as? Number)?.toDouble() ?: return
+                            val hum = (data.child("hum").value as? Number)?.toDouble() ?: 0.0
+                            val luzRaw = (data.child("luz_raw").value as? Number)?.toDouble() ?: (data.child("luz").value as? Number)?.toDouble() ?: 0.0
+                            val luz = PredictiveTheorem.filtrarSensibilidadLuz(luzRaw)
+                            val soil = (data.child("soil").value as? Number)?.toDouble() ?: 0.0
+                            val irh = (data.child("irh").value as? Number)?.toDouble() ?: 0.0
+                            val seq = (data.child("seq").value as? Number)?.toDouble() ?: 0.0
+                            val somb = (data.child("somb").value as? Number)?.toDouble() ?: 0.0
+                            val action = SecurityUtils.sanitizeText(data.child("acc").value as? String ?: "")
+                            val timestamp = (data.child("timestamp").value as? Number)?.toLong() ?: System.currentTimeMillis()
+                            readingsToInsert.add(SensorReading(timestamp, plant.id, temp, hum, luz, soil, irh, seq, somb, action))
+                        }
+                        if (snapshot.hasChild("history")) snapshot.child("history").children.forEach { processNode(it) } else processNode(snapshot)
+                        if (readingsToInsert.isNotEmpty()) {
+                            readingsToInsert.forEach { databaseLocal.sensorDao().insert(it) }
+                            withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Importados ${readingsToInsert.size} registros ✅", Toast.LENGTH_LONG).show(); loadDataAndDrawChart() }
+                        } else withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Sin datos válidos", Toast.LENGTH_SHORT).show() }
+                    } else withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Sin datos en Firebase", Toast.LENGTH_SHORT).show() }
+                } catch (e: Exception) {
+                    SecureLogger.e("MainActivity", "Error importando de Firebase: ${e.message}")
+                    withContext(Dispatchers.Main) { progressDialog.dismiss(); Toast.makeText(activity, "Error en la importación", Toast.LENGTH_SHORT).show() }
+                }
+            }
+        }
+        override fun onCancelled(error: DatabaseError) { progressDialog.dismiss(); Toast.makeText(activity, "Error de conexión", Toast.LENGTH_SHORT).show() }
+    })
+}
+
+fun MainActivity.showResetDataDialog() {
+    val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_reset_options, null)
+    val dialog = AlertDialog.Builder(this)
+        .setView(dialogView)
+        .create()
+
+    dialogView.findViewById<View>(R.id.btnResetAll)?.setOnClickListener {
+        dialog.dismiss()
+        resetData(0, 0, 0, true)
+    }
+    dialogView.findViewById<View>(R.id.btnReset24h)?.setOnClickListener {
+        dialog.dismiss()
+        val oneDayAgo = System.currentTimeMillis() - (24 * 3600 * 1000L)
+        resetData(1, oneDayAgo, System.currentTimeMillis(), false)
+    }
+    dialogView.findViewById<View>(R.id.btnCancelReset)?.setOnClickListener {
+        dialog.dismiss()
+    }
+    dialog.show()
+}
+
+fun MainActivity.showEditNameDialog() {
+    currentPlant?.let { plant ->
+        val activity = this
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_input, null)
+        val etInput = dialogView.findViewById<EditText>(R.id.etInput)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+        val btnOk = dialogView.findViewById<Button>(R.id.btnOk)
+
+        tvTitle.text = "Editar Nombre"
+        etInput.setText(plant.name)
+        etInput.hint = "Nuevo nombre (solo letras y números)"
+
+        val filter = InputFilter { source, start, end, _, _, _ ->
+            for (i in start until end) {
+                val char = source[i]
+                if (!Character.isLetterOrDigit(char) && char != ' ') {
+                    return@InputFilter ""
+                }
+            }
+            null
+        }
+        etInput.filters = arrayOf(filter)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnOk.setOnClickListener {
+            val rawName = etInput.text.toString().trim()
+            val newName = SecurityUtils.sanitizeText(rawName)
+            if (newName.isNotEmpty()) {
+                ioScope.launch {
+                    databaseLocal.plantDao().update(plant.copy(name = newName))
+                    currentPlant = databaseLocal.plantDao().getSelectedPlant()
+                    withContext(Dispatchers.Main) {
+                        activity.findViewById<TextView>(R.id.tvPlantNameAndEmoji)?.text = "🌱 $newName"
+                        Toast.makeText(activity, "Nombre actualizado correctamente", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                }
+            } else {
+                Toast.makeText(activity, "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
+            }
+        }
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+}
+
+fun MainActivity.showDeletePlantDialog() {
+    currentPlant?.let { plant ->
+        val safeName = SecurityUtils.sanitizeText(plant.name)
+        AlertDialog.Builder(this)
+            .setTitle("Eliminar Planta")
+            .setMessage("¿Estás seguro de eliminar a '$safeName'? Se borrarán sus registros asociados.")
+            .setPositiveButton("Eliminar") { _, _ ->
+                deleteCurrentPlant()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+}
+
+fun MainActivity.deleteCurrentPlant() {
+    currentPlant?.let { plant ->
+        val activity = this
+        ioScope.launch {
+            databaseLocal.sensorDao().deleteAllByPlantId(plant.id)
+            databaseLocal.plantDao().delete(plant)
+            val remainingPlants = databaseLocal.plantDao().getAll()
+            withContext(Dispatchers.Main) {
+                if (remainingPlants.isNotEmpty()) {
+                    val nextPlant = remainingPlants.first()
+                    databaseLocal.plantDao().deselectAll()
+                    databaseLocal.plantDao().update(nextPlant.copy(isSelected = true))
+                    currentPlant = nextPlant
+                    recreate()
+                } else {
+                    val intent = Intent(activity, PlantSetupActivity::class.java)
+                    activity.startActivity(intent)
+                    activity.finish()
+                }
+            }
+        }
+    }
+}
+
+fun MainActivity.resetData(type: Int, startTime: Long, endTime: Long, clearAll: Boolean) {
+    currentPlant?.let { plant ->
+        val activity = this
+        ioScope.launch {
+            if (clearAll) {
+                databaseLocal.sensorDao().deleteAllByPlantId(plant.id)
+            } else {
+                databaseLocal.sensorDao().deleteReadingsBetween(plant.id, startTime, endTime)
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(activity, "Datos restablecidos correctamente", Toast.LENGTH_SHORT).show()
+                loadDataAndDrawChart()
+            }
+        }
+    }
+}

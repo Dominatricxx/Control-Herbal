@@ -1,5 +1,16 @@
 package com.example.controlherbal.ui.widget
 
+import com.example.controlherbal.common.security.*
+import com.example.controlherbal.common.auth.*
+import com.example.controlherbal.common.legal.*
+import com.example.controlherbal.common.accessibility.*
+import com.example.controlherbal.common.utils.*
+import com.example.controlherbal.ui.activities.main.*
+import com.example.controlherbal.ui.activities.auth.*
+import com.example.controlherbal.ui.activities.privacy.*
+import com.example.controlherbal.ui.activities.plant.*
+import com.example.controlherbal.ui.style.*
+
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -33,11 +44,11 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.example.controlherbal.R
-import com.example.controlherbal.common.SecureLogger
-import com.example.controlherbal.common.SecurityUtils
+import com.example.controlherbal.common.security.SecureLogger
+import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.data.database.SensorReading
-import com.example.controlherbal.ui.activities.MainActivity
+import com.example.controlherbal.ui.activities.main.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
