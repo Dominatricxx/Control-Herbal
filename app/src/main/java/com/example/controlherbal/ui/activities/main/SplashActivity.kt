@@ -20,6 +20,7 @@ import com.example.controlherbal.common.security.LoginThrottle
 import com.example.controlherbal.common.security.PasswordPolicy
 import com.example.controlherbal.common.security.PwnedPasswords
 import com.example.controlherbal.common.security.SecureLogger
+import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.ui.activities.main.MainActivity
 import com.example.controlherbal.ui.activities.plant.PlantSetupActivity
@@ -59,6 +60,28 @@ class SplashActivity : AppCompatActivity() {
                     lifecycleScope.launch {
                         val res = AuthManager.signInWithCredential(credential)
                         if (res is AuthManager.SignInResult.Success) {
+                            val uid = AuthManager.uid() ?: account.id ?: java.util.UUID.randomUUID().toString()
+                            val email = account.email ?: AuthManager.email() ?: ""
+                            val displayName = account.displayName ?: "Usuario Google"
+                            val givenName = account.givenName ?: displayName.substringBefore(" ")
+                            val familyName = account.familyName ?: displayName.substringAfter(" ", "")
+
+                            val familyParts = familyName.trim().split(" ")
+                            val apPaterno = familyParts.firstOrNull() ?: familyName
+                            val apMaterno = if (familyParts.size > 1) familyParts.subList(1, familyParts.size).joinToString(" ") else null
+
+                            val db = SensorDatabase.getInstance(this@SplashActivity)
+                            val userRepo = com.example.controlherbal.data.repository.UserRepositoryImpl(db.userDao())
+
+                            // Guardar/actualizar automáticamente en SQLite (Room) y Firebase /users/{uid}
+                            userRepo.registerUser(
+                                userId = uid,
+                                nombre = givenName,
+                                apPaterno = apPaterno,
+                                apMaterno = apMaterno,
+                                correo = email,
+                                plainPassword = null
+                            )
                             routeAfterLogin()
                         } else {
                             notifyWebLoginError("No se pudo iniciar sesión con Google.", false)
@@ -213,8 +236,16 @@ class SplashActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun register(name: String, email: String, pass: String, confirm: String) {
+        fun register(name: String, paternal: String, maternal: String, email: String, pass: String, confirm: String) {
             lifecycleScope.launch {
+                if (!SecurityUtils.isValidEmailDomain(email)) {
+                    notifyWebLoginError("Ingresa un correo electrónico con un dominio válido.", false)
+                    return@launch
+                }
+                if (paternal.isBlank()) {
+                    notifyWebLoginError("El apellido paterno es obligatorio.", false)
+                    return@launch
+                }
                 if (pass != confirm) {
                     notifyWebLoginError("Las contraseñas no coinciden.", false)
                     return@launch
@@ -227,7 +258,7 @@ class SplashActivity : AppCompatActivity() {
                     emptySet()
                 }
                 val policy = PasswordPolicy(commonCores)
-                val eval = policy.evaluate(pass, listOf(name, email))
+                val eval = policy.evaluate(pass, listOf(name, paternal, maternal, email))
                 if (!eval.ok) {
                     notifyWebLoginError("La contraseña debe tener al menos 12 caracteres, mayúscula, número y símbolo.", false)
                     return@launch
@@ -240,7 +271,21 @@ class SplashActivity : AppCompatActivity() {
                 }
 
                 when (AuthManager.signUp(email, pass)) {
-                    AuthManager.SignInResult.Success -> routeAfterLogin()
+                    AuthManager.SignInResult.Success -> {
+                        val uid = AuthManager.uid() ?: java.util.UUID.randomUUID().toString()
+
+                        val db = SensorDatabase.getInstance(this@SplashActivity)
+                        val userRepo = com.example.controlherbal.data.repository.UserRepositoryImpl(db.userDao())
+                        userRepo.registerUser(
+                            userId = uid,
+                            nombre = name,
+                            apPaterno = paternal,
+                            apMaterno = maternal.ifBlank { null },
+                            correo = email,
+                            plainPassword = pass
+                        )
+                        routeAfterLogin()
+                    }
                     else -> notifyWebLoginError("No se pudo registrar la cuenta.", false)
                 }
             }

@@ -142,17 +142,17 @@ object PredictiveTheorem {
         val eTemp = estresTemp(temp, r.tempMin, r.tempMax)
         if (eTemp > 80) return "🔥 TEMPERATURA EXTREMA: sombra y riego"
         
-        if (eSuelo > 40) return if (soil < r.soilMin) "🌿 Suelo seco, aumentar riego" else "🌊 Suelo saturado, reducir riego"
-        if (eTemp > 40) return "🌡️ Estrés térmico, sombra parcial"
+        if (eSuelo > 40) return if (soil < r.soilMin) "Suelo seco, aumentar riego" else "Suelo saturado, reducir riego"
+        if (eTemp > 40) return "Estres termico, sombra parcial"
         
-        if (hum < r.humMin) return "💧 Baja humedad ambiente, rocíe"
-        if (hum > r.humMax) return "💨 Alta humedad, ventile"
-        if (temp < r.tempMin) return "❄️ Frío, proteja la planta"
+        if (hum < r.humMin) return "Baja humedad ambiente, rocie"
+        if (hum > r.humMax) return "Alta humedad, ventile"
+        if (temp < r.tempMin) return "Frio, proteja la planta"
         
         if (isDay) {
-            if (luz < r.luzMin) return "🌑 Poca luz, acerque a ventana"
+            if (luz < r.luzMin) return "Poca luz, acerque a ventana"
         } else {
-            if (luz < r.luzMin) return "🌙 Noche - sin necesidad de luz adicional"
+            if (luz < r.luzMin) return "Noche - sin necesidad de luz adicional"
         }
         
         return "✅ Condiciones óptimas"
@@ -249,7 +249,7 @@ object PredictiveTheorem {
             seq = SecurityUtils.clampValue(seq, 0.0, PREDICCION_MAX_HORAS)
 
             if (isDay && seq <= 3.0 && soil < (r.soilMin + 2)) {
-                recommendation = "⚠️ NIVEL BAJO: Próximo riego estimado en ${String.format(Locale.getDefault(), "%.1f", seq)}h."
+                recommendation = "NIVEL BAJO: Proximo riego estimado en ${String.format(Locale.getDefault(), "%.1f", seq)}h."
             }
             
             if (isDay) {

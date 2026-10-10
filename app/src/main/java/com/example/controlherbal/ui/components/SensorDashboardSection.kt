@@ -53,14 +53,14 @@ fun SensorDashboardSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "📊 Telemetría en Vivo",
+                text = "Telemetria en Vivo",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
-                text = if (isDay) "☀️ Día" else "🌙 Noche",
+                text = if (isDay) "Dia" else "Noche",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -84,7 +84,7 @@ fun SensorDashboardSection(
                     else -> "Calor elevado"
                 },
                 gifResId = R.raw.temp_animated,
-                fallbackIcon = "🌡️",
+                fallbackIcon = "",
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -100,7 +100,7 @@ fun SensorDashboardSection(
                     else -> "Humedad alta"
                 },
                 gifResId = R.raw.humidity_animated,
-                fallbackIcon = "💧",
+                fallbackIcon = "",
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -124,7 +124,7 @@ fun SensorDashboardSection(
                     else -> "Suelo saturado"
                 },
                 gifResId = R.raw.soil_animated,
-                fallbackIcon = "🪴",
+                fallbackIcon = "",
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -139,7 +139,7 @@ fun SensorDashboardSection(
                     else -> "Sol directo"
                 },
                 gifResId = R.raw.sun_animated,
-                fallbackIcon = "☀️",
+                fallbackIcon = "",
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
             )

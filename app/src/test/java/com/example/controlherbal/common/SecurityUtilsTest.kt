@@ -60,4 +60,17 @@ class SecurityUtilsTest {
         assertEquals(0.0, SecurityUtils.clampValue(Double.NaN), 0.0)
         assertEquals(1000.0, SecurityUtils.clampValue(5000.0), 0.0)
     }
+
+    @Test fun pbkdf2PasswordHashing_isNotPlainTextAndDeterministicWithSameSalt() {
+        val salt = SecurityUtils.generateSalt()
+        assertEquals(16, salt.size)
+        val hash1 = SecurityUtils.hashPasswordWithPbkdf2("SuperSecret123!", salt)
+        val hash2 = SecurityUtils.hashPasswordWithPbkdf2("SuperSecret123!", salt)
+        val hashDifferentPassword = SecurityUtils.hashPasswordWithPbkdf2("OtherPassword123!", salt)
+
+        assertTrue(hash1.isNotEmpty())
+        assertFalse(hash1.contains("SuperSecret123!"))
+        assertEquals(hash1, hash2)
+        assertFalse(hash1 == hashDifferentPassword)
+    }
 }

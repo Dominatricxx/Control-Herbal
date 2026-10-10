@@ -180,7 +180,6 @@ fun MainActivity.showEditNameDialog() {
                     databaseLocal.plantDao().update(plant.copy(name = newName))
                     currentPlant = databaseLocal.plantDao().getSelectedPlant()
                     withContext(Dispatchers.Main) {
-                        activity.findViewById<TextView>(R.id.tvPlantNameAndEmoji)?.text = "🌱 $newName"
                         Toast.makeText(activity, "Nombre actualizado correctamente", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()
                     }

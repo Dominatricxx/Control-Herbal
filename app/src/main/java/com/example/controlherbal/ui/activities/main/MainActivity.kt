@@ -43,10 +43,19 @@ import com.example.controlherbal.data.sync.SensorForegroundService
 import com.example.controlherbal.domain.usecase.ExecuteWateringUseCase
 import com.example.controlherbal.ui.components.SensorDashboardSection
 import com.example.controlherbal.ui.controller.WateringController
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.example.controlherbal.ui.components.MainContentScreen
+import com.example.controlherbal.ui.theme.ControlHerbalTheme
+import com.example.controlherbal.ui.components.AnimatedGradientBackground
+import androidx.compose.foundation.layout.fillMaxSize
 import com.example.controlherbal.ui.dialogs.PlantSelectionDialog
 import com.example.controlherbal.ui.helper.NavigationDrawerHandler
 import com.example.controlherbal.ui.presenter.SensorDashboardPresenter
 import com.example.controlherbal.ui.theme.ControlHerbalTheme
+import com.example.controlherbal.ui.components.AnimatedGradientBackground
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
 import com.example.controlherbal.ui.viewmodel.SensorViewModel
 import com.github.mikephil.charting.charts.CombinedChart
 import com.google.android.material.navigation.NavigationView
@@ -98,6 +107,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Inicializar Firebase y App Check con Play Integrity
+        com.google.firebase.FirebaseApp.initializeApp(this)
+        try {
+            com.google.firebase.appcheck.FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
+                com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
+        } catch (e: Exception) {
+            // Inicializado previamente
+        }
+
         databaseLocal = SensorDatabase.getInstance(this)
         plantRepository = PlantRepositoryImpl(databaseLocal.plantDao())
         sensorDataRepository = SensorDataRepositoryImpl(databaseLocal.sensorDao())
@@ -115,12 +136,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 finish()
             } else {
                 currentPlant = plant
+                if (::sensorViewModel.isInitialized) {
+                    sensorViewModel.observeLatestReading(plant.id)
+                }
                 startSensorService()
                 setupPresenterAndSync()
                 updateMenuVisibility(plantCount)
             }
         }
     }
+
+    private lateinit var sensorViewModel: SensorViewModel
 
     private fun initializeUI() {
         drawerLayout = findViewById(R.id.drawer_layout)
@@ -129,10 +155,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         findViewById<View>(R.id.btnMenu).setOnClickListener { drawerLayout.openDrawer(GravityCompat.START) }
         navView.menu.findItem(R.id.nav_main).isVisible = false
 
+        // 1. Renderizar fondo dinámico animado en la capa inferior
+        findViewById<ComposeView>(R.id.composeBackgroundView).setContent {
+            ControlHerbalTheme {
+                AnimatedGradientBackground(modifier = androidx.compose.ui.Modifier.fillMaxSize())
+            }
+        }
+
+        // 2. Inicializar presentador, gráficas y todos los componentes del sistema completo
         dashboardPresenter = SensorDashboardPresenter(
             context = this,
             tvStatusTitle = findViewById(R.id.tvAlerta),
-            tvStatusSubtitle = findViewById(R.id.tvAccion),
+            tvStatusSubtitle = findViewById(R.id.tvLastUpdate),
             viewStatusIndicator = findViewById(R.id.tvConnectionState),
             tvTemp = findViewById(R.id.tvTemp),
             tvHum = findViewById(R.id.tvHum),
@@ -184,6 +218,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         btnConnect.setOnClickListener {
             dashboardPresenter.showLinkingState()
             syncManager.startListening()
+        }
+
+        findViewById<Button>(R.id.btnBottomPanel).setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+        findViewById<Button>(R.id.btnBottomSensors).setOnClickListener {
+            startActivity(Intent(this, HistoryActivity::class.java))
         }
 
         createNotificationChannel()

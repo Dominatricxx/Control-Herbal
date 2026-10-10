@@ -86,7 +86,7 @@ fun AnimatedSensorCard(
     modifier: Modifier = Modifier,
     statusText: String? = null,
     gifResId: Any? = null,
-    fallbackIcon: String = "📊",
+    fallbackIcon: String = "",
     containerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer
 ) {

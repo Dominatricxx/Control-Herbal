@@ -81,7 +81,7 @@
         <!-- Actividades internas no exportadas para prevenir Intent Redirection -->
         <activity
             android:name=".ui.activities.main.MainActivity"
-            android:exported="false"
+            android:exported="true"
             android:launchMode="singleTop" />
 
         <activity
@@ -105,6 +105,12 @@
             android:name=".ui.activities.plant.ChatActivity"
             android:exported="false"
             android:label="Asistente Herbal AI"
+            android:parentActivityName=".ui.activities.main.MainActivity" />
+
+        <activity
+            android:name=".ui.activities.plant.AnimatedDashboardActivity"
+            android:exported="true"
+            android:label="Dashboard Dinámico"
             android:parentActivityName=".ui.activities.main.MainActivity" />
 
         <!-- Receivers para Widgets de Pantalla de Inicio -->

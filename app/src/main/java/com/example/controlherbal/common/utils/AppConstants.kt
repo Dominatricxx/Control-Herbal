@@ -17,7 +17,7 @@ import com.example.controlherbal.ui.style.*
 object AppConstants {
 
     // Firebase Realtime Database
-    const val FIREBASE_DATABASE_URL = "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/"
+    const val FIREBASE_DATABASE_URL = "https://controlherbal-97558-default-rtdb.firebaseio.com/"
     const val FIREBASE_SENSOR_NODE = "sensor"
     const val FIREBASE_WATERING_HISTORY_NODE = "watering_history"
     const val FIREBASE_CONFIG_PLANT_TYPE = "config/tipoPlanta"

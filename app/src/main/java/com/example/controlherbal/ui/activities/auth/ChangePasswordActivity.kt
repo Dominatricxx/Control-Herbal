@@ -78,6 +78,12 @@ class ChangePasswordActivity : AppCompatActivity() {
         pbBusy = findViewById(R.id.pbChange)
         guard = LoginThrottle.forContext(this, LoginThrottle.GUARD_PWCHANGE)
 
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+            }
+        })
+
         // La carga de zxcvbn y de la lista de contraseñas comunes va fuera del hilo principal.
         lifecycleScope.launch(Dispatchers.Default) {
             val text = assets.open("common_passwords.txt").bufferedReader().use { it.readText() }

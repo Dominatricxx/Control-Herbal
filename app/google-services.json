@@ -1,14 +1,14 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "firebase_url": "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-    "project_id": "YOUR_PROJECT_ID",
-    "storage_bucket": "YOUR_PROJECT_ID.appspot.com"
+    "project_number": "741809372236",
+    "firebase_url": "https://controlherbal-97558-default-rtdb.firebaseio.com",
+    "project_id": "controlherbal-97558",
+    "storage_bucket": "controlherbal-97558.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:741809372236:android:16c6ad844b4e865774c8e9",
         "android_client_info": {
           "package_name": "com.example.controlherbal"
         }
@@ -16,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "YOUR_FIREBASE_API_KEY"
+          "current_key": "AIzaSyCCTQmeObzKv24qT265O2eNQOA_HblTcgc"
         }
       ],
       "services": {

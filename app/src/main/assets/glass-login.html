@@ -308,7 +308,15 @@
       <form class="panel" id="panel-register" role="tabpanel" aria-labelledby="tab-register" autocomplete="on">
         <label class="field">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.5"/><path d="M3.5 17c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5"/></svg>
-          <input type="text" name="name" placeholder="Nombre completo" autocomplete="name" required>
+          <input type="text" name="name" placeholder="Nombre(s)" autocomplete="given-name" required>
+        </label>
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3a7 7 0 1 0 7 7 7 7 0 0 0-7-7zm0 12.5A5.5 5.5 0 1 1 15.5 10 5.5 5.5 0 0 1 10 15.5z"/></svg>
+          <input type="text" name="paternal" placeholder="Apellido paterno" autocomplete="family-name" required>
+        </label>
+        <label class="field">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3a7 7 0 1 0 7 7 7 7 0 0 0-7-7zm0 12.5A5.5 5.5 0 1 1 15.5 10 5.5 5.5 0 0 1 10 15.5z"/></svg>
+          <input type="text" name="maternal" placeholder="Apellido materno (opcional)">
         </label>
         <label class="field">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="4" width="16" height="12" rx="2"/><path d="m2.5 5.5 7.5 5.5 7.5-5.5"/></svg>
@@ -430,11 +438,13 @@
   document.getElementById('panel-register').addEventListener('submit', function(e) {
     e.preventDefault();
     const name = this.name.value;
+    const paternal = this.paternal.value;
+    const maternal = this.maternal.value;
     const email = this.email.value;
     const pass = this.password.value;
     const confirm = this.confirm.value;
     if (window.AndroidAuthBridge && window.AndroidAuthBridge.register) {
-      window.AndroidAuthBridge.register(name, email, pass, confirm);
+      window.AndroidAuthBridge.register(name, paternal, maternal, email, pass, confirm);
     }
   });
 

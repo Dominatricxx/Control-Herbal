@@ -191,7 +191,7 @@ private fun UnifiedWidgetContent(name: String, r: SensorReading?, showAI: Boolea
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
                 Text(
-                    text = if (isCritical) "⚠️ RIESGO ALTO" else "✅ ESTADO ÓPTIMO",
+                    text = if (isCritical) "RIESGO ALTO" else "ESTADO OPTIMO",
                     style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold, color = ColorProvider(statusColor))
                 )
                 Text(

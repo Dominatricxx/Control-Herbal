@@ -54,6 +54,11 @@ import com.google.android.material.navigation.NavigationView
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.foundation.layout.fillMaxSize
+import com.example.controlherbal.ui.components.AnimatedGradientBackground
+import com.example.controlherbal.ui.theme.ControlHerbalTheme
+import androidx.core.view.WindowCompat
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
@@ -91,7 +96,22 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_history_drawer)
+
+        findViewById<ComposeView>(R.id.composeBackgroundView).setContent {
+            ControlHerbalTheme {
+                AnimatedGradientBackground(modifier = androidx.compose.ui.Modifier.fillMaxSize())
+            }
+        }
+
+        findViewById<Button>(R.id.btnBottomPanel).setOnClickListener {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+        }
+        findViewById<Button>(R.id.btnBottomSensors).setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
 
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
@@ -102,6 +122,16 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
         findViewById<View>(R.id.btnMenu).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
+
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                } else {
+                    finish()
+                }
+            }
+        })
 
         val menu = navView.menu
         when(type) {

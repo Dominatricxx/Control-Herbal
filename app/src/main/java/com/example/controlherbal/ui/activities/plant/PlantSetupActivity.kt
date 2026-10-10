@@ -85,6 +85,12 @@ class PlantSetupActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener { finish() }
 
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+            }
+        })
+
         val alphaNumericFilter = InputFilter { source, start, end, _, _, _ ->
             for (i in start until end) {
                 val char = source[i]
@@ -147,7 +153,7 @@ class PlantSetupActivity : AppCompatActivity() {
 
             val type = when {
                 customPlantType != null -> customPlantType!!
-                selectedPlantData != null -> "${selectedPlantData!!.name} ${selectedPlantData!!.emoji} (${selectedPlantData!!.scientificName})"
+                selectedPlantData != null -> "${selectedPlantData!!.name} (${selectedPlantData!!.scientificName})"
                 else -> {
                     Toast.makeText(this, "Por favor, selecciona un tipo de planta", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
@@ -162,7 +168,7 @@ class PlantSetupActivity : AppCompatActivity() {
 
     private fun showPlantSelectionDialog(category: String) {
         val plants = PlantCategoriesCatalog.categoriesMap[category] ?: return
-        val plantNames = plants.map { "${it.name} ${it.emoji}" }
+        val plantNames = plants.map { it.name }
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_rounded_list, null)
         val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
@@ -192,11 +198,11 @@ class PlantSetupActivity : AppCompatActivity() {
         selectedPlantData = plant
         
         val categoryName = category.split(" ").first()
-        val formattedType = "Categoría: $categoryName | Tipo: ${plant.name} ${plant.emoji} (${plant.scientificName})"
+        val formattedType = "Categoría: $categoryName | Tipo: ${plant.name} (${plant.scientificName})"
         
         customPlantType = formattedType
         
-        btnSelectSpecificPlant.text = "${plant.name} ${plant.emoji}"
+        btnSelectSpecificPlant.text = plant.name
         btnSelectSpecificPlant.visibility = View.VISIBLE
 
         val envIndex = environments.indexOf(plant.environment)
@@ -340,10 +346,10 @@ class PlantSetupActivity : AppCompatActivity() {
     private fun identifyOffline() {
         Toast.makeText(this, R.string.offline_identification, Toast.LENGTH_SHORT).show()
         val localHerbalDB = listOf(
-            PredefinedPlantInfo("Áloe Vera", "Aloe barbadensis", "🌵", "Luz 🌞"),
-            PredefinedPlantInfo("Manzanilla", "Chamaemelum nobile", "🌼", "Luz 🌞"),
-            PredefinedPlantInfo("Romero", "Salvia rosmarinus", "🌿", "Luz 🌞"),
-            PredefinedPlantInfo("Menta", "Mentha", "🍃", "Sombra 🌥️")
+            PredefinedPlantInfo("Áloe Vera", "Aloe barbadensis", "Luz 🌞"),
+            PredefinedPlantInfo("Manzanilla", "Chamaemelum nobile", "Luz 🌞"),
+            PredefinedPlantInfo("Romero", "Salvia rosmarinus", "Luz 🌞"),
+            PredefinedPlantInfo("Menta", "Mentha", "Sombra 🌥️")
         )
         val plant = localHerbalDB.random() 
         selectPredefinedPlant(plant, "Local 🏠")

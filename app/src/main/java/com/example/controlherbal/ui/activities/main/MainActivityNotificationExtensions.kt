@@ -36,7 +36,7 @@ fun MainActivity.handleSignificantNotifications(isConnected: Boolean, cause: Str
     val safeCause = SecurityUtils.sanitizeText(cause, 200)
     if (safeCause.contains("Riesgo Crítico", ignoreCase = true) || safeCause.contains("Crítico", ignoreCase = true)) {
         if (lastAlertState != 2) {
-            sendNotification("⚠️ Alerta Crítica en tu Planta", safeCause)
+            sendNotification("Alerta Critica en tu Planta", safeCause)
             lastAlertState = 2
         }
     } else {

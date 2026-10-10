@@ -1,18 +1,13 @@
 package com.example.controlherbal
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.auth.*
-import com.example.controlherbal.common.legal.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.ui.activities.main.*
-import com.example.controlherbal.ui.activities.auth.*
-import com.example.controlherbal.ui.activities.privacy.*
-import com.example.controlherbal.ui.activities.plant.*
-import com.example.controlherbal.ui.style.*
-
 import android.app.Application
 import com.example.controlherbal.common.AppCheckInstaller
+import com.example.controlherbal.data.database.PlantDatabaseSeeder
+import com.example.controlherbal.data.database.SensorDatabase
+import com.google.firebase.FirebaseApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Application: inicializa Firebase App Check lo antes posible para que TODAS las
@@ -21,6 +16,11 @@ import com.example.controlherbal.common.AppCheckInstaller
 class ControlHerbalApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        FirebaseApp.initializeApp(this)
         AppCheckInstaller.install()
+        val db = SensorDatabase.getInstance(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            PlantDatabaseSeeder.seedCatalogIfEmpty(db)
+        }
     }
 }

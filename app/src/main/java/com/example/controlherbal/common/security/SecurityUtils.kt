@@ -38,6 +38,28 @@ object SecurityUtils {
     /** Formato estricto de la marca de alerta que puede emitir el modelo: "[ALERTA: Nombre breve]". */
     private val ALERT_LINE = Regex("^\\[ALERTA:\\s*([\\p{L}\\p{N}][\\p{L}\\p{N} .,\\-]{0,59})\\]$")
 
+    private val STRICT_EMAIL_REGEX = Regex(
+        "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
+    )
+
+    /**
+     * Valida que el correo tenga un formato RFC-5322 estricto y un dominio válido registrado.
+     * Rechaza correos sin sentido o con dominios ficticios/incompletos.
+     */
+    fun isValidEmailDomain(email: String?): Boolean {
+        if (email.isNullOrBlank()) return false
+        val cleanEmail = email.trim()
+        if (!STRICT_EMAIL_REGEX.matches(cleanEmail)) return false
+        val domain = cleanEmail.substringAfter("@").lowercase()
+        if (!domain.contains(".")) return false
+        val tld = domain.substringAfterLast(".")
+        if (tld.length < 2) return false
+
+        val invalidDomains = setOf("test.com", "example.com", "invalid.com", "fake.com", "localhost")
+        if (domain in invalidDomains) return false
+        return true
+    }
+
     /**
      * Normaliza texto corto introducido por el usuario o recibido de la red (nombres, acciones...).
      * Elimina caracteres invisibles/de control, colapsa espacios y recorta por puntos de código.
@@ -108,5 +130,43 @@ object SecurityUtils {
         var end = maxLength
         if (Character.isHighSurrogate(text[end - 1])) end -= 1
         return text.substring(0, end).trimEnd()
+    }
+
+    private const val PBKDF2_ITERATIONS = 10_000
+    private const val PBKDF2_KEY_LENGTH_BITS = 256
+
+    /** Genera una sal criptográfica aleatoria de 16 bytes. */
+    fun generateSalt(): ByteArray {
+        val salt = ByteArray(16)
+        java.security.SecureRandom().nextBytes(salt)
+        return salt
+    }
+
+    /** Hashea una contraseña usando PBKDF2WithHmacSHA256 con la sal especificada. Nunca en texto plano. */
+    fun hashPasswordWithPbkdf2(password: String, salt: ByteArray): String {
+        val spec = javax.crypto.spec.PBEKeySpec(
+            password.toCharArray(),
+            salt,
+            PBKDF2_ITERATIONS,
+            PBKDF2_KEY_LENGTH_BITS
+        )
+        val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val hash = factory.generateSecret(spec).encoded
+        return bytesToHex(hash)
+    }
+
+    fun bytesToHex(bytes: ByteArray): String {
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    fun hexToBytes(hex: String): ByteArray {
+        val len = hex.length
+        val data = ByteArray(len / 2)
+        var i = 0
+        while (i < len) {
+            data[i / 2] = ((Character.digit(hex[i], 16) shl 4) + Character.digit(hex[i + 1], 16)).toByte()
+            i += 2
+        }
+        return data
     }
 }

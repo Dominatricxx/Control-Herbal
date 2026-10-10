@@ -55,6 +55,7 @@ object NavigationDrawerHandler {
             }
             R.id.nav_comparison -> activity.startActivity(Intent(activity, ComparisonActivity::class.java))
             R.id.nav_chat -> activity.startActivity(Intent(activity, ChatActivity::class.java))
+            R.id.nav_animated_dashboard -> activity.startActivity(Intent(activity, AnimatedDashboardActivity::class.java))
             R.id.nav_privacy -> activity.startActivity(Intent(activity, PrivacyActivity::class.java))
             R.id.nav_change_password -> activity.startActivity(Intent(activity, ChangePasswordActivity::class.java))
             R.id.nav_logout -> signOutAndExit(activity)

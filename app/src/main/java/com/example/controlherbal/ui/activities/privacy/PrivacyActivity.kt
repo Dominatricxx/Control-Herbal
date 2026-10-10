@@ -49,6 +49,12 @@ class PrivacyActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.btnPrivacyBack).setOnClickListener { finish() }
 
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+            }
+        })
+
         val at = ConsentManager.acceptedAt(this)
         findViewById<TextView>(R.id.tvAcceptedInfo).text = getString(
             R.string.privacy_accepted_info,

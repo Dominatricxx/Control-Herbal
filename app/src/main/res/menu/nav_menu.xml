@@ -6,11 +6,11 @@
             android:title="Panel Principal" />
         <item
             android:id="@+id/nav_plants"
-            android:title="Mis plantas 🪴"
+            android:title="Mis plantas"
             android:visible="false" />
         <item
             android:id="@+id/nav_comparison"
-            android:title="Comparar Plantas 📊"
+            android:title="Comparar Plantas"
             android:visible="false" />
         <item
             android:id="@+id/nav_daily"
@@ -23,7 +23,10 @@
             android:title="Registro Mensual" />
         <item
             android:id="@+id/nav_chat"
-            android:title="Asistente Herbal AI 🤖" />
+            android:title="Asistente Herbal AI" />
+        <item
+            android:id="@+id/nav_animated_dashboard"
+            android:title="Dashboard Dinámico" />
         <item
             android:id="@+id/nav_privacy"
             android:title="@string/privacy_title" />

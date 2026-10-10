@@ -38,6 +38,12 @@ class LegalActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvLegalTitle).text = doc.title
         findViewById<ImageButton>(R.id.btnLegalBack).setOnClickListener { finish() }
 
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+            }
+        })
+
         val container = findViewById<LinearLayout>(R.id.legalContainer)
         MarkdownLite.parse(LegalDocs.load(this, doc)).forEach { container.addView(viewFor(it)) }
     }

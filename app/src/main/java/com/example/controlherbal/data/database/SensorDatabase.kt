@@ -1,26 +1,32 @@
 package com.example.controlherbal.data.database
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.auth.*
-import com.example.controlherbal.common.legal.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.ui.activities.main.*
-import com.example.controlherbal.ui.activities.auth.*
-import com.example.controlherbal.ui.activities.privacy.*
-import com.example.controlherbal.ui.activities.plant.*
-import com.example.controlherbal.ui.style.*
-
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.controlherbal.data.database.dao.PlantCatalogDao
+import com.example.controlherbal.data.database.dao.UserDao
+import com.example.controlherbal.data.database.entity.PlantCatalogEntity
+import com.example.controlherbal.data.database.entity.UserEntity
+import com.example.controlherbal.data.database.entity.UserPlantEntity
 
-@Database(entities = [SensorReading::class, Plant::class], version = 7, exportSchema = false)
+@Database(
+    entities = [
+        SensorReading::class,
+        Plant::class,
+        UserEntity::class,
+        PlantCatalogEntity::class,
+        UserPlantEntity::class
+    ],
+    version = 8,
+    exportSchema = false
+)
 abstract class SensorDatabase : RoomDatabase() {
 
     abstract fun sensorDao(): SensorDao
     abstract fun plantDao(): PlantDao
+    abstract fun userDao(): UserDao
+    abstract fun plantCatalogDao(): PlantCatalogDao
 
     companion object {
         @Volatile
@@ -33,7 +39,7 @@ abstract class SensorDatabase : RoomDatabase() {
                     SensorDatabase::class.java,
                     "sensor_database"
                 )
-                .fallbackToDestructiveMigration(dropAllTables = false)
+                .fallbackToDestructiveMigration(true)
                 .build()
                 .also { INSTANCE = it }
             }
