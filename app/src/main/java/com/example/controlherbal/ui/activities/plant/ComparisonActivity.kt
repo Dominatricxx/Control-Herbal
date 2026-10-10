@@ -43,6 +43,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.example.controlherbal.ui.components.AnimatedGradientBackground
 import com.example.controlherbal.ui.theme.ControlHerbalTheme
 import androidx.core.view.WindowCompat
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Person
+import com.example.controlherbal.ui.components.GooeyBottomBar
+import com.example.controlherbal.ui.activities.privacy.PrivacyActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -102,12 +113,29 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
             }
         }
 
-        findViewById<Button>(R.id.btnBottomPanel).setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
-        }
-        findViewById<Button>(R.id.btnBottomSensors).setOnClickListener {
-            drawerLayout.openDrawer(GravityCompat.START)
+        findViewById<ComposeView>(R.id.composeBottomBar).setContent {
+            var selectedTab by remember { mutableStateOf(2) }
+            val tabs = listOf(
+                Triple("Panel", Icons.Default.Home, "Panel principal"),
+                Triple("Sensores", Icons.Default.Search, "Historial"),
+                Triple("Comparar", Icons.Default.Star, "Comparador"),
+                Triple("Perfil", Icons.Default.Person, "Privacidad")
+            )
+            ControlHerbalTheme {
+                GooeyBottomBar(
+                    tabs = tabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = { index ->
+                        selectedTab = index
+                        when (index) {
+                            0 -> { startActivity(Intent(this, MainActivity::class.java)); finish() }
+                            1 -> { startActivity(Intent(this, HistoryActivity::class.java)); finish() }
+                            2 -> {}
+                            3 -> { startActivity(Intent(this, PrivacyActivity::class.java)); finish() }
+                        }
+                    }
+                )
+            }
         }
 
         databaseLocal = SensorDatabase.getInstance(this)

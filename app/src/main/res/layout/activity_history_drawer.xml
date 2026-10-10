@@ -84,43 +84,13 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Contenedor inferior de botones (Estático) -->
-        <androidx.cardview.widget.CardView
+        <!-- 3. Barra de navegación inferior flotante con efecto Gooey (Compose) -->
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/composeBottomBar"
             android:layout_width="match_parent"
-            android:layout_height="76dp"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="6dp"
-            app:cardBackgroundColor="#FFFFFF">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:weightSum="2">
-
-                <Button
-                    android:id="@+id/btnBottomPanel"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:text="Panel"
-                    android:textColor="#6B7280"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btnBottomSensors"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:text="Sensores"
-                    android:textColor="#10B981"
-                    android:textStyle="bold" />
-
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginTop="8dp" />
 
     </LinearLayout>
 

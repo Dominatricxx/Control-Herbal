@@ -59,6 +59,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.example.controlherbal.ui.components.AnimatedGradientBackground
 import com.example.controlherbal.ui.theme.ControlHerbalTheme
 import androidx.core.view.WindowCompat
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Person
+import com.example.controlherbal.ui.components.GooeyBottomBar
+import com.example.controlherbal.ui.activities.privacy.PrivacyActivity
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
@@ -105,12 +116,29 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
             }
         }
 
-        findViewById<Button>(R.id.btnBottomPanel).setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
-        }
-        findViewById<Button>(R.id.btnBottomSensors).setOnClickListener {
-            drawerLayout.openDrawer(GravityCompat.START)
+        findViewById<ComposeView>(R.id.composeBottomBar).setContent {
+            var selectedTab by remember { mutableStateOf(1) }
+            val tabs = listOf(
+                Triple("Panel", Icons.Default.Home, "Panel principal"),
+                Triple("Sensores", Icons.Default.Search, "Historial"),
+                Triple("Comparar", Icons.Default.Star, "Comparador"),
+                Triple("Perfil", Icons.Default.Person, "Privacidad")
+            )
+            ControlHerbalTheme {
+                GooeyBottomBar(
+                    tabs = tabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = { index ->
+                        selectedTab = index
+                        when (index) {
+                            0 -> { startActivity(Intent(this, MainActivity::class.java)); finish() }
+                            1 -> {}
+                            2 -> { startActivity(Intent(this, ComparisonActivity::class.java)); finish() }
+                            3 -> { startActivity(Intent(this, PrivacyActivity::class.java)); finish() }
+                        }
+                    }
+                )
+            }
         }
 
         drawerLayout = findViewById(R.id.drawer_layout)

@@ -48,6 +48,15 @@ import androidx.compose.runtime.getValue
 import com.example.controlherbal.ui.components.MainContentScreen
 import com.example.controlherbal.ui.theme.ControlHerbalTheme
 import com.example.controlherbal.ui.components.AnimatedGradientBackground
+import com.example.controlherbal.ui.components.GooeyBottomBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.fillMaxSize
 import com.example.controlherbal.ui.dialogs.PlantSelectionDialog
 import com.example.controlherbal.ui.helper.NavigationDrawerHandler
@@ -220,11 +229,29 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             syncManager.startListening()
         }
 
-        findViewById<Button>(R.id.btnBottomPanel).setOnClickListener {
-            drawerLayout.openDrawer(GravityCompat.START)
-        }
-        findViewById<Button>(R.id.btnBottomSensors).setOnClickListener {
-            startActivity(Intent(this, HistoryActivity::class.java))
+        findViewById<ComposeView>(R.id.composeBottomBar).setContent {
+            var selectedTab by remember { mutableStateOf(0) }
+            val tabs = listOf(
+                Triple("Panel", Icons.Default.Home, "Panel principal"),
+                Triple("Sensores", Icons.Default.Search, "Historial"),
+                Triple("Comparar", Icons.Default.Star, "Comparador"),
+                Triple("Perfil", Icons.Default.Person, "Privacidad")
+            )
+            ControlHerbalTheme {
+                GooeyBottomBar(
+                    tabs = tabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = { index ->
+                        selectedTab = index
+                        when (index) {
+                            0 -> drawerLayout.openDrawer(GravityCompat.START)
+                            1 -> startActivity(Intent(this, HistoryActivity::class.java))
+                            2 -> startActivity(Intent(this, ComparisonActivity::class.java))
+                            3 -> startActivity(Intent(this, PrivacyActivity::class.java))
+                        }
+                    }
+                )
+            }
         }
 
         createNotificationChannel()

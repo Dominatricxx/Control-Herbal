@@ -41,7 +41,7 @@ import kotlin.math.sin
 @Composable
 fun AnimatedGradientBackground(
     modifier: Modifier = Modifier,
-    baseColor: Color = Color(0xFF0A0F1D),
+    baseColor: Color = Color(0xFF021C14),
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "HyperDynamicBackgroundTransition")
 
@@ -75,10 +75,11 @@ fun AnimatedGradientBackground(
         label = "phase3",
     )
 
-    val colorPrimary = Color(0xFF10B981).copy(alpha = 0.35f)
-    val colorSecondary = Color(0xFF06B6D4).copy(alpha = 0.30f)
-    val colorAccent = Color(0xFF8B5CF6).copy(alpha = 0.25f)
-    val colorDeep = Color(0xFF3B82F6).copy(alpha = 0.20f)
+    // Paleta de tonos verde oscuro, verde claro y amarillo un poco oscuro (dorado/oliva)
+    val colorDarkGreen = Color(0xFF047857).copy(alpha = 0.40f)
+    val colorLightGreen = Color(0xFF34D399).copy(alpha = 0.35f)
+    val colorDarkYellow = Color(0xFFCA8A04).copy(alpha = 0.30f)
+    val colorForest = Color(0xFF064E3B).copy(alpha = 0.35f)
 
     Box(modifier = modifier.background(baseColor)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -94,9 +95,10 @@ fun AnimatedGradientBackground(
             val x3 = width * 0.5f + (width * 0.3f) * sin(phase3.value * 1.2f)
             val y3 = height * 0.85f + (height * 0.15f) * cos(phase3.value)
 
+            // Círculo 1: Verde oscuro superior izquierdo
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(colorPrimary, Color.Transparent),
+                    colors = listOf(colorDarkGreen, Color.Transparent),
                     center = Offset(x1, y1),
                     radius = width * 0.75f,
                 ),
@@ -104,9 +106,10 @@ fun AnimatedGradientBackground(
                 center = Offset(x1, y1),
             )
 
+            // Círculo 2: Verde claro y bosque central-derecho
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(colorSecondary, colorDeep, Color.Transparent),
+                    colors = listOf(colorLightGreen, colorForest, Color.Transparent),
                     center = Offset(x2, y2),
                     radius = width * 0.85f,
                 ),
@@ -114,9 +117,10 @@ fun AnimatedGradientBackground(
                 center = Offset(x2, y2),
             )
 
+            // Círculo 3: Amarillo un poco oscuro inferior
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(colorAccent, Color.Transparent),
+                    colors = listOf(colorDarkYellow, Color.Transparent),
                     center = Offset(x3, y3),
                     radius = width * 0.8f,
                 ),
