@@ -53,6 +53,7 @@ class SensorDashboardPresenter(
 
         tvStatusTitle.text = "${level.symbol} ${level.label}"
         tvStatusTitle.setTextColor(colorInt)
+        tvStatusSubtitle.text = "Estado: Conectado"
         viewStatusIndicator.setBackgroundColor(colorInt)
 
         tvTemp.text = String.format(Locale.getDefault(), "%.1f °C", temp)
@@ -66,14 +67,14 @@ class SensorDashboardPresenter(
 
     fun showLinkingState() {
         tvStatusTitle.text = "Vinculando..."
-        tvStatusSubtitle.text = "Conectando con el sensor ESP32"
+        tvStatusSubtitle.text = "Estado: Conectando con el sensor ESP32"
         tvStatusTitle.setTextColor(Color.parseColor("#1E88E5"))
         viewStatusIndicator.setBackgroundColor(Color.parseColor("#1E88E5"))
     }
 
     fun showDisconnectedState() {
         tvStatusTitle.text = "Desconectado"
-        tvStatusSubtitle.text = "Buscando señal de sensores"
+        tvStatusSubtitle.text = "Estado: Buscando señal de sensores"
         tvStatusTitle.setTextColor(Color.parseColor("#757575"))
         viewStatusIndicator.setBackgroundColor(Color.parseColor("#757575"))
     }

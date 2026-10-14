@@ -47,6 +47,8 @@ El flujo también funciona en sentido contrario: desde la app se elige el tipo d
 
 <sub>El ESP32 lee los sensores y sube los datos a Firebase. Desde ahí, el script de Python entrena el modelo de IA (que se exporta como .tflite), mientras que la app multiplataforma consume tanto el estado en vivo de Firebase como el modelo entrenado.</sub>
 
+En Android, las secciones Panel, Historial, Comparación y Privacidad comparten una Activity host con `ViewPager2`; el gesto horizontal y la barra inferior cambian de página sin apilar Activities. El drawer mantiene las rutas de historial por periodo y las pantallas externas (por ejemplo, documentos legales o configuración) regresan al mismo carrusel.
+
 ---
 
 ## Estructura del repositorio

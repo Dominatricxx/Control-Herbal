@@ -1,51 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#070A12">
+    android:fillViewport="true"
+    android:background="#FFFFFF"
+    android:clipToPadding="false"
+    android:scrollbars="none">
 
-    <!-- 1. Capa inferior: Fondo dinámico animado (cubre toda la pantalla edge-to-edge) -->
-    <androidx.compose.ui.platform.ComposeView
-        android:id="@+id/composeBackgroundView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- 2. Capa superior: Contenedores flotantes con márgenes externos generosos arriba y abajo -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="48dp"
-        android:paddingBottom="40dp"
-        android:clipToPadding="false"
-        android:clipChildren="false">
-
-        <!-- Contenedor Superior (Tamaño estático con scroll interno, separado de los bordes superior e inferior) -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="8dp"
-            app:cardBackgroundColor="#FFFFFF">
-
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:clipChildren="false"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:clipChildren="false"
-                    android:clipToPadding="false">
+        android:padding="20dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
                     <!-- Título y encabezado -->
                     <RelativeLayout
@@ -278,13 +247,14 @@
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/tvLastUpdate"
+                                android:id="@+id/tvConnectionStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Última actualización: --"
-                                android:textColor="#757575"
-                                android:textSize="12sp" />
+                                android:text="Estado: --"
+                                android:textColor="#2E7D32"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
@@ -425,29 +395,6 @@
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:id="@+id/tvWateringRecommended"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Riego recomendado: --"
-                                    android:textSize="14sp"
-                                    android:textColor="#2563EB"
-                                    android:textStyle="bold"/>
-                                <TextView
-                                    android:id="@+id/tvNextWateringTime"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Próximo riego estimado: --"
-                                    android:textSize="12sp"
-                                    android:textColor="#757575"
-                                    android:layout_marginTop="2dp"/>
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
                                 android:layout_marginTop="10dp"
                                 android:orientation="horizontal">
                                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Sequía estimada: " android:textSize="14sp" android:textColor="#757575"/>
@@ -462,30 +409,6 @@
                                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Sombra necesaria: " android:textSize="14sp" android:textColor="#757575"/>
                                 <TextView android:id="@+id/tvSomb" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-- h" android:textStyle="bold" android:textSize="14sp" android:textColor="#212121" />
                             </LinearLayout>
-
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="1dp"
-                                android:layout_marginTop="12dp"
-                                android:layout_marginBottom="12dp"
-                                android:background="#EEEEEE" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Acción:"
-                                android:textSize="13sp"
-                                android:textColor="#757575" />
-
-                            <TextView
-                                android:id="@+id/tvAccion"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="--"
-                                android:textColor="#2E7D32"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
@@ -592,18 +515,5 @@
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
-                </LinearLayout>
-            </ScrollView>
-        </androidx.cardview.widget.CardView>
-
-        <!-- 3. Barra de navegación inferior flotante con efecto Gooey (Compose) -->
-        <androidx.compose.ui.platform.ComposeView
-            android:id="@+id/composeBottomBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_marginTop="8dp" />
-
     </LinearLayout>
-
-</FrameLayout>
+</ScrollView>

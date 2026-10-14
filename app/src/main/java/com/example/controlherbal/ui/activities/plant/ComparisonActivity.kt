@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Person
 import com.example.controlherbal.ui.components.GooeyBottomBar
+import com.example.controlherbal.ui.helper.SectionNavigator
 import com.example.controlherbal.ui.activities.privacy.PrivacyActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -104,6 +105,9 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(this, 2))
+        finish()
+        return
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_comparison_drawer)
 
@@ -128,10 +132,9 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
                     onTabSelected = { index ->
                         selectedTab = index
                         when (index) {
-                            0 -> { startActivity(Intent(this, MainActivity::class.java)); finish() }
-                            1 -> { startActivity(Intent(this, HistoryActivity::class.java)); finish() }
+                            0, 1 -> SectionNavigator.navigate(this, index, finishCurrent = true)
                             2 -> {}
-                            3 -> { startActivity(Intent(this, PrivacyActivity::class.java)); finish() }
+                            else -> SectionNavigator.navigate(this, index, finishCurrent = true)
                         }
                     }
                 )

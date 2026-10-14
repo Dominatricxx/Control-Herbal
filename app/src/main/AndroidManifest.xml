@@ -85,6 +85,12 @@
             android:launchMode="singleTop" />
 
         <activity
+            android:name=".ui.activities.main.SectionHostActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".ui.activities.plant.HistoryActivity"
             android:exported="false"
             android:label="Historial de Sensores"

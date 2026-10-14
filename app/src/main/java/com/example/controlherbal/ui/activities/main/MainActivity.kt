@@ -60,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.fillMaxSize
 import com.example.controlherbal.ui.dialogs.PlantSelectionDialog
 import com.example.controlherbal.ui.helper.NavigationDrawerHandler
+import com.example.controlherbal.ui.helper.SectionNavigator
 import com.example.controlherbal.ui.presenter.SensorDashboardPresenter
 import com.example.controlherbal.ui.theme.ControlHerbalTheme
 import com.example.controlherbal.ui.components.AnimatedGradientBackground
@@ -116,6 +117,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        startActivity(SectionHostActivity.intent(this, 0))
+        finish()
+        return
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // Inicializar Firebase y App Check con Play Integrity
@@ -175,7 +179,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         dashboardPresenter = SensorDashboardPresenter(
             context = this,
             tvStatusTitle = findViewById(R.id.tvAlerta),
-            tvStatusSubtitle = findViewById(R.id.tvLastUpdate),
+            tvStatusSubtitle = findViewById(R.id.tvConnectionStatus),
             viewStatusIndicator = findViewById(R.id.tvConnectionState),
             tvTemp = findViewById(R.id.tvTemp),
             tvHum = findViewById(R.id.tvHum),
@@ -229,6 +233,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             syncManager.startListening()
         }
 
+        // 3. Renderizar barra inferior GooeyBottomBar con los 4 botones
         findViewById<ComposeView>(R.id.composeBottomBar).setContent {
             var selectedTab by remember { mutableStateOf(0) }
             val tabs = listOf(
@@ -245,9 +250,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         selectedTab = index
                         when (index) {
                             0 -> drawerLayout.openDrawer(GravityCompat.START)
-                            1 -> startActivity(Intent(this, HistoryActivity::class.java))
-                            2 -> startActivity(Intent(this, ComparisonActivity::class.java))
-                            3 -> startActivity(Intent(this, PrivacyActivity::class.java))
+                            else -> SectionNavigator.navigate(this, index)
                         }
                     }
                 )

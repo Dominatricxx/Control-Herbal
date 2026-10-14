@@ -45,6 +45,9 @@ class PrivacyActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(this, 3))
+        finish()
+        return
         setContentView(R.layout.activity_privacy)
 
         findViewById<ImageButton>(R.id.btnPrivacyBack).setOnClickListener { finish() }

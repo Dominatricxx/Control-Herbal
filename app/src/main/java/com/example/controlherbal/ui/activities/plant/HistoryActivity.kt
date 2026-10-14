@@ -69,6 +69,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Person
 import com.example.controlherbal.ui.components.GooeyBottomBar
+import com.example.controlherbal.ui.helper.SectionNavigator
 import com.example.controlherbal.ui.activities.privacy.PrivacyActivity
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
@@ -107,6 +108,12 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val requestedType = SecurityUtils.getSafeIntentString(intent, AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO)
+        startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(
+            this, 1, requestedType
+        ))
+        finish()
+        return
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_history_drawer)
 
@@ -131,10 +138,9 @@ class HistoryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSele
                     onTabSelected = { index ->
                         selectedTab = index
                         when (index) {
-                            0 -> { startActivity(Intent(this, MainActivity::class.java)); finish() }
+                            0 -> SectionNavigator.navigate(this, index, finishCurrent = true)
                             1 -> {}
-                            2 -> { startActivity(Intent(this, ComparisonActivity::class.java)); finish() }
-                            3 -> { startActivity(Intent(this, PrivacyActivity::class.java)); finish() }
+                            else -> SectionNavigator.navigate(this, index, finishCurrent = true)
                         }
                     }
                 )

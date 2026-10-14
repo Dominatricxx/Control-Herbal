@@ -2,6 +2,7 @@ package com.example.controlherbal.ui.activities.main
 
 import android.content.Intent
 import android.graphics.Color
+import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -11,6 +12,7 @@ import android.webkit.WebViewClient
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.VideoView
+import com.example.controlherbal.ui.helper.ParallaxVideoHelper
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -46,6 +48,7 @@ class SplashActivity : AppCompatActivity() {
     private lateinit var tvAppTitle: TextView
     private lateinit var tvTapToContinue: TextView
     private lateinit var throttle: LoginThrottle
+    private lateinit var parallaxHelper: ParallaxVideoHelper
     private var isLoginVisible = false
     private var hasNavigated = false
 
@@ -107,6 +110,8 @@ class SplashActivity : AppCompatActivity() {
         setContentView(R.layout.activity_splash)
 
         videoView = findViewById(R.id.videoViewBackground)
+        val sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        parallaxHelper = ParallaxVideoHelper(sensorManager, videoView)
         webViewGlassLogin = findViewById(R.id.webViewGlassLogin)
         tvAppTitle = findViewById(R.id.tvAppTitle)
         tvTapToContinue = findViewById(R.id.tvTapToContinue)
@@ -203,7 +208,7 @@ class SplashActivity : AppCompatActivity() {
                 val nextIntent = if (selectedPlant == null) {
                     Intent(this@SplashActivity, PlantSetupActivity::class.java)
                 } else {
-                    Intent(this@SplashActivity, MainActivity::class.java)
+                    SectionHostActivity.intent(this@SplashActivity)
                 }
                 startActivity(nextIntent)
                 finish()
@@ -327,6 +332,20 @@ class SplashActivity : AppCompatActivity() {
                 Toast.makeText(this@SplashActivity, "Modo Pruebas Activado ⚡", Toast.LENGTH_SHORT).show()
                 routeAfterLogin()
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::parallaxHelper.isInitialized) {
+            parallaxHelper.registerSensors()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (::parallaxHelper.isInitialized) {
+            parallaxHelper.unregisterSensors()
         }
     }
 }
