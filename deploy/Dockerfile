@@ -2,7 +2,7 @@
 # Contexto de build: RAÍZ del repo  ->  docker build -f deploy/Dockerfile .
 # Recomendación: fija la imagen base por digest una vez validada, p. ej.
 #   FROM python:3.11-slim@sha256:<digest>
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
