@@ -7,6 +7,11 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val googleWebClientId = providers.gradleProperty("googleWebClientId")
+    .orElse(providers.environmentVariable("GOOGLE_WEB_CLIENT_ID"))
+    .orElse("")
+    .get()
+
 android {
     namespace = "com.example.controlherbal"
     compileSdk = 35
@@ -19,6 +24,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     buildTypes {
@@ -72,7 +78,7 @@ dependencies {
     // Firebase AI Logic (sustituye a firebase-vertexai beta, ya retirada). Versión gestionada por el BoM.
     implementation(libs.firebase.ai)
 
-    // Autenticación de usuario + App Check + Google Auth
+    // Autenticación correo/contraseña, Google Sign-In + App Check
     implementation(libs.firebase.auth)
     implementation(libs.play.services.auth)
     implementation(libs.firebase.functions)

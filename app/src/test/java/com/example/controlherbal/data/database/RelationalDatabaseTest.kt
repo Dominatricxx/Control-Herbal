@@ -10,47 +10,40 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * RelationalDatabaseTest: Verifica que las entidades relacionales (T1 usuarios, T2 user_plantas, T3 plantas)
- * y el sistema de hasheo PBKDF2 llenen correctamente todos sus respectivos campos (sin emojis ni nombres personalizados).
+ * Entidades relacionales (usuarios / plantas). Las contraseñas no se persisten en Room:
+ * Firebase Auth es la única fuente de credenciales. PBKDF2 sigue disponible en SecurityUtils
+ * por si hace falta en otro contexto, y se verifica aquí de forma aislada.
  */
 class RelationalDatabaseTest {
 
     @Test
-    fun testUserEntityPopulationAndHashing() {
+    fun testUserEntityWithoutLocalPassword() {
         val uid = "test_user_uid_12345"
-        val nombre = "Carlos"
-        val apPaterno = "Gómez"
-        val apMaterno = "Pérez"
-        val correo = "carlos.gomez@gmail.com"
-        val rawPassword = "SecurePassword123!"
-
-        val salt = SecurityUtils.generateSalt()
-        val hash = SecurityUtils.hashPasswordWithPbkdf2(rawPassword, salt)
-        val saltHex = SecurityUtils.bytesToHex(salt)
-
         val user = UserEntity(
             userId = uid,
-            nombre = nombre,
-            apPaterno = apPaterno,
-            apMaterno = apMaterno,
-            correo = correo,
-            passwordHash = hash,
-            passwordSalt = saltHex,
-            mfaEnabled = true
+            nombre = "Carlos",
+            apPaterno = "Gómez",
+            apMaterno = "Pérez",
+            correo = "carlos.gomez@gmail.com",
+            passwordHash = null,
+            passwordSalt = null,
+            mfaEnabled = true,
         )
 
         assertEquals(uid, user.userId)
-        assertEquals(nombre, user.nombre)
-        assertEquals(apPaterno, user.apPaterno)
-        assertEquals(apMaterno, user.apMaterno)
-        assertEquals(correo, user.correo)
-        assertNotNull(user.passwordHash)
-        assertNotNull(user.passwordSalt)
+        assertEquals("Carlos", user.nombre)
+        assertEquals(null, user.passwordHash)
+        assertEquals(null, user.passwordSalt)
         assertTrue(user.mfaEnabled)
+    }
 
-        val saltBytes = SecurityUtils.hexToBytes(user.passwordSalt!!)
-        val verifyHash = SecurityUtils.hashPasswordWithPbkdf2(rawPassword, saltBytes)
-        assertEquals(user.passwordHash, verifyHash)
+    @Test
+    fun testPbkdf2UtilityStillWorks() {
+        val rawPassword = "SecurePassword123!"
+        val salt = SecurityUtils.generateSalt()
+        val hash = SecurityUtils.hashPasswordWithPbkdf2(rawPassword, salt)
+        assertNotNull(hash)
+        assertEquals(hash, SecurityUtils.hashPasswordWithPbkdf2(rawPassword, salt))
     }
 
     @Test

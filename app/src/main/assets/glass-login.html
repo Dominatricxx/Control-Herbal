@@ -8,39 +8,44 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bar: #353535;
-    --green: #5fa22a;
-    --radius: 16px;
+    --bar: #353535;          /* barra superior sólida, estilo ventana de Mac */
+    --green: #5fa22a;          /* acento (botón y foco), no fondo */
+    --radius: 34px;
     --bar-h: 34px;
+
 
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
   }
 
-  /* ---------- Temas del cristal ---------- */
-  .window, .window[data-theme="dark"], .window[data-theme="light"] {
-    --glass-blur: 44px;
-    --glass-tint: rgba(18, 22, 28, 0.65);
-    --glass-fallback: rgba(28, 32, 40, 0.96);
-    --sheen-a: .25; --sheen-b: .15;
-    --frost: .35;
-    --edge: rgba(255, 255, 255, .45);
-    --ink: #ffffff !important;
-    --text: #ffffff !important;
-    --muted: rgba(255, 255, 255, 0.82) !important;
-    --line: rgba(255, 255, 255, 0.50) !important;
-    --icon: #ffffff !important;
-    --chip-bg: rgba(255, 255, 255, 0.18);
-    --chip-border: rgba(255, 255, 255, 0.40);
-    --check-border: rgba(255, 255, 255, 0.70);
-    --thumb: rgba(255, 255, 255, 0.95);
-    --thumb-on: #121212;
-    --alert: #ff8a80;
+
+  /* ---------- Temas del cristal: cambia data-theme="dark" | "light" en <main> ---------- */
+  .window, .window[data-theme="dark"] {
+    --glass-blur: 26px;
+    --glass-tint: rgba(16,18,24,.30);
+    --glass-fallback: rgba(28,30,36,.92);
+    --sheen-a: .18; --sheen-b: .10;
+    --edge: rgba(255,255,255,.35);
+    --ink: #fff; --text: rgba(255,255,255,.84); --muted: rgba(255,255,255,.58);
+    --line: rgba(255,255,255,.35); --icon: rgba(255,255,255,.82);
+    --chip-bg: rgba(255,255,255,.10); --chip-border: rgba(255,255,255,.28); --check-border: rgba(255,255,255,.55);
+    --thumb: rgba(255,255,255,.92); --thumb-on: #1c1c1c; --alert: #ff8a80;
+  }
+  .window[data-theme="dark"] {
+    --glass-blur: 30px;
+    --glass-tint: rgba(255,255,255,.52);
+    --glass-fallback: rgba(246,247,244,.94);
+    --sheen-a: .45; --sheen-b: .25;
+    --edge: rgba(255,255,255,.7);
+    --ink: #1f1f1f; --text: #303030; --muted: #4a4a4a;
+    --line: rgba(30,30,30,.45); --icon: #3a3a3a;
+    --chip-bg: rgba(255,255,255,.45); --chip-border: rgba(255,255,255,.75); --check-border: rgba(30,30,30,.55);
+    --thumb: #2e2e2e; --thumb-on: #fff; --alert: #a12419;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: transparent; }
+  html, body { height: 100%; }
 
-  /* Sin fondo propio: lo que haya detrás se verá esmerilado a través del cristal */
+  /* Sin fondo propio: lo que haya detrás en la app se verá desenfocado por el cristal */
   body {
     display: grid;
     place-items: center;
@@ -52,13 +57,14 @@
   /* ---------- Ventana (transparente: solo cristal) ---------- */
   .window {
     position: relative;
+    /* Proporción de pantalla de celular (~9:19.5): el ancho se deriva del alto */
     height: min(780px, calc(100dvh - 48px));
     aspect-ratio: 9 / 19.5;
     max-width: 100%;
     border-radius: var(--radius);
     overflow: hidden;
     background: transparent;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,.35);
     isolation: isolate;
     display: flex;
     flex-direction: column;
@@ -68,41 +74,32 @@
     position: absolute; inset: 0; z-index: 6;
     border-radius: inherit;
     pointer-events: none;
-    box-shadow: inset 0 0 0 1px var(--edge), inset 1px 1px 0 rgba(255,255,255,.55),
-                inset -1px -1px 0 rgba(255,255,255,.16), inset 0 0 36px rgba(255,255,255,.08);
+    box-shadow: inset 0 0 0 1px var(--edge), inset 1px 1px 0 rgba(255,255,255,.5),
+                inset -1px -1px 0 rgba(255,255,255,.14), inset 0 0 36px rgba(255,255,255,.07);
   }
 
-  /* ---------- Capa de cristal esmerilado ----------
-     Desenfoque fuerte + saturación + velo, para que cualquier superficie
-     detrás quede difuminada y no se distinga su contenido. */
+  /* ---------- Capa de cristal: desenfoca TODO lo que esté detrás ---------- */
   .glass {
     position: absolute; inset: 0; z-index: 0;
-    /* Frosted dark glass overlay for high text contrast */
-    background: rgba(18, 22, 28, 0.65);
-    border-radius: 16px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+            backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    background:
+      linear-gradient(125deg, rgba(255,255,255,var(--sheen-a)) 0%, rgba(255,255,255,0) 32%,
+                              rgba(255,255,255,0) 62%, rgba(255,255,255,var(--sheen-b)) 100%),
+      var(--glass-tint);
   }
-  /* Reflejos de superficie (brillos suaves como en vidrio real) */
+  /* Reflejos de superficie: brillo arriba-izquierda y velo en los extremos */
   .glass::before {
     content: ""; position: absolute; inset: 0;
     background:
-      radial-gradient(120% 55% at 12% 0%, rgba(255,255,255,.16), transparent 55%),
-      radial-gradient(90% 40% at 100% 100%, rgba(255,255,255,.08), transparent 60%);
+      radial-gradient(120% 55% at 12% 0%, rgba(255,255,255,.20), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,.08) 0%, transparent 22%, transparent 72%, rgba(255,255,255,.08) 100%);
   }
-  /* Textura de vidrio granulado: relieve irregular (luz sobre ruido) + grano fino.
-     Ajusta la intensidad con --grain (0 a 1). */
   .glass::after {
-    --grain: .2;
-    content: ""; position: absolute; inset: 0;
-    opacity: var(--grain); mix-blend-mode: overlay;
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='r' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.045' numOctaves='3' seed='7' stitchTiles='stitch' result='t'/><feDiffuseLighting in='t' surfaceScale='4' diffuseConstant='1.1' lighting-color='white'><feDistantLight azimuth='40' elevation='58'/></feDiffuseLighting></filter><rect width='100%' height='100%' filter='url(%23r)'/></svg>"),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='g' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='3' stitchTiles='stitch' result='t'/><feDiffuseLighting in='t' surfaceScale='2' diffuseConstant='1' lighting-color='white'><feDistantLight azimuth='225' elevation='65'/></feDiffuseLighting></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
-    background-size: 300px 300px, 140px 140px;
+    content: ""; position: absolute; inset: 0; opacity: .22; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
-  /* Navegadores sin backdrop-filter: más opacidad para conservar legibilidad y tapar */
+  /* Navegadores sin backdrop-filter: más opacidad para conservar legibilidad */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass { background: var(--glass-fallback); }
   }
@@ -184,6 +181,9 @@
     height: 48px; border-bottom: 1.5px solid var(--line);
     transition: border-color .2s ease; }
   .field + .field { margin-top: var(--sp-4); }
+  .surname-fields { display: flex; gap: 16px; }
+  .surname-fields .field { flex: 1; min-width: 0; }
+  .surname-fields .field + .field { margin-top: 0; }
   .field:focus-within { border-color: var(--green); }
   .field svg { width: 17px; height: 17px; flex: none; color: var(--icon); }
   .field:focus-within svg { color: var(--green); }
@@ -255,7 +255,7 @@
 
 <main class="window" data-theme="dark" data-mode="login" aria-label="Pantalla de acceso">
 
-  <!-- Cristal esmerilado: desenfoca y cubre lo que haya detrás del componente -->
+  <!-- Cristal: desenfoca lo que haya detrás del componente -->
   <div class="glass" aria-hidden="true"></div>
 
   <header class="titlebar">
@@ -308,29 +308,34 @@
       <form class="panel" id="panel-register" role="tabpanel" aria-labelledby="tab-register" autocomplete="on">
         <label class="field">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.5"/><path d="M3.5 17c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5"/></svg>
-          <input type="text" name="name" placeholder="Nombre(s)" autocomplete="given-name" required>
+          <input type="text" name="firstName" placeholder="Nombre(s)" autocomplete="given-name" maxlength="80" required>
         </label>
-        <label class="field">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3a7 7 0 1 0 7 7 7 7 0 0 0-7-7zm0 12.5A5.5 5.5 0 1 1 15.5 10 5.5 5.5 0 0 1 10 15.5z"/></svg>
-          <input type="text" name="paternal" placeholder="Apellido paterno" autocomplete="family-name" required>
-        </label>
-        <label class="field">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3a7 7 0 1 0 7 7 7 7 0 0 0-7-7zm0 12.5A5.5 5.5 0 1 1 15.5 10 5.5 5.5 0 0 1 10 15.5z"/></svg>
-          <input type="text" name="maternal" placeholder="Apellido materno (opcional)">
-        </label>
+        <div class="surname-fields">
+          <label class="field">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.5"/><path d="M3.5 17c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5"/></svg>
+            <input type="text" name="paternalSurname" placeholder="Apellido paterno" autocomplete="family-name" maxlength="80" required>
+          </label>
+          <label class="field">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.5"/><path d="M3.5 17c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5"/></svg>
+            <input type="text" name="maternalSurname" placeholder="Apellido materno" maxlength="80">
+          </label>
+        </div>
         <label class="field">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="4" width="16" height="12" rx="2"/><path d="m2.5 5.5 7.5 5.5 7.5-5.5"/></svg>
           <input type="email" name="email" placeholder="Correo electrónico" autocomplete="email" required>
         </label>
         <label class="field">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3.5" y="8.5" width="13" height="9" rx="2"/><path d="M6.5 8.5V6a3.5 3.5 0 0 1 7 0v2.5"/></svg>
-          <input type="password" name="password" placeholder="Crea una contraseña" autocomplete="new-password" required>
+          <input type="password" name="password" placeholder="Crea una contraseña" autocomplete="new-password" maxlength="128" required>
           <button class="eye" type="button" aria-label="Mostrar contraseña"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.5"/></svg></button>
         </label>
         <label class="field">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5 16.5 5v4.5c0 4-2.7 6.7-6.5 8-3.8-1.3-6.5-4-6.5-8V5L10 2.5Z"/><path d="m7 10 2.2 2.2L13 8.4"/></svg>
-          <input type="password" name="confirm" placeholder="Confirmar contraseña" autocomplete="new-password" required>
+          <input type="password" name="confirm" placeholder="Confirmar contraseña" autocomplete="new-password" maxlength="128" required>
         </label>
+        <div class="alert" id="register-alert" role="alert" aria-live="polite" hidden>
+          <span id="register-msg"></span>
+        </div>
         <div class="row">
           <label class="check terms"><input type="checkbox" required> <span>Acepto los <a href="#">Términos</a> y la <a href="#">Privacidad</a></span></label>
         </div>
@@ -345,9 +350,6 @@
       <button class="google" type="button" aria-label="Continuar con Google" title="Continuar con Google">
         <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.4 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
       </button>
-      <div style="margin-top: 14px; text-align: center;">
-        <button id="btn-bypass" type="button" style="background: rgba(46, 125, 50, 0.45); border: 1px dashed rgba(255,255,255,0.7); color: #ffffff; padding: 8px 18px; border-radius: 20px; font: 600 12px 'Poppins', sans-serif; cursor: pointer; transition: transform .2s;">⚡ Omitir Login (Modo Pruebas)</button>
-      </div>
       <p class="swap" id="swap"><span id="swap-text">¿Aún no tienes cuenta?</span><button type="button" id="swap-btn">Regístrate</button></p>
     </div>
 
@@ -375,6 +377,9 @@
   function setMode(mode) {
     sw.dataset.mode = mode;
     document.querySelector('.window').dataset.mode = mode;
+    document.getElementById('login-alert').hidden = true;
+    document.getElementById('register-alert').hidden = true;
+    forgot.hidden = true;
     tabs.forEach(t => {
       const on = t.dataset.mode === mode;
       t.setAttribute('aria-selected', on);
@@ -398,27 +403,10 @@
     const i = b.parentElement.querySelector('input');
     i.type = i.type === 'password' ? 'text' : 'password';
   }));
-  document.getElementById('panel-register').addEventListener('submit', e => e.preventDefault());
 
-  let fails = 0;
-  const alertBox = document.getElementById('login-alert');
-  const msg = document.getElementById('login-msg');
   const forgot = document.getElementById('forgot');
 
-  // Integración con Android Native Bridge (AndroidAuthBridge)
-  document.getElementById('btn-bypass').addEventListener('click', function() {
-    if (window.AndroidAuthBridge && window.AndroidAuthBridge.bypassLogin) {
-      window.AndroidAuthBridge.bypassLogin();
-    }
-  });
-
-  document.querySelector('.google').addEventListener('click', function() {
-    if (window.AndroidAuthBridge && window.AndroidAuthBridge.loginWithGoogle) {
-      window.AndroidAuthBridge.loginWithGoogle();
-    }
-  });
-
-  document.getElementById('forgot').addEventListener('click', function(e) {
+  forgot.addEventListener('click', e => {
     e.preventDefault();
     const email = document.querySelector('#panel-login input[name="email"]').value;
     if (window.AndroidAuthBridge && window.AndroidAuthBridge.forgotPassword) {
@@ -426,38 +414,53 @@
     }
   });
 
-  document.getElementById('panel-login').addEventListener('submit', function(e) {
+  document.getElementById('panel-login').addEventListener('submit', e => {
     e.preventDefault();
-    const email = this.email.value;
-    const pass = this.password.value;
+    const email = e.target.email.value;
+    const pass = e.target.password.value;
     if (window.AndroidAuthBridge && window.AndroidAuthBridge.login) {
       window.AndroidAuthBridge.login(email, pass);
     }
   });
 
-  document.getElementById('panel-register').addEventListener('submit', function(e) {
+  document.getElementById('panel-register').addEventListener('submit', e => {
     e.preventDefault();
-    const name = this.name.value;
-    const paternal = this.paternal.value;
-    const maternal = this.maternal.value;
-    const email = this.email.value;
-    const pass = this.password.value;
-    const confirm = this.confirm.value;
+    const f = e.target;
+    const firstName = f.querySelector('[name="firstName"]').value;
+    const paternalSurname = f.querySelector('[name="paternalSurname"]').value;
+    const maternalSurname = f.querySelector('[name="maternalSurname"]').value;
+    const email = f.querySelector('[name="email"]').value;
+    const pass = f.querySelector('[name="password"]').value;
+    const confirm = f.querySelector('[name="confirm"]').value;
+    if (pass !== confirm) {
+      window.showLoginErrorPayload({ message: 'Las contraseñas no coinciden.', showForgot: false });
+      return;
+    }
     if (window.AndroidAuthBridge && window.AndroidAuthBridge.register) {
-      window.AndroidAuthBridge.register(name, paternal, maternal, email, pass, confirm);
+      window.AndroidAuthBridge.register(firstName, paternalSurname, maternalSurname, email, pass, confirm);
     }
   });
 
-  window.showLoginError = function(msgText, showForgot) {
-    fails++;
-    alertBox.hidden = false;
-    msg.textContent = msgText || 'Error de autenticación.';
-    forgot.hidden = !showForgot;
+  document.querySelector('.google').addEventListener('click', () => {
+    if (window.AndroidAuthBridge && window.AndroidAuthBridge.loginWithGoogle) {
+      window.AndroidAuthBridge.loginWithGoogle();
+    }
+  });
+
+  window.showLoginErrorPayload = function(payload) {
+    const msgText = (payload && payload.message) || 'Error de autenticación.';
+    const showForgot = !!(payload && payload.showForgot);
+    const registering = sw.dataset.mode === 'register';
+    const currentAlert = document.getElementById(registering ? 'register-alert' : 'login-alert');
+    currentAlert.hidden = false;
+    document.getElementById(registering ? 'register-msg' : 'login-msg').textContent = msgText;
+    forgot.hidden = registering || !showForgot;
   };
 
-  window.showRegisterError = function(msgText) {
-    alert(msgText);
+  window.showLoginError = function(msgText, showForgot) {
+    window.showLoginErrorPayload({ message: msgText, showForgot: !!showForgot });
   };
+
 </script>
 </body>
 </html>

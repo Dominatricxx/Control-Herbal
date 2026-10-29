@@ -7,7 +7,7 @@ Control Herbal **no es una aplicación web con backend propio**. Es una app nati
 | Concepto del encargo | Realidad en este proyecto |
 |---|---|
 | `localStorage`, cookies `httpOnly/SameSite` | No existen (no hay navegador). Equivalente: dónde guarda la app la credencial. |
-| Rutas `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-otp` | No existen como rutas nuestras: las aloja Google (Identity Toolkit). No hay registro público (las cuentas las crea el administrador). |
+| Rutas `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-otp` | No existen como rutas nuestras: las aloja Google (Identity Toolkit). La app ofrece alta con correo/contraseña y acceso con Google; ambos pasan por verificación de correo y enrolamiento TOTP obligatorio. |
 | Middleware en rutas admin | Equivalente: reglas de la base de datos (`firebase/database.rules.json`), que ya eran server-side. |
 
 Se ha hecho lo que **sí** tiene efecto real en este modelo y se explica abajo qué no es posible y por qué.

@@ -402,11 +402,11 @@ class ComparisonActivity : AppCompatActivity(), NavigationView.OnNavigationItemS
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.nav_main -> startActivity(Intent(this, MainActivity::class.java))
-            R.id.nav_daily -> startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_DIARIO))
-            R.id.nav_weekly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_SEMANAL))
-            R.id.nav_monthly -> startActivity(Intent(this, HistoryActivity::class.java).putExtra(AppConstants.HISTORY_TYPE_KEY, AppConstants.HISTORY_MENSUAL))
-            R.id.nav_plants -> startActivity(Intent(this, MainActivity::class.java))
+            R.id.nav_main -> startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(this, 0))
+            R.id.nav_daily -> startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(this, 1, AppConstants.HISTORY_DIARIO))
+            R.id.nav_weekly -> startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(this, 1, AppConstants.HISTORY_SEMANAL))
+            R.id.nav_monthly -> startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(this, 1, AppConstants.HISTORY_MENSUAL))
+            R.id.nav_plants -> startActivity(com.example.controlherbal.ui.activities.main.SectionHostActivity.intent(this, 0))
         }
         drawerLayout.closeDrawer(GravityCompat.START)
         return true

@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.cardview.widget.CardView
 import androidx.viewpager2.widget.ViewPager2
 import com.example.controlherbal.R
+import com.example.controlherbal.common.auth.AuthSessionGuard
 import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.data.database.SensorDatabase
 import com.example.controlherbal.ui.components.AnimatedGradientBackground
@@ -56,6 +57,7 @@ class SectionHostActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!AuthSessionGuard.requireSignedIn(this)) return
         WindowCompat.setDecorFitsSystemWindows(window, false)
         historyType = intent.getStringExtra(AppConstants.HISTORY_TYPE_KEY)
             ?.takeIf { it in setOf(AppConstants.HISTORY_DIARIO, AppConstants.HISTORY_SEMANAL, AppConstants.HISTORY_MENSUAL) }

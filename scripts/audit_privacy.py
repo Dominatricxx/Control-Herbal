@@ -4,7 +4,8 @@
 Hace cumplir en CI lo que prometen los documentos de /legal:
   1. Sin SDKs de analítica, publicidad, atribución, reporte de fallos ni mensajería de terceros.
   2. Solo permisos de Android de la lista permitida; ID de publicidad eliminado; analítica desactivada.
-  3. Sin WebView, cookies, almacenamiento web ni APIs de identificadores de dispositivo o ubicación.
+  3. Sin cookies, almacenamiento web ni APIs de identificadores; WebView solo permitido en Splash
+     (asset local file:///android_asset/, sin red).
   4. Solo se contactan dominios permitidos desde el código (ver ALLOWED_HOSTS).
   5. Documentos legales presentes, con la misma versión que AppConstants.LEGAL_VERSION.
   6. Copias de seguridad desactivadas y sin tráfico en claro.
@@ -87,7 +88,7 @@ for mf in files(["app/src/main/AndroidManifest.xml", "wear/src/main/AndroidManif
 
 # ------------------------------------------------------------------ 3. Patrones de rastreo en el código
 CODE_PATTERNS = {
-    r"\bWebView\b": "WebView (cookies/rastreo web)", r"\bCookieManager\b": "CookieManager",
+    r"\bCookieManager\b": "CookieManager",
     r"document\.cookie": "cookies web", r"\blocalStorage\b|\bsessionStorage\b": "almacenamiento web",
     r"AdvertisingIdClient": "ID de publicidad", r"Settings\.Secure\.ANDROID_ID|ANDROID_ID": "ANDROID_ID",
     r"TelephonyManager|getDeviceId|getImei|getSubscriberId": "identificadores de teléfono",
@@ -95,11 +96,16 @@ CODE_PATTERNS = {
     r"READ_CONTACTS|ContactsContract": "contactos", r"MediaRecorder|AudioRecord": "micrófono",
     r"InstallReferrer": "atribución de instalación", r"FirebaseAnalytics|FirebaseCrashlytics": "analítica/fallos",
 }
+# WebView solo en Splash (UI glass local). Cualquier otro archivo con WebView falla.
+WEBVIEW_ALLOW = {"app/src/main/java/com/example/controlherbal/ui/activities/main/SplashActivity.kt"}
 for f in files(["app/src/**/*.kt", "wear/src/**/*.kt", "desktop/src/**/*.kt", "common/src/**/*.kt"]):
     text = read(f)
+    rel = str(f.relative_to(ROOT)).replace("\\", "/")
     for pat, why in CODE_PATTERNS.items():
         if re.search(pat, text):
-            err(f"{f.relative_to(ROOT)}: uso de {why}")
+            err(f"{rel}: uso de {why}")
+    if re.search(r"\bWebView\b", text) and rel not in WEBVIEW_ALLOW:
+        err(f"{rel}: WebView no permitido fuera de SplashActivity (asset local)")
 
 # ------------------------------------------------------------------ 4. Dominios contactados desde el código
 ALLOWED_HOSTS = (
@@ -108,6 +114,7 @@ ALLOWED_HOSTS = (
     "securetoken.googleapis.com", "identitytoolkit.googleapis.com", "pki.goog", "github.com",
     "espressif.github.io", "developer.android.com", "docs.gradle.org", "kotlinlang.org",
     "firebase-settings.crashlytics.com",  # solo aparece si lo trae un SDK; el patrón de dependencias lo prohíbe
+    "api.pwnedpasswords.com",  # Have I Been Pwned k-anonimato (solo prefijo SHA-1)
 )
 URL = re.compile(r"https?://([A-Za-z0-9._\-]+)")
 for f in files(["app/src/**/*.kt", "wear/src/**/*.kt", "desktop/src/**/*.kt", "ml/*.py", "firmware/*.ino", "firmware/*.h",
@@ -123,7 +130,7 @@ for f in files(["app/src/**/*.kt", "wear/src/**/*.kt", "desktop/src/**/*.kt", "m
 
 # ------------------------------------------------------------------ 5. Documentos legales
 REQUIRED_DOCS = ["AVISO_DE_PRIVACIDAD.md", "TERMINOS_DE_SERVICIO.md", "POLITICA_DE_COOKIES.md", "CONSENTIMIENTOS.md"]
-consts = read(ROOT / "app/src/main/java/com/example/controlherbal/common/AppConstants.kt")
+consts = read(ROOT / "app/src/main/java/com/example/controlherbal/common/utils/AppConstants.kt")
 mv = re.search(r'LEGAL_VERSION\s*=\s*"([^"]+)"', consts)
 app_version = mv.group(1) if mv else None
 if not app_version:

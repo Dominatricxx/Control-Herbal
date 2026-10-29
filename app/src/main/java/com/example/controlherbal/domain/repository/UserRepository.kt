@@ -3,18 +3,21 @@ package com.example.controlherbal.domain.repository
 import com.example.controlherbal.data.database.entity.UserEntity
 
 /**
- * UserRepository: Contrato abstracto para la gestión de usuarios, registro con clave hasheada y perfil.
+ * Perfil de usuario local + sincronización a `/users/{uid}`.
+ * Las credenciales viven solo en Firebase Auth: aquí nunca se persisten contraseñas.
  */
 interface UserRepository {
-    suspend fun registerUser(
-        userId: String,
-        nombre: String,
-        apPaterno: String,
-        apMaterno: String?,
-        correo: String,
-        plainPassword: String?
-    ): UserEntity
+    suspend fun saveVerifiedProfile(
+        firstName: String?,
+        paternalSurname: String?,
+        maternalSurname: String?,
+        fallbackDisplayName: String? = null,
+    ): ProfileSyncResult
 
     suspend fun getUserById(userId: String): UserEntity?
-    suspend fun syncUserProfileToCloud(user: UserEntity): Boolean
 }
+
+data class ProfileSyncResult(
+    val profile: UserEntity,
+    val cloudSynced: Boolean,
+)

@@ -1,39 +1,31 @@
 package com.example.controlherbal.common.auth
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.legal.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.ui.activities.main.*
-import com.example.controlherbal.ui.activities.auth.*
-import com.example.controlherbal.ui.activities.privacy.*
-import com.example.controlherbal.ui.activities.plant.*
-import com.example.controlherbal.ui.style.*
-
+import com.example.controlherbal.common.security.SecureLogger
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
+import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthMultiFactorException
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.MultiFactorResolver
 import com.google.firebase.auth.TotpMultiFactorGenerator
 import com.google.firebase.auth.TotpSecret
+import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 /**
- * AuthManager: único punto de acceso a la identidad del usuario.
+ * Único punto de acceso a la identidad del usuario.
  *
- * Modelo de seguridad:
- *  - No hay sesión propia ni tokens en el almacenamiento de la app: Firebase Auth guarda su credencial en el
- *    almacenamiento privado de la app (excluido de copias de seguridad: allowBackup=false + data_extraction_rules)
- *    y las pantallas nunca la leen ni la registran.
- *  - La AUTORIZACIÓN no se decide aquí: las reglas de Realtime Database (firebase/database.rules.json) exigen,
- *    para el rol owner, un token con segundo factor TOTP y correo verificado. Cualquier comprobación de esta
- *    clase solo sirve para decidir qué pantalla mostrar.
- *  - Segundo factor (TOTP) obligatorio en esta app: sin él se obliga a enrolarlo antes de continuar.
+ * - Credenciales: solo Firebase Auth (almacenamiento privado de la app; fuera de backups).
+ * - Autorización: [firebase/database.rules.json] exige rol + (para owner) correo verificado y TOTP.
+ * - Esta clase solo orienta la UI (enrolar MFA, reautenticar, etc.).
  */
 object AuthManager {
 
@@ -46,6 +38,7 @@ object AuthManager {
     fun isSignedIn(): Boolean = auth.currentUser != null
     fun uid(): String? = auth.currentUser?.uid
     fun email(): String? = auth.currentUser?.email
+    fun displayName(): String? = auth.currentUser?.displayName
 
     /** ¿Hay sesión pero sin segundo factor TOTP enrolado? Entonces solo puede ir a la pantalla de enrolamiento. */
     fun needsMfaEnrollment(): Boolean {
@@ -105,7 +98,44 @@ object AuthManager {
             }
         }
 
-    suspend fun signInWithCredential(credential: com.google.firebase.auth.AuthCredential): SignInResult =
+    sealed interface RegistrationResult {
+        data object Success : RegistrationResult
+        data object EmailAlreadyInUse : RegistrationResult
+        data object InvalidEmail : RegistrationResult
+        data object WeakPassword : RegistrationResult
+        data object ProviderDisabled : RegistrationResult
+        data object Throttled : RegistrationResult
+        data object Unavailable : RegistrationResult
+        data object Failed : RegistrationResult
+    }
+
+    suspend fun register(email: String, password: String, displayName: String): RegistrationResult {
+        val result = auth.createUserWithEmailAndPassword(email.trim(), password).awaitResult()
+        if (result.isFailure) {
+            return when (val error = result.exceptionOrNull()) {
+                is FirebaseAuthUserCollisionException -> RegistrationResult.EmailAlreadyInUse
+                is FirebaseAuthWeakPasswordException -> RegistrationResult.WeakPassword
+                is FirebaseAuthInvalidCredentialsException ->
+                    if (error.errorCode == "ERROR_INVALID_EMAIL") RegistrationResult.InvalidEmail
+                    else RegistrationResult.Failed
+                is FirebaseTooManyRequestsException -> RegistrationResult.Throttled
+                is FirebaseNetworkException -> RegistrationResult.Unavailable
+                is FirebaseAuthException ->
+                    if (error.errorCode == "ERROR_OPERATION_NOT_ALLOWED") RegistrationResult.ProviderDisabled
+                    else RegistrationResult.Failed
+                else -> RegistrationResult.Failed
+            }
+        }
+
+        val profile = UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
+        val profileUpdate = auth.currentUser?.updateProfile(profile)?.awaitResult()
+        if (profileUpdate?.isFailure == true) {
+            SecureLogger.w(TAG, "No se pudo guardar el nombre de perfil tras el registro")
+        }
+        return RegistrationResult.Success
+    }
+
+    suspend fun signInWithCredential(credential: AuthCredential): SignInResult =
         suspendCancellableCoroutine { cont ->
             auth.signInWithCredential(credential).addOnCompleteListener { task ->
                 val result: SignInResult = if (task.isSuccessful) {
@@ -117,22 +147,6 @@ object AuthManager {
                             val hint = resolver.hints.firstOrNull { it.factorId == TOTP }
                             if (hint != null) SignInResult.SecondFactorRequired(resolver, hint.uid) else SignInResult.Failed
                         }
-                        is FirebaseTooManyRequestsException -> SignInResult.Throttled
-                        is FirebaseNetworkException -> SignInResult.Unavailable
-                        else -> SignInResult.Failed
-                    }
-                }
-                if (cont.isActive) cont.resume(result)
-            }
-        }
-
-    suspend fun signUp(email: String, password: String): SignInResult =
-        suspendCancellableCoroutine { cont ->
-            auth.createUserWithEmailAndPassword(email.trim(), password).addOnCompleteListener { task ->
-                val result: SignInResult = if (task.isSuccessful) {
-                    SignInResult.Success
-                } else {
-                    when (task.exception) {
                         is FirebaseTooManyRequestsException -> SignInResult.Throttled
                         is FirebaseNetworkException -> SignInResult.Unavailable
                         else -> SignInResult.Failed

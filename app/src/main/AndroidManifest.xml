@@ -81,7 +81,7 @@
         <!-- Actividades internas no exportadas para prevenir Intent Redirection -->
         <activity
             android:name=".ui.activities.main.MainActivity"
-            android:exported="true"
+            android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
@@ -94,7 +94,7 @@
             android:name=".ui.activities.plant.HistoryActivity"
             android:exported="false"
             android:label="Historial de Sensores"
-            android:parentActivityName=".ui.activities.main.MainActivity" />
+            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".ui.activities.plant.PlantSetupActivity"
@@ -105,19 +105,19 @@
             android:name=".ui.activities.plant.ComparisonActivity"
             android:exported="false"
             android:label="Comparador de Plantas"
-            android:parentActivityName=".ui.activities.main.MainActivity" />
+            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".ui.activities.plant.ChatActivity"
             android:exported="false"
             android:label="Asistente Herbal AI"
-            android:parentActivityName=".ui.activities.main.MainActivity" />
+            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".ui.activities.plant.AnimatedDashboardActivity"
-            android:exported="true"
+            android:exported="false"
             android:label="Dashboard Dinámico"
-            android:parentActivityName=".ui.activities.main.MainActivity" />
+            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
 
         <!-- Receivers para Widgets de Pantalla de Inicio -->
         <receiver

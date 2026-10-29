@@ -1,21 +1,18 @@
 package com.example.controlherbal.domain.logic
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.auth.*
-import com.example.controlherbal.common.legal.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.ui.activities.main.*
-import com.example.controlherbal.ui.activities.auth.*
-import com.example.controlherbal.ui.activities.privacy.*
-import com.example.controlherbal.ui.activities.plant.*
-import com.example.controlherbal.ui.style.*
-
-import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.common.security.SecurityUtils
+import com.example.controlherbal.common.utils.AppConstants
+import java.util.EnumMap
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.pow
+
+/**
+ * Categorías de plantas para indexación O(1) con EnumMap.
+ */
+enum class PlantCategory {
+    LUZ, HIBRIDO, SOMBRA
+}
 
 /**
  * PredictiveTheorem: Motor de cálculo teóricamente validado y sincronizado con firmware.
@@ -30,11 +27,11 @@ object PredictiveTheorem {
         val soilMin: Double, val soilMax: Double
     )
 
-    private val ranges = mapOf(
-        "Luz" to Range(18.0, 32.0, 20.0, 60.0, 40.0, 100.0, 10.0, 45.0),
-        "Híbrido" to Range(16.0, 28.0, 30.0, 75.0, 20.0, 70.0, 25.0, 65.0),
-        "Sombra" to Range(14.0, 26.0, 40.0, 85.0, 5.0, 40.0, 40.0, 80.0)
-    )
+    private val ranges = EnumMap<PlantCategory, Range>(PlantCategory::class.java).apply {
+        put(PlantCategory.LUZ, Range(18.0, 32.0, 20.0, 60.0, 40.0, 100.0, 10.0, 45.0))
+        put(PlantCategory.HIBRIDO, Range(16.0, 28.0, 30.0, 75.0, 20.0, 70.0, 25.0, 65.0))
+        put(PlantCategory.SOMBRA, Range(14.0, 26.0, 40.0, 85.0, 5.0, 40.0, 40.0, 80.0))
+    }
 
     // Coeficientes IRH
     const val COEF_HUM_AMB = 0.25 
@@ -56,10 +53,10 @@ object PredictiveTheorem {
     fun calcularTasaDeshidratacion(temp: Double, humAmb: Double, luz: Double, plantType: String): Double {
         val tempCorregida = if (luz > 50.0) temp - ((luz - 50.0) / 10.0) else temp
         
-        val tasaBase = when (getPlantTypeKey(plantType)) {
-            "Luz" -> 0.4
-            "Sombra" -> 0.1 
-            else -> 0.2      
+        val tasaBase = when (getPlantCategory(plantType)) {
+            PlantCategory.LUZ -> 0.4
+            PlantCategory.SOMBRA -> 0.1 
+            PlantCategory.HIBRIDO -> 0.2      
         }
 
         val fTemp = (tempCorregida.coerceAtLeast(10.0) / 22.0).pow(1.8).coerceIn(0.01, 4.0)
@@ -70,11 +67,11 @@ object PredictiveTheorem {
         return tasaBase * fTemp * fHum * fLuz * cycleCorrection
     }
 
-    fun getPlantTypeKey(plantType: String): String {
+    fun getPlantCategory(plantType: String): PlantCategory {
         return when {
-            plantType.contains("Luz", ignoreCase = true) || plantType.contains("Sol", ignoreCase = true) -> "Luz"
-            plantType.contains("Sombra", ignoreCase = true) -> "Sombra"
-            else -> "Híbrido"
+            plantType.contains("Luz", ignoreCase = true) || plantType.contains("Sol", ignoreCase = true) -> PlantCategory.LUZ
+            plantType.contains("Sombra", ignoreCase = true) -> PlantCategory.SOMBRA
+            else -> PlantCategory.HIBRIDO
         }
     }
 
@@ -133,8 +130,8 @@ object PredictiveTheorem {
     }
 
     fun generarRecomendacion(temp: Double, hum: Double, luz: Double, soil: Double, plantType: String, isDay: Boolean = true): String {
-        val key = getPlantTypeKey(plantType)
-        val r = ranges[key] ?: ranges["Híbrido"]!!
+        val category = getPlantCategory(plantType)
+        val r = ranges[category] ?: ranges[PlantCategory.HIBRIDO]!!
         
         val eSuelo = estresVariable(soil, r.soilMin, r.soilMax)
         if (eSuelo > 80) return "💧 SUELO EXTREMO: " + (if (soil < r.soilMin) "RIEGO INMEDIATO" else "DRENAJE URGENTE")
@@ -189,15 +186,15 @@ object PredictiveTheorem {
         aiFactor: Double = 1.0,
         historySize: Int = 0
     ): AnalysisResult {
-        val key = getPlantTypeKey(plantType)
-        val r = ranges[key] ?: ranges["Híbrido"]!!
+        val category = getPlantCategory(plantType)
+        val r = ranges[category] ?: ranges[PlantCategory.HIBRIDO]!!
         
         val calibratedTemp = if (luzRaw > 20.0) {
             (temp - ((luzRaw - 20.0) * 0.15)).coerceAtLeast(18.0)
         } else temp
 
         val isDataReliable = !(abs(deltaSoil) > 40.0) && soilRaw in 0.1..99.9
-        
+
         val confidence = when {
             !isDataReliable -> 0.0
             historySize < 15 -> 0.4 

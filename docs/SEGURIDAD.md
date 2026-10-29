@@ -8,9 +8,17 @@ rechazarán toda lectura y escritura (que es precisamente el comportamiento dese
 
 | Rol (`/roles/{uid}`) | Quién | Puede |
 |---|---|---|
-| `owner`  | Tú, en la app Android | Leer todo, escribir `config/tipoPlanta`, `control/riego`, `watering_history` |
-| `device` | Cada ESP32 (cuenta propia) | Escribir `/sensor`, leer `config` y `control`, escribir `control/estado` |
-| `viewer` | Reloj Wear OS y escritorio | Solo leer `/sensor` |
+| `owner`  | Tú, en la app Android | Leer/escribir tras **correo verificado + TOTP** en el token: `sensor`, `config`, `control`, `watering_history`; escribir `config/tipoPlanta` y `control/riego` |
+| `device` | Cada ESP32 (cuenta propia) | Escribir `/sensor`, leer `config` y `control`, escribir `control/estado` (sin MFA) |
+| `viewer` | Reloj Wear OS y escritorio | Solo leer `/sensor` (sin MFA) |
+
+La app permite crear cuentas de usuario con correo/contraseña y con Google. El registro crea únicamente una identidad de Firebase; no asigna ningún rol. Los roles (`owner`, `device`, `viewer`) se administran solo desde la consola o con Admin SDK, y las reglas de Realtime Database siguen denegando acceso a sensores y riego a cuentas sin un rol autorizado.
+
+Para habilitar ambos métodos en una instalación, activa **Correo/contraseña** y **Google** en Firebase Authentication, registra el `applicationId` y las huellas SHA-1/SHA-256 de cada variante Android en la configuración del proyecto y usa el `google-services.json` correspondiente. El cliente OAuth web (tipo 3) de ese archivo aporta `default_web_client_id`; si falta, configura el ID con `-PgoogleWebClientId=<ID>` o la variable de entorno `GOOGLE_WEB_CLIENT_ID`. Google Sign-In muestra un error explícito si ese ID no está presente. El correo/contraseña se confirma antes de inscribir el TOTP obligatorio. La compilación local no puede crear las credenciales OAuth ni verificar el proveedor en Firebase: completa la configuración externa y prueba ambos métodos con cuentas de prueba antes de publicar.
+
+El registro solicita nombre(s), apellido paterno y apellido materno (opcional); los tres campos se guardan por separado en Room y `/users/{uid}`. En Google se usan los campos de nombre y apellido que devuelve el proveedor; el apellido materno no proporcionado por Google queda vacío. Room y `/users/{uid}` se vinculan al UID de la sesión Firebase, sin aceptar un UID o correo proporcionado por la interfaz. El perfil se guarda/sincroniza solo tras verificar el correo; las reglas permiten leer únicamente el perfil propio verificado y exigen que el correo del perfil coincida con el claim de Firebase. Si una escritura remota falla, WorkManager la reintenta con conectividad mientras la sesión autenticada continúa disponible; si la persona cierra sesión antes de recuperar conexión, el siguiente inicio de sesión vuelve a sincronizar el perfil local.
+
+El esquema remoto publica únicamente nombre, apellidos, correo y fecha de registro. Contraseñas, hashes, sales y tokens nunca se guardan en Room ni se sincronizan. `fotoUrl`, `mfaEnabled` y `ultimoAcceso` son metadatos locales; `mfaEnabled` refleja enrolamiento conocido por la app y nunca sustituye la comprobación de MFA en el token/reglas de servidor. La base Room está en el almacenamiento privado de la app y excluida de copia/transferencia del dispositivo; si no se puede borrar el perfil remoto, la app aborta la eliminación de la cuenta para evitar dejar esos datos huérfanos.
 
 Los clientes no pueden leer ni escribir `/roles`: solo se editan desde la consola o con Admin SDK.
 
@@ -27,23 +35,24 @@ npm test               # emulador oficial de Firebase (recomendado antes de publ
 1. **Authentication → Sign-in method**: habilita *Correo/contraseña* y **deshabilita *Anónimo***.
 2. **Authentication → Users**: crea las cuentas (tú, cada ESP32, la cuenta de solo lectura) con
    contraseñas largas y únicas. Copia el **UID** de cada una.
-3. **Realtime Database → Datos**: crea el nodo `roles` con una entrada por UID:
+3. **Realtime Database → Datos**: un operador autorizado crea el nodo `roles` con una entrada por UID:
    ```
    roles
      <uid-de-tu-cuenta>:  "owner"
      <uid-del-esp32>:     "device"
      <uid-del-viewer>:    "viewer"
    ```
-4. **Reglas**: publica `firebase/database.rules.json`
+4. No añadas un flujo de autoasignación de `owner` en Android. El cliente no puede leer ni escribir `/roles`; concede `owner` solo a una identidad cuya UID hayas verificado en Firebase Authentication.
+5. **Reglas**: publica `firebase/database.rules.json`
    (`cd firebase && cp .firebaserc.example .firebaserc` → edita el ID → `npx firebase deploy --only database`).
-5. **App Check** (protege Firebase AI Logic y la base):
+6. **App Check** (protege Firebase AI Logic y la base):
    - Registra la app Android con **Play Integrity** y añade la huella SHA-256 de tu firma de release.
    - **Firebase AI Logic → Aplicar (enforce)** App Check. Desde el 2-nov-2026 Firebase lo exigirá para usar AI Logic.
    - Realtime Database: déjalo en *Monitorizar* mientras uses el cliente REST de escritorio o el ESP32
      (ninguno de los dos puede atestiguar); la protección de la base la dan Auth + reglas.
    - Para desarrollo: ejecuta la app debug, copia el *debug secret* que imprime Logcat y regístralo
      en *App Check → Gestionar tokens de depuración*.
-6. **Google Cloud Console → Credenciales**: restringe la API key de Android a tu `applicationId` + SHA-1/256,
+7. **Google Cloud Console → Credenciales**: restringe la API key de Android a tu `applicationId` + SHA-1/256,
    y limita las APIs habilitadas. Configura **presupuestos y alertas de facturación** y una cuota máxima
    para la API de Vertex AI / Gemini.
 

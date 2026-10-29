@@ -7,6 +7,11 @@
 # Entidades y DAOs de Room (acceso por nombre desde código generado)
 -keep class com.example.controlherbal.data.database.** { *; }
 
+# Métodos del puente del WebView se invocan por reflexión desde JavaScript.
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
 # MPAndroidChart usa reflexión interna
 -keep class com.github.mikephil.charting.** { *; }
 -dontwarn com.github.mikephil.charting.**

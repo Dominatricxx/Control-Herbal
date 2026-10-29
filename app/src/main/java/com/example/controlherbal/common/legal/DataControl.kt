@@ -14,7 +14,6 @@ import android.content.Context
 import com.example.controlherbal.data.database.SensorDatabase
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -23,7 +22,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-import kotlin.coroutines.resume
 
 /**
  * Derechos de la persona usuaria sobre sus datos: acceso/portabilidad (exportar), cancelación
@@ -93,26 +91,41 @@ object DataControl {
         ImageUtils.purgeCameraCache(File(context.cacheDir, "camera"), maxAgeMs = 0L)
     }
 
-    /** Elimina el historial de riego del propietario en la nube. */
-    suspend fun deleteCloudData(): Boolean = suspendCancellableCoroutine { cont ->
-        try {
-            FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
+    /** Elimina los datos remotos del usuario autenticado antes de borrar su cuenta. */
+    suspend fun deleteCloudData(): Boolean {
+        val uid = AuthManager.uid() ?: return false
+        return try {
+            val database = FirebaseDatabase.getInstance(AppConstants.FIREBASE_DATABASE_URL)
+            val historyDeleted = database
                 .getReference(AppConstants.FIREBASE_WATERING_HISTORY_NODE)
                 .removeValue()
-                .addOnCompleteListener { if (cont.isActive) cont.resume(it.isSuccessful) }
+                .awaitResult()
+                .isSuccess
+            val profileDeleted = database
+                .getReference("users")
+                .child(uid)
+                .removeValue()
+                .awaitResult()
+                .isSuccess
+            if (!historyDeleted) SecureLogger.w(TAG, "No se pudo borrar el historial remoto del usuario")
+            if (!profileDeleted) SecureLogger.w(TAG, "No se pudo borrar el perfil remoto del usuario")
+            profileDeleted
         } catch (e: Exception) {
             SecureLogger.e(TAG, "Error al borrar datos en la nube: ${e.javaClass.simpleName}")
-            if (cont.isActive) cont.resume(false)
+            false
         }
     }
 
     /**
-     * Elimina historial en la nube, cuenta y datos locales. El nodo /roles/{uid} (solo UID y rol)
+     * Elimina perfil remoto, cuenta y datos locales. El nodo /roles/{uid} (solo UID y rol)
      * solo puede eliminarse desde la consola por el operador; ver Aviso de Privacidad.
      */
     suspend fun deleteAccountAndData(context: Context): AuthManager.DeleteResult {
         val cloudOk = deleteCloudData()
-        if (!cloudOk) SecureLogger.w(TAG, "No se pudo borrar el historial en la nube")
+        if (!cloudOk) {
+            SecureLogger.w(TAG, "Se cancela la eliminación de la cuenta porque no se pudo borrar su perfil remoto")
+            return AuthManager.DeleteResult.FAILED
+        }
         val result = AuthManager.deleteCurrentUser()
         if (result == AuthManager.DeleteResult.SUCCESS) {
             wipeLocal(context)

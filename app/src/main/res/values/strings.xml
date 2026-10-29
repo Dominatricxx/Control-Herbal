@@ -26,14 +26,23 @@
     <string name="login_error_empty">Escribe tu correo y tu contraseña.</string>
     <string name="menu_logout">Cerrar sesión</string>
 
-    <!-- Google Web Client ID Fallback -->
-    <string name="default_web_client_id" translatable="false">YOUR_WEB_CLIENT_ID</string>
-
     <!-- Seguridad de acceso -->
     <string name="login_error_throttled">Demasiados intentos. Espera unos minutos antes de volver a intentarlo.</string>
     <string name="login_error_network">No hay conexión con el servidor. Inténtalo de nuevo.</string>
     <string name="login_locked">Acceso bloqueado por demasiados intentos fallidos. Inténtalo de nuevo en %1$s.</string>
     <string name="login_wait">Espera %1$s antes del siguiente intento.</string>
+    <string name="auth_register_invalid_name">Escribe tu nombre para crear la cuenta.</string>
+    <string name="auth_register_invalid_surname">Escribe tu apellido paterno para crear la cuenta.</string>
+    <string name="auth_register_invalid_email">Escribe un correo electrónico válido.</string>
+    <string name="auth_register_password_mismatch">Las contraseñas no coinciden.</string>
+    <string name="auth_register_password_policy">La contraseña no cumple los requisitos de seguridad.</string>
+    <string name="auth_register_password_pwned">Esa contraseña aparece en filtraciones conocidas. Elige otra.</string>
+    <string name="auth_register_failed">No se pudo crear la cuenta. Revisa los datos e inténtalo de nuevo.</string>
+    <string name="auth_register_disabled">El registro de correo no está habilitado en Firebase.</string>
+    <string name="auth_google_not_configured">Google Sign-In no está configurado. Añade la app Android a Firebase y configura el cliente OAuth web.</string>
+    <string name="auth_google_cancelled">Se canceló el inicio de sesión con Google.</string>
+    <string name="auth_google_failed">No se pudo iniciar sesión con Google. Inténtalo de nuevo.</string>
+    <string name="auth_profile_sync_failed">Tu correo está verificado, pero el perfil quedó pendiente. Se reintentará al recuperar conexión o al iniciar sesión de nuevo.</string>
     <string name="login_forgot">¿Olvidaste tu contraseña?</string>
     <string name="reset_need_email">Escribe un correo válido en el campo de correo.</string>
     <string name="reset_sent">Si la cuenta existe, recibirás un correo con las instrucciones.</string>

@@ -1,41 +1,81 @@
 package com.example.controlherbal.ai
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.auth.*
-import com.example.controlherbal.common.legal.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.ui.activities.main.*
-import com.example.controlherbal.ui.activities.auth.*
-import com.example.controlherbal.ui.activities.privacy.*
-import com.example.controlherbal.ui.activities.plant.*
-import com.example.controlherbal.ui.style.*
-
 import android.content.Context
-import android.content.SharedPreferences
-import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.common.security.SecureLogger
+import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.data.database.SensorReading
 import com.example.controlherbal.domain.logic.PredictiveTheorem
 import kotlin.math.exp
 import kotlin.random.Random
 
 /**
- * HerbalAI: Red Neuronal Multicapa (MLP) basada en fisiología vegetal.
- * Entradas: Temp, HumAmb, Luz, Soil, isDay, VPD -> Neuronas Ocultas -> Salida (IRH, DehydrationFactor).
+ * Interfaz pura de Kotlin para abstraer la persistencia de pesos neuronales de HerbalAI,
+ * eliminando acoplamientos con SharedPreferences o Context de Android en el dominio de IA.
  */
-class HerbalAI(context: Context) {
+interface WeightDataSource {
+    fun isInitialized(): Boolean
+    fun getWeight(key: String, defaultValue: Float): Float
+    fun saveWeights(
+        weightsInputHidden: FloatArray,
+        weightsHiddenOutput: FloatArray,
+        biasHidden: FloatArray,
+        biasOutput: FloatArray
+    )
+}
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(AppConstants.PREFS_WEIGHTS_NAME, Context.MODE_PRIVATE)
-    
+/**
+ * Implementación concreta de WeightDataSource basada en SharedPreferences de Android.
+ */
+class SharedPreferencesWeightDataSource(context: Context) : WeightDataSource {
+    private val prefs = context.getSharedPreferences(AppConstants.PREFS_WEIGHTS_NAME, Context.MODE_PRIVATE)
+
+    override fun isInitialized(): Boolean = prefs.contains("initialized")
+
+    override fun getWeight(key: String, defaultValue: Float): Float = prefs.getFloat(key, defaultValue)
+
+    override fun saveWeights(
+        weightsInputHidden: FloatArray,
+        weightsHiddenOutput: FloatArray,
+        biasHidden: FloatArray,
+        biasOutput: FloatArray
+    ) {
+        prefs.edit().apply {
+            putBoolean("initialized", true)
+            for (idx in weightsInputHidden.indices) {
+                putFloat("w_ih_$idx", weightsInputHidden[idx])
+            }
+            for (idx in weightsHiddenOutput.indices) {
+                putFloat("w_ho_$idx", weightsHiddenOutput[idx])
+            }
+            for (idx in biasHidden.indices) {
+                putFloat("b_h_$idx", biasHidden[idx])
+            }
+            for (idx in biasOutput.indices) {
+                putFloat("b_o_$idx", biasOutput[idx])
+            }
+            apply()
+        }
+    }
+}
+
+/**
+ * HerbalAI: Red Neuronal Multicapa (MLP) basada en fisiología vegetal.
+ * Optimizado con arreglos planos unidimensionales (FloatArray) y indexación matemática row*cols+col
+ * para garantizar localidad de caché L1/L2 y eliminación de GC Thrashing.
+ */
+class HerbalAI(private val weightDataSource: WeightDataSource) {
+
+    constructor(context: Context) : this(SharedPreferencesWeightDataSource(context))
+
     private val inputSize = 6
     private val hiddenSize = 18
     private val outputSize = 2
     
-    private var weightsInputHidden = Array(inputSize) { FloatArray(hiddenSize) }
-    private var weightsHiddenOutput = Array(hiddenSize) { FloatArray(outputSize) }
-    private var biasHidden = FloatArray(hiddenSize)
-    private var biasOutput = FloatArray(outputSize)
+    // Arreglos planos unidimensionales (Flat Buffers) para localidad de caché y cero GC Thrashing
+    private val weightsInputHidden = FloatArray(inputSize * hiddenSize)
+    private val weightsHiddenOutput = FloatArray(hiddenSize * outputSize)
+    private val biasHidden = FloatArray(hiddenSize)
+    private val biasOutput = FloatArray(outputSize)
 
     private val learningRate = 0.05f
 
@@ -103,7 +143,7 @@ class HerbalAI(context: Context) {
         for (j in 0 until hiddenSize) {
             var activation = biasHidden[j]
             for (i in 0 until inputSize) {
-                activation += input[i] * weightsInputHidden[i][j]
+                activation += input[i] * weightsInputHidden[i * hiddenSize + j]
             }
             hiddenLayer[j] = sigmoid(activation)
         }
@@ -112,7 +152,7 @@ class HerbalAI(context: Context) {
         for (k in 0 until outputSize) {
             var outputActivation = biasOutput[k]
             for (j in 0 until hiddenSize) {
-                outputActivation += hiddenLayer[j] * weightsHiddenOutput[j][k]
+                outputActivation += hiddenLayer[j] * weightsHiddenOutput[j * outputSize + k]
             }
             outputs[k] = sigmoid(outputActivation)
         }
@@ -157,14 +197,14 @@ class HerbalAI(context: Context) {
                 val hiddenLayer = FloatArray(hiddenSize)
                 for (j in 0 until hiddenSize) {
                     var act = biasHidden[j]
-                    for (i in 0 until inputSize) act += input[i] * weightsInputHidden[i][j]
+                    for (i in 0 until inputSize) act += input[i] * weightsInputHidden[i * hiddenSize + j]
                     hiddenLayer[j] = sigmoid(act)
                 }
 
                 val outputs = FloatArray(outputSize)
                 for (k in 0 until outputSize) {
                     var outAct = biasOutput[k]
-                    for (j in 0 until hiddenSize) outAct += hiddenLayer[j] * weightsHiddenOutput[j][k]
+                    for (j in 0 until hiddenSize) outAct += hiddenLayer[j] * weightsHiddenOutput[j * outputSize + k]
                     outputs[k] = sigmoid(outAct)
                 }
 
@@ -178,7 +218,7 @@ class HerbalAI(context: Context) {
                 for (j in 0 until hiddenSize) {
                     var hiddenError = 0f
                     for (k in 0 until outputSize) {
-                        hiddenError += outputDeltas[k] * weightsHiddenOutput[j][k]
+                        hiddenError += outputDeltas[k] * weightsHiddenOutput[j * outputSize + k]
                     }
                     hiddenDeltas[j] = hiddenError * sigmoidDeriv(hiddenLayer[j])
                 }
@@ -186,13 +226,13 @@ class HerbalAI(context: Context) {
                 for (k in 0 until outputSize) {
                     biasOutput[k] += learningRate * outputDeltas[k]
                     for (j in 0 until hiddenSize) {
-                        weightsHiddenOutput[j][k] += learningRate * outputDeltas[k] * hiddenLayer[j]
+                        weightsHiddenOutput[j * outputSize + k] += learningRate * outputDeltas[k] * hiddenLayer[j]
                     }
                 }
                 for (j in 0 until hiddenSize) {
                     biasHidden[j] += learningRate * hiddenDeltas[j]
                     for (i in 0 until inputSize) {
-                        weightsInputHidden[i][j] += learningRate * hiddenDeltas[j] * input[i]
+                        weightsInputHidden[i * hiddenSize + j] += learningRate * hiddenDeltas[j] * input[i]
                     }
                 }
             }
@@ -202,46 +242,29 @@ class HerbalAI(context: Context) {
     }
 
     private fun loadWeights() {
-        if (!prefs.contains("initialized")) {
-            for (i in 0 until inputSize) {
-                for (j in 0 until hiddenSize) weightsInputHidden[i][j] = Random.nextFloat() * 2f - 1f
-            }
-            for (j in 0 until hiddenSize) {
-                for (k in 0 until outputSize) weightsHiddenOutput[j][k] = Random.nextFloat() * 2f - 1f
-                biasHidden[j] = 0f
-            }
-            for (k in 0 until outputSize) biasOutput[k] = 0f
+        if (!weightDataSource.isInitialized()) {
+            for (idx in weightsInputHidden.indices) weightsInputHidden[idx] = Random.nextFloat() * 2f - 1f
+            for (idx in weightsHiddenOutput.indices) weightsHiddenOutput[idx] = Random.nextFloat() * 2f - 1f
+            for (idx in biasHidden.indices) biasHidden[idx] = 0f
+            for (idx in biasOutput.indices) biasOutput[idx] = 0f
             return
         }
 
-        for (i in 0 until inputSize) {
-            for (j in 0 until hiddenSize) {
-                weightsInputHidden[i][j] = prefs.getFloat("w_ih_${i}_$j", 0f)
-            }
+        for (idx in weightsInputHidden.indices) {
+            weightsInputHidden[idx] = weightDataSource.getWeight("w_ih_$idx", 0f)
         }
-        for (j in 0 until hiddenSize) {
-            for (k in 0 until outputSize) {
-                weightsHiddenOutput[j][k] = prefs.getFloat("w_ho_${j}_$k", 0f)
-            }
-            biasHidden[j] = prefs.getFloat("b_h_$j", 0f)
+        for (idx in weightsHiddenOutput.indices) {
+            weightsHiddenOutput[idx] = weightDataSource.getWeight("w_ho_$idx", 0f)
         }
-        for (k in 0 until outputSize) {
-            biasOutput[k] = prefs.getFloat("b_o_$k", 0f)
+        for (idx in biasHidden.indices) {
+            biasHidden[idx] = weightDataSource.getWeight("b_h_$idx", 0f)
+        }
+        for (idx in biasOutput.indices) {
+            biasOutput[idx] = weightDataSource.getWeight("b_o_$idx", 0f)
         }
     }
 
     private fun saveWeights() {
-        prefs.edit().apply {
-            putBoolean("initialized", true)
-            for (i in 0 until inputSize) {
-                for (j in 0 until hiddenSize) putFloat("w_ih_${i}_$j", weightsInputHidden[i][j])
-            }
-            for (j in 0 until hiddenSize) {
-                for (k in 0 until outputSize) putFloat("w_ho_${j}_$k", weightsHiddenOutput[j][k])
-                putFloat("b_h_$j", biasHidden[j])
-            }
-            for (k in 0 until outputSize) putFloat("b_o_$k", biasOutput[k])
-            apply()
-        }
+        weightDataSource.saveWeights(weightsInputHidden, weightsHiddenOutput, biasHidden, biasOutput)
     }
 }

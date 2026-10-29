@@ -1,15 +1,5 @@
 package com.example.controlherbal.ui.activities.auth
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.auth.*
-import com.example.controlherbal.common.legal.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.ui.activities.main.*
-import com.example.controlherbal.ui.activities.privacy.*
-import com.example.controlherbal.ui.activities.plant.*
-import com.example.controlherbal.ui.style.*
-
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -27,8 +17,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.controlherbal.R
 import com.example.controlherbal.common.auth.AuthManager
+import com.example.controlherbal.common.auth.PostAuthRouter
 import com.example.controlherbal.common.security.LoginThrottle
+import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.common.security.SecureLogger
+import com.example.controlherbal.data.database.SensorDatabase
+import com.example.controlherbal.data.repository.UserRepositoryImpl
+import com.example.controlherbal.ui.activities.main.SplashActivity
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
@@ -118,9 +113,27 @@ class MfaEnrollActivity : AppCompatActivity() {
         lifecycleScope.launch {
             setBusy(true)
             AuthManager.refreshUser()
+            val verified = AuthManager.isEmailVerified()
+            if (verified) persistVerifiedProfile()
             setBusy(false)
-            if (AuthManager.isEmailVerified()) proceed()
+            if (verified) proceed()
             else Toast.makeText(this@MfaEnrollActivity, R.string.mfa_email_not_verified_yet, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private suspend fun persistVerifiedProfile() {
+        val email = AuthManager.email().orEmpty()
+        val name = SecurityUtils.sanitizeText(AuthManager.displayName(), 240)
+            .ifBlank { email.substringBefore("@").ifBlank { "Usuario" } }
+        val database = SensorDatabase.getInstance(this)
+        val result = UserRepositoryImpl(this, database.userDao()).saveVerifiedProfile(
+            firstName = intent.getStringExtra(PostAuthRouter.EXTRA_PROFILE_FIRST_NAME),
+            paternalSurname = intent.getStringExtra(PostAuthRouter.EXTRA_PROFILE_PATERNAL_SURNAME),
+            maternalSurname = intent.getStringExtra(PostAuthRouter.EXTRA_PROFILE_MATERNAL_SURNAME),
+            fallbackDisplayName = name,
+        )
+        if (!result.cloudSynced) {
+            Toast.makeText(this, R.string.auth_profile_sync_failed, Toast.LENGTH_LONG).show()
         }
     }
 

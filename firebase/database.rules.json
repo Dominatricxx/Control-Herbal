@@ -8,8 +8,22 @@
       ".write": false
     },
 
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && auth.token.email_verified === true",
+        ".write": "auth != null && auth.uid === $uid && (!newData.exists() || (auth.token.email_verified === true && auth.token.email === newData.child('correo').val()))",
+        ".validate": "newData.hasChildren(['nombre', 'apPaterno', 'correo', 'fechaRegistro'])",
+        "nombre": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80" },
+        "apPaterno": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80" },
+        "apMaterno": { ".validate": "newData.isString() && newData.val().length <= 80" },
+        "correo": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 254" },
+        "fechaRegistro": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "$other": { ".validate": false }
+      }
+    },
+
     "sensor": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'owner' || root.child('roles').child(auth.uid).val() === 'device' || root.child('roles').child(auth.uid).val() === 'viewer')",
+      ".read": "auth != null && ((root.child('roles').child(auth.uid).val() === 'owner' && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor === 'totp') || root.child('roles').child(auth.uid).val() === 'device' || root.child('roles').child(auth.uid).val() === 'viewer')",
       ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'device'",
 
       "temp":        { ".validate": "newData.isNumber() && newData.val() >= -40 && newData.val() <= 85" },
@@ -34,19 +48,19 @@
     },
 
     "config": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'owner' || root.child('roles').child(auth.uid).val() === 'device')",
+      ".read": "auth != null && ((root.child('roles').child(auth.uid).val() === 'owner' && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor === 'totp') || root.child('roles').child(auth.uid).val() === 'device')",
       "tipoPlanta": {
-        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner' && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor === 'totp'",
         ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3)"
       },
       "$other": { ".validate": false }
     },
 
     "control": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'owner' || root.child('roles').child(auth.uid).val() === 'device')",
+      ".read": "auth != null && ((root.child('roles').child(auth.uid).val() === 'owner' && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor === 'totp') || root.child('roles').child(auth.uid).val() === 'device')",
 
       "riego": {
-        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner' && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor === 'totp'",
         ".validate": "newData.hasChildren(['activar', 'duracion', 'timestamp', 'uid', 'nonce'])",
 
         "activar":   { ".validate": "newData.isNumber() && (newData.val() === 0 || newData.val() === 1)" },
@@ -74,8 +88,8 @@
     },
 
     "watering_history": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
-      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner'",
+      ".read": "auth != null && root.child('roles').child(auth.uid).val() === 'owner' && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor === 'totp'",
+      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'owner' && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor === 'totp'",
       "$plantId": {
         ".validate": "newData.hasChildren(['lastWateringTime', 'syncTimestamp'])",
         "lastWateringTime": { ".validate": "newData.isNumber() && newData.val() >= 0" },

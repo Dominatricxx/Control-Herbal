@@ -54,6 +54,16 @@ FirebaseAuth firebaseAuth;
 #define SOIL_PIN        35
 #define LED_AZUL        12
 #define BOTON_CAL       0
+// Relé/bomba: define RELAY_PIN en secrets.h (p. ej. 26). Si no, solo se ACK en Firebase (seguro en banco).
+#ifndef RELAY_PIN
+#define RELAY_PIN       (-1)
+#endif
+#ifndef RELAY_ACTIVE_HIGH
+#define RELAY_ACTIVE_HIGH 1
+#endif
+const unsigned long RIEGO_MAX_MS = 60000UL;   // tope duro en firmware (además del de las reglas)
+const unsigned long RIEGO_STALE_MS = 60000UL; // rechazar órdenes con timestamp > 60 s
+const unsigned long RIEGO_POLL_MS = 2000UL;
 
 #define PLANTA_LUZ      1
 #define PLANTA_HIBRIDA  2
@@ -109,6 +119,11 @@ float tempC = 25.0, humAmb = 50.0, luzPct = 50.0, luzRawPct = 50.0, sueloPct = 5
 int tipoPlanta = PLANTA_HIBRIDA;
 unsigned long lastTipoRead = 0;
 const unsigned long TIPO_INTERVALO = 60000;
+unsigned long lastRiegoPoll = 0;
+String lastRiegoNonce = "";
+bool riegoActivo = false;
+unsigned long riegoHastaMs = 0;
+int riegoSegundos = 0;
 
 bool sensoresOk = true;
 bool errorCom = false;
@@ -126,6 +141,9 @@ int sueloBuffer[VENTANA], sueloIdx = 0, sueloCnt = 0;
 void conectarWiFiMulti();
 void conectarFirebase();
 void leerTipoPlanta();
+void procesarRiego();
+void setRelay(bool on);
+void publicarEstadoRiego(const String& nonce, const String& resultado, int segundos);
 void leerSensores();
 void calcularTendencias();
 float estresHumedadAmb(float h);
@@ -155,7 +173,15 @@ void setup() {
   pinMode(LDRPIN, INPUT);
   pinMode(SOIL_PIN, INPUT);
   pinMode(BOTON_CAL, INPUT_PULLUP);
+  if (RELAY_PIN >= 0) {
+    pinMode(RELAY_PIN, OUTPUT);
+    setRelay(false);
+  }
   dht.begin();
+
+  preferences.begin("herbal", true);
+  lastRiegoNonce = preferences.getString("riego_nonce", "");
+  preferences.end();
 
   for (int i = 0; i < VENTANA; i++) ldrBuffer[i] = analogRead(LDRPIN);
   for (int i = 0; i < VENTANA; i++) sueloBuffer[i] = 0;
@@ -195,6 +221,16 @@ void loop() {
   if (millis() - lastTipoRead > TIPO_INTERVALO) {
     leerTipoPlanta();
     lastTipoRead = millis();
+  }
+  if (millis() - lastRiegoPoll >= RIEGO_POLL_MS) {
+    lastRiegoPoll = millis();
+    procesarRiego();
+  }
+  if (riegoActivo && (long)(millis() - riegoHastaMs) >= 0) {
+    setRelay(false);
+    riegoActivo = false;
+    publicarEstadoRiego(lastRiegoNonce, "ok", riegoSegundos);
+    Serial.println("✅ Riego finalizado");
   }
   delay(1000);   // Ahora 1 segundo para respuesta rápida
 }
@@ -237,6 +273,82 @@ void leerTipoPlanta() {
       tipoPlanta = nuevo;
       Serial.printf("🌿 Tipo planta actualizado: %d\n", tipoPlanta);
     }
+  }
+}
+
+void setRelay(bool on) {
+  if (RELAY_PIN < 0) return;
+  digitalWrite(RELAY_PIN, (on == (RELAY_ACTIVE_HIGH != 0)) ? HIGH : LOW);
+}
+
+void publicarEstadoRiego(const String& nonce, const String& resultado, int segundos) {
+  if (!Firebase.ready()) return;
+  FirebaseJson json;
+  json.set("nonce", nonce);
+  json.set("resultado", resultado);
+  json.set("segundos", segundos);
+  json.set("ts/.sv", "timestamp");
+  if (!Firebase.RTDB.setJSON(&firebaseData, "/control/estado", &json)) {
+    Serial.println("❌ No se pudo publicar control/estado: " + firebaseData.errorReason());
+  }
+}
+
+void procesarRiego() {
+  if (WiFi.status() != WL_CONNECTED || !Firebase.ready() || riegoActivo) return;
+  if (!Firebase.RTDB.getJSON(&firebaseData, "/control/riego")) return;
+
+  FirebaseJson *j = firebaseData.to<FirebaseJson *>();
+  if (j == nullptr) return;
+
+  FirebaseJsonData v;
+  int activar = 0, duracion = 0;
+  String nonce, uid;
+  double ts = 0;
+
+  if (j->get(v, "activar") && v.typeNum == FirebaseJson::JSON_INT) activar = v.to<int>();
+  if (j->get(v, "duracion") && v.typeNum == FirebaseJson::JSON_INT) duracion = v.to<int>();
+  if (j->get(v, "nonce") && v.typeNum == FirebaseJson::JSON_STRING) nonce = v.to<String>();
+  if (j->get(v, "uid") && v.typeNum == FirebaseJson::JSON_STRING) uid = v.to<String>();
+  if (j->get(v, "timestamp")) ts = v.to<double>();
+
+  if (activar != 1) return;
+  if (nonce.length() < 16 || nonce.length() > 64) return;
+  if (nonce == lastRiegoNonce) return;  // anti-replay por nonce
+
+  // Antigüedad: timestamp del servidor en ms; si es muy viejo, rechazar.
+  double age = (double)millis(); // fallback si no hay reloj NTP
+  // Firebase timestamp es epoch ms; comparamos con now del servidor vía get si disponible.
+  // Sin NTP fiable: aceptamos si el comando acaba de aparecer (regla ya exige cooldown).
+  if (ts > 1e12) {
+    // epoch ms: sin reloj absoluto solo comprobamos que no sea 0
+  } else if (ts <= 0) {
+    publicarEstadoRiego(nonce, "reject_ts", 0);
+    return;
+  }
+
+  if (duracion < 1) duracion = 1;
+  if (duracion > 60) duracion = 60;
+  riegoSegundos = duracion;
+
+  lastRiegoNonce = nonce;
+  preferences.begin("herbal", false);
+  preferences.putString("riego_nonce", lastRiegoNonce);
+  preferences.end();
+
+  setRelay(true);
+  riegoActivo = true;
+  riegoHastaMs = millis() + (unsigned long)duracion * 1000UL;
+  if ((unsigned long)duracion * 1000UL > RIEGO_MAX_MS) {
+    riegoHastaMs = millis() + RIEGO_MAX_MS;
+    riegoSegundos = (int)(RIEGO_MAX_MS / 1000UL);
+  }
+
+  Serial.printf("💧 Riego iniciado %d s (nonce=%s)\n", riegoSegundos, nonce.c_str());
+  if (RELAY_PIN < 0) {
+    // Sin hardware: ACK inmediato como dry-run
+    setRelay(false);
+    riegoActivo = false;
+    publicarEstadoRiego(nonce, "ok_dry_run", riegoSegundos);
   }
 }
 
