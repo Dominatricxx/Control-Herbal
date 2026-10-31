@@ -59,7 +59,7 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation("androidx.percentlayout:percentlayout:1.0.0")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.wear:wear:1.3.0")
 
     // Firebase
