@@ -187,7 +187,7 @@ val verifyLegalDocs = tasks.register("verifyLegalDocs") {
         }
         if (pending.isNotEmpty()) {
             val msg = "Marcadores legales sin rellenar (${pending.size}):\n  " + pending.joinToString("\n  ")
-            if (requireFinal) throw GradleException("$msg\nRellénalos antes de publicar (ver docs/LEGAL.md).")
+            if (requireFinal) throw GradleException("$msg\nRellénalos antes de publicar (ver docs/legal/LEGAL.md).")
             logger.warn("AVISO: $msg")
         } else {
             logger.lifecycle("verifyLegalDocs: OK (versión $appVersion, sin marcadores pendientes)")

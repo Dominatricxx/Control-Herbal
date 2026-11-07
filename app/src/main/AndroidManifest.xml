@@ -119,6 +119,12 @@
             android:label="Dashboard Dinámico"
             android:parentActivityName=".ui.activities.main.SectionHostActivity" />
 
+        <activity
+            android:name=".ui.activities.plant.CalendarActivity"
+            android:exported="false"
+            android:label="Calendario de Cuidado"
+            android:parentActivityName=".ui.activities.main.MainActivity" />
+
         <!-- Receivers para Widgets de Pantalla de Inicio -->
         <receiver
             android:name=".ui.widget.HerbalWidgetSummaryReceiver"

@@ -1,6 +1,6 @@
 # Política de Cookies y Tecnologías Similares
 
-Versión 2026.10 · Vigente desde {{FECHA_VIGENCIA}}
+Versión 2026.11 · Vigente desde {{FECHA_VIGENCIA}}
 
 ## 1. Resumen
 

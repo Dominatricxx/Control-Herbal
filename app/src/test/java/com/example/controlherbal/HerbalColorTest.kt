@@ -1,9 +1,9 @@
 package com.example.controlherbal
 
-import com.example.controlherbal.ui.components.plantColor
-import com.example.controlherbal.ui.components.sunColor
-import com.example.controlherbal.ui.components.temperatureColor
-import com.example.controlherbal.ui.components.waterColor
+import com.example.controlherbal.frontend.components.plantColor
+import com.example.controlherbal.frontend.components.sunColor
+import com.example.controlherbal.frontend.components.temperatureColor
+import com.example.controlherbal.frontend.components.waterColor
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs

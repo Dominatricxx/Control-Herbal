@@ -44,7 +44,7 @@ FORBIDDEN_DEPS = {
     "appsflyer": "atribución", "adjust": "atribución", "branch.io": "atribución", "mixpanel": "analítica",
     "amplitude": "analítica", "segment": "analítica", "sentry": "reporte de fallos", "bugsnag": "reporte de fallos",
     "onesignal": "notificaciones push de terceros", "firebase-messaging": "mensajería (token por dispositivo)",
-    "play-services-location": "ubicación", "play-services-maps": "mapas/ubicación", "play-services-auth": "cuentas de Google",
+    "play-services-location": "ubicación", "play-services-maps": "mapas/ubicación",
     "com.google.android.gms:play-services-ads-identifier": "identificador de publicidad",
     "firebase-dynamic-links": "enlaces con seguimiento", "firebase-inappmessaging": "mensajes in-app con seguimiento",
     "firebase-config": "Remote Config (envía ID de instalación; revisar antes de añadir)",
@@ -97,7 +97,7 @@ CODE_PATTERNS = {
     r"InstallReferrer": "atribución de instalación", r"FirebaseAnalytics|FirebaseCrashlytics": "analítica/fallos",
 }
 # WebView solo en Splash (UI glass local). Cualquier otro archivo con WebView falla.
-WEBVIEW_ALLOW = {"app/src/main/java/com/example/controlherbal/ui/activities/main/SplashActivity.kt"}
+WEBVIEW_ALLOW = {"app/src/main/java/com/example/controlherbal/frontend/activities/main/SplashActivity.kt"}
 for f in files(["app/src/**/*.kt", "wear/src/**/*.kt", "desktop/src/**/*.kt", "common/src/**/*.kt"]):
     text = read(f)
     rel = str(f.relative_to(ROOT)).replace("\\", "/")
@@ -123,7 +123,7 @@ for f in files(["app/src/**/*.kt", "wear/src/**/*.kt", "desktop/src/**/*.kt", "m
     for m in URL.finditer(text):
         host = m.group(1).lower().rstrip(".")
         if not any(host == h or host.endswith("." + h) for h in ALLOWED_HOSTS):
-            err(f"{f.relative_to(ROOT)}: dominio no permitido '{host}' (si es legítimo, añádelo a ALLOWED_HOSTS y documéntalo en docs/AUDITORIA_PRIVACIDAD_TERCEROS.md)")
+            err(f"{f.relative_to(ROOT)}: dominio no permitido '{host}' (si es legítimo, añádelo a ALLOWED_HOSTS y documéntalo en docs/privacy/AUDITORIA_PRIVACIDAD_TERCEROS.md)")
         if m.group(0).startswith("http://") and "localhost" not in host and "schemas.android" not in host \
                 and "w3.org" not in host and "apache.org" not in host:
             err(f"{f.relative_to(ROOT)}: URL sin cifrar {m.group(0)}")

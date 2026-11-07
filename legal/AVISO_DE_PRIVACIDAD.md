@@ -1,6 +1,6 @@
 # Aviso de Privacidad Integral
 
-Versión 2026.10 · Vigente desde {{FECHA_VIGENCIA}}
+Versión 2026.11 · Vigente desde {{FECHA_VIGENCIA}}
 
 Este aviso describe cómo Control Herbal (la app para Android, la app para Wear OS, la app de escritorio y el firmware del ESP32; en conjunto, "el Sistema") trata tus datos personales. Está redactado conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP, vigente desde el 21 de marzo de 2025). El Anexo A cubre a personas usuarias en la Unión Europea o el Reino Unido.
 
@@ -38,6 +38,10 @@ Datos que envías a la inteligencia artificial (solo con tu consentimiento)
 Datos técnicos tratados por Google como proveedor
 - Dirección IP, identificadores de instalación de Firebase, tokens de autenticación y señales de integridad del dispositivo (App Check / Play Integrity), necesarios para operar y proteger el servicio.
 
+Comprobación de contraseñas filtradas
+- Al crear una cuenta o cambiar la contraseña, la app puede consultar Have I Been Pwned para comprobar si esa contraseña aparece en filtraciones conocidas. La app calcula el SHA-1 localmente y envía únicamente los primeros cinco caracteres hexadecimales del hash por HTTPS; nunca envía la contraseña ni el hash completo. El proveedor puede recibir la dirección IP y los datos técnicos de la solicitud.
+- La consulta se usa para proteger la cuenta. Si el servicio no está disponible, la app aplica las demás reglas locales de contraseña.
+
 Datos que no recopilamos: ubicación, contactos, calendario, micrófono, archivos del dispositivo, salud, biometría, datos financieros, identificador de publicidad ni datos de analítica o fallos.
 
 Datos personales sensibles: el Sistema no los solicita. Evita fotografiar personas, documentos o información privada, y no escribas datos personales en nombres de plantas ni en el asistente.
@@ -49,6 +53,7 @@ Finalidades necesarias (sin ellas no podemos prestar el servicio)
 - Mostrar y sincronizar las lecturas de tus sensores.
 - Enviar órdenes de riego a tu dispositivo y registrar el historial.
 - Proteger el servicio contra abuso y accesos no autorizados.
+- Comprobar si una contraseña nueva aparece en filtraciones conocidas, enviando solo el prefijo del hash descrito en este aviso.
 - Guardar tu aceptación de este aviso y de los Términos de Servicio.
 
 Finalidades voluntarias (requieren tu consentimiento expreso)
@@ -65,13 +70,15 @@ No tratamos tus datos para publicidad, perfilado, venta ni análisis de comporta
 
 ## 6. Con quién se comunican los datos
 
-Usamos a Google como proveedor de infraestructura, que trata los datos por cuenta del responsable:
+Usamos a Google como proveedor de infraestructura:
 - Firebase Authentication: inicio de sesión.
 - Firebase Realtime Database: lecturas, órdenes de riego, historial y roles. Región configurada: {{REGION_FIREBASE}}.
 - Firebase App Check y Google Play Integrity: verificar que las solicitudes provienen de la app legítima.
 - Firebase AI Logic y la API de Gemini (Agent Platform): solo si aceptas las funciones de IA.
 
-Los servidores de Google pueden estar fuera de México. Su tratamiento se rige por los términos de Google y por la gobernanza de datos de Firebase AI Logic (https://firebase.google.com/docs/ai-logic/data-governance). No enviamos datos a ningún otro tercero.
+También consultamos Have I Been Pwned (servicio Pwned Passwords) al crear o cambiar una contraseña. Solo se envían los primeros cinco caracteres del hash SHA-1 de la contraseña; el proveedor recibe además los datos técnicos normales de una conexión HTTPS, como la dirección IP. La contraseña y el hash completo no salen del dispositivo.
+
+Los servidores de Google pueden estar fuera de México. El tratamiento de Google se rige por sus términos y por la gobernanza de datos de Firebase AI Logic (https://firebase.google.com/docs/ai-logic/data-governance). No vendemos tus datos ni los compartimos para publicidad.
 
 ## 7. Conservación
 

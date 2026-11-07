@@ -1,6 +1,6 @@
 # Registro de Consentimientos
 
-Versión 2026.10
+Versión 2026.11
 
 Este documento describe qué consentimientos pide Control Herbal, cuándo y cómo se registran.
 
@@ -20,9 +20,11 @@ Este documento describe qué consentimientos pide Control Herbal, cuándo y cóm
 - Qué se guarda: solo en tu dispositivo, que la aceptación fue otorgada.
 - Cómo se retira: Menú, Privacidad y accesibilidad, interruptor de IA. Desde ese momento la app vuelve a pedir permiso antes de enviar datos.
 
-## 3. Lo que no requiere consentimiento porque no se hace
+## 3. Tratamientos sin consentimiento separado
 
 Analítica, publicidad, perfilado, ubicación, contactos, micrófono, identificador de publicidad y cookies no se usan, así que no existe un consentimiento que otorgar para ellos.
+
+Al crear una cuenta o cambiar la contraseña, la app puede consultar Have I Been Pwned para verificar si la contraseña aparece en filtraciones conocidas. Es una comprobación de seguridad, no una función opcional de IA: solo se envían los primeros cinco caracteres del hash SHA-1, nunca la contraseña ni el hash completo. Los detalles están en el Aviso de Privacidad.
 
 ## 4. Principios aplicados
 

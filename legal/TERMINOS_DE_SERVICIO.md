@@ -1,6 +1,6 @@
 # Términos de Servicio
 
-Versión 2026.10 · Vigente desde {{FECHA_VIGENCIA}}
+Versión 2026.11 · Vigente desde {{FECHA_VIGENCIA}}
 
 Al marcar la casilla de aceptación o al usar Control Herbal (la app para Android, la app para Wear OS, la app de escritorio y el firmware del ESP32; "el Sistema"), aceptas estos términos. Si no estás de acuerdo, no uses el Sistema.
 
@@ -40,7 +40,7 @@ No puedes:
 
 ## 7. Servicios de terceros
 
-El Sistema depende de servicios de Google (Firebase Authentication, Realtime Database, App Check, Play Integrity, Firebase AI Logic y la API de Gemini). Su disponibilidad y condiciones no dependen del Responsable y se rigen por los términos de Google. Los modelos de IA cambian y se retiran con el tiempo, por lo que una función puede dejar de estar disponible.
+El Sistema depende de servicios de Google (Firebase Authentication, Realtime Database, App Check, Play Integrity, Firebase AI Logic y la API de Gemini). Para comprobar si una contraseña nueva aparece en filtraciones conocidas, también puede consultar el servicio Pwned Passwords de Have I Been Pwned: la app envía solo los primeros cinco caracteres del hash SHA-1, no la contraseña ni el hash completo. La disponibilidad y las condiciones de estos servicios de terceros no dependen del Responsable. Los modelos de IA cambian y se retiran con el tiempo, por lo que una función puede dejar de estar disponible.
 
 ## 8. Propiedad intelectual
 

@@ -3,11 +3,11 @@ package com.example.controlherbal.common.auth
 import android.app.Activity
 import android.content.Intent
 import com.example.controlherbal.common.security.SecureLogger
-import com.example.controlherbal.data.database.SensorDatabase
-import com.example.controlherbal.ui.activities.auth.MfaEnrollActivity
-import com.example.controlherbal.ui.activities.main.SectionHostActivity
-import com.example.controlherbal.ui.activities.plant.PlantSetupActivity
-import com.example.controlherbal.ui.components.BackupCodesUi
+import com.example.controlherbal.database.SensorDatabase
+import com.example.controlherbal.frontend.activities.auth.MfaEnrollActivity
+import com.example.controlherbal.frontend.activities.main.SectionHostActivity
+import com.example.controlherbal.frontend.activities.plant.PlantSetupActivity
+import com.example.controlherbal.frontend.components.BackupCodesUi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

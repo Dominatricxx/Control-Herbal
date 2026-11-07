@@ -27,7 +27,7 @@ object AppConstants {
     const val AI_REQUEST_TIMEOUT_MS = 30_000L
     const val MAX_AI_RESPONSE_CHARS = 2_000
     const val MAX_IMAGE_DIMENSION_PX = 1_024
-    const val LEGAL_VERSION = "2026.10"
+    const val LEGAL_VERSION = "2026.11"
     const val PREFS_CONSENT = "legal_consent"
     const val KEY_ACCEPTED_VERSION = "accepted_version"
     const val KEY_ACCEPTED_AT = "accepted_at"

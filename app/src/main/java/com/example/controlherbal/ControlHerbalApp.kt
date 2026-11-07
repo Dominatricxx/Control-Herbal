@@ -2,8 +2,8 @@ package com.example.controlherbal
 
 import android.app.Application
 import com.example.controlherbal.common.AppCheckInstaller
-import com.example.controlherbal.data.database.PlantDatabaseSeeder
-import com.example.controlherbal.di.AppContainer
+import com.example.controlherbal.database.PlantDatabaseSeeder
+import com.example.controlherbal.common.di.AppContainer
 import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

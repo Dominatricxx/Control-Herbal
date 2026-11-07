@@ -1,6 +1,6 @@
-package com.example.controlherbal.ui.components
+package com.example.controlherbal.frontend.components
 
-import com.example.controlherbal.data.database.SensorReading
+import com.example.controlherbal.database.SensorReading
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

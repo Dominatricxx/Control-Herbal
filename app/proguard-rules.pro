@@ -5,7 +5,7 @@
 # un -keep global anula la ofuscación/reducción y facilita la ingeniería inversa del APK.
 
 # Entidades y DAOs de Room (acceso por nombre desde código generado)
--keep class com.example.controlherbal.data.database.** { *; }
+-keep class com.example.controlherbal.database.** { *; }
 
 # Métodos del puente del WebView se invocan por reflexión desde JavaScript.
 -keepclassmembers class * {

@@ -15,16 +15,16 @@
 
 Una planta no avisa cuando algo va mal: para cuando las hojas se marchitan, el daño ya está hecho. El proyecto nace de ese problema y del deseo de cuidar mejor lo que crece en casa, reemplazando el "regué cuando me acordé" por información concreta: **cuántas horas de margen tienes** antes de que la planta entre en sequía o sufra exceso de calor o de luz.
 
-Para lograrlo, un ESP32 mide cada segundo la temperatura, la humedad ambiente, la luminosidad y la humedad del suelo, y envía las lecturas a **Firebase Realtime Database**. Con los datos acumulados, un contenedor **Docker** con Python y TensorFlow entrena un modelo que se exporta a **TensorFlow Lite**. Las aplicaciones en Kotlin (Android, Wear OS y escritorio) comparten un módulo común que lee el estado en vivo, aplica el modelo y presenta recomendaciones claras.
+Para lograrlo, un ESP32 muestrea cada segundo la temperatura, la humedad ambiente, la luminosidad y la humedad del suelo, y envía lecturas a **Firebase Realtime Database** cada cinco segundos. Con los datos acumulados, un contenedor **Docker** con Python y TensorFlow entrena un modelo que se exporta a **TensorFlow Lite**. Las aplicaciones en Kotlin (Android, Wear OS y escritorio) comparten un módulo común que lee el estado en vivo, aplica el modelo y presenta recomendaciones claras.
 
 El flujo también funciona en sentido contrario: desde la app se elige el tipo de planta, ese dato se guarda en Firebase y el ESP32 lo lee para ajustar los rangos que considera óptimos. Así, cada planta se evalúa con sus propias necesidades y no con un criterio único para todas.
 
-> **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; Continuamente recibe adaptaciones de optimicidad, parches de seguridad y estructuramiento más ordenado.
+> **Estado actual:** proyecto de prueba de concepto. El firmware del ESP32 y el pipeline de entrenamiento del modelo ya funcionan; el proyecto continúa recibiendo mejoras, correcciones de seguridad y refactorizaciones.
 ---
 
 ## Características
 
-- **Lectura en tiempo real** de temperatura, humedad ambiente, luz y humedad de suelo (ciclo de 1s)
+- **Lectura en tiempo real** de temperatura, humedad ambiente, luz y humedad del suelo (muestreo cada 1 s; envío a Firebase cada 5 s)
 - **IRH (Índice de Riesgo Herbal)** — métrica propia que combina el estado actual de cada sensor con su *tendencia* (ej. qué tan rápido se está secando el suelo)
 - **Predicción de sequía y necesidad de sombra**, estimando horas de margen antes de que la planta entre en riesgo
 - **Recomendaciones en texto** (riego, sombra, ventilación, etc.) generadas a partir del IRH y de las tendencias
@@ -57,6 +57,14 @@ En Android, las secciones Panel, Historial, Comparación y Privacidad comparten 
 
 ---
 
+## Documentación
+
+Consulta el [índice de documentación](docs/README.md) para encontrar guías de seguridad, privacidad,
+accesibilidad, licencias y despliegue. Los documentos legales que se muestran en la app están en
+[`legal/`](legal/).
+
+---
+
 ## ¿Cómo se calcula el IRH?
 
 El **Índice de Riesgo Herbal** pondera 4 factores de estrés (humedad ambiente, temperatura, luz y humedad de suelo), cada uno con su propio coeficiente según qué tan crítico es para la salud de la planta. Además, el sistema no solo mira el valor actual de cada sensor, sino su **tendencia** reciente — por ejemplo, si el suelo se está secando muy rápido, el IRH sube antes de que el valor absoluto sea crítico, permitiendo alertar con anticipación.
@@ -76,9 +84,9 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 ## Capturas de pantalla
 
 <p align="center">
-  <img src="./capturas/ss_celular.jpg" width="200" alt="App Android"/>
-  <img src="./capturas/ss_reloj.png" width="200" alt="Wear OS"/>
-  <img src="./capturas/ss_desktop.png" width="260" alt="Desktop"/>
+  <img src="./docs/screenshots/ss_celular.jpg" width="200" alt="App Android"/>
+  <img src="./docs/screenshots/ss_reloj.png" width="200" alt="Wear OS"/>
+  <img src="./docs/screenshots/ss_desktop.png" width="260" alt="Desktop"/>
 </p>
 
 ---
@@ -86,32 +94,34 @@ Con ese IRH y las tendencias, el firmware estima cuántas horas quedan antes de 
 ## Instalación y uso
 
 ### 1. Firmware (ESP32)
-1. Instala en Arduino IDE las librerías: `DHT sensor library`, `WiFiMulti`, `FirebaseESP32`, `Preferences`
-2. Crea tu propio proyecto en [Firebase](https://console.firebase.google.com/) y habilita Realtime Database
-3. **Importante:** no dejes tus credenciales de WiFi ni tu API key de Firebase escritas directamente en el `.ino`. Sepáralas en un archivo `secrets.h` (ejemplo abajo) y agrégalo a tu `.gitignore`
-4. Conecta los sensores a los pines definidos (`DHTPIN`, `LDRPIN`, `SOIL_PIN`) y flashea el ESP32
-
-```cpp
-// secrets.h (NO subir este archivo a GitHub — agrégalo a .gitignore)
-#define WIFI_SSID     "tu_red"
-#define WIFI_PASSWORD "tu_password"
-#define FIREBASE_HOST "tu-proyecto.firebaseio.com"
-#define FIREBASE_API_KEY "tu_api_key"
-```
+1. Instala las librerías del firmware, incluida `DHT sensor library` y `Firebase Arduino Client Library for ESP8266 and ESP32` (`Firebase_ESP_Client`).
+2. Crea tu propio proyecto en [Firebase](https://console.firebase.google.com/) y habilita Realtime Database.
+3. Copia `firmware/secrets.h.example` como `firmware/secrets.h` y completa la configuración local. No subas `secrets.h` al repositorio.
+4. Conecta los sensores a los pines definidos (`DHTPIN`, `LDRPIN`, `SOIL_PIN`) y flashea el ESP32.
 
 ### 2. Entrenamiento del modelo (Python)
 ```bash
-pip install requests pandas numpy tensorflow scikit-learn
-python train_herbal_model.py
+export HERBAL_DB_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com"
+export HERBAL_API_KEY="..."
+export HERBAL_USER_EMAIL="cuenta-viewer@..."
+export HERBAL_USER_PASSWORD="..."
+python -m pip install -r ml/requirements.txt
+python ml/train_herbal_model.py
 ```
-Esto descarga los datos acumulados en Firebase, entrena una red neuronal simple y guarda el modelo listo para la app en `app/src/main/assets/herbal_model.tflite`.
+Usa una cuenta dedicada con rol `viewer`. El script valida y filtra datos reales antes de entrenar; por defecto, genera el modelo y su huella SHA-256 en `app/src/main/assets/`.
 
 #### Con Docker (sin instalar TensorFlow)
 ```bash
-export FIREBASE_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com/sensor.json"
+export HERBAL_DB_URL="https://TU-PROYECTO-default-rtdb.firebaseio.com"
+export HERBAL_API_KEY="..."
+export HERBAL_USER_EMAIL="cuenta-viewer@..."
+export HERBAL_USER_PASSWORD="..."
 docker compose -f deploy/docker-compose.yml run --rm trainer
-# el modelo queda en ./output/herbal_model.tflite -> cópialo a app/src/main/assets/
+# el modelo y su .sha256 quedan en ./output; cópialos a app/src/main/assets/
 ```
+
+Para más detalle sobre secretos, roles y configuración de Firebase, consulta
+[`docs/security/SEGURIDAD.md`](docs/security/SEGURIDAD.md).
 
 ### 3. Apps (Android / Wear OS / Desktop)
 Abre el proyecto en **Android Studio** y selecciona el módulo que quieras correr (`app`, `wear` o `desktop`).

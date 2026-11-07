@@ -1,6 +1,6 @@
 # Avisos de componentes de terceros
 
-Control Herbal incluye o utiliza los siguientes componentes de código abierto. Cada uno conserva su propia licencia. Las licencias indicadas corresponden a lo declarado por cada proyecto; confírmalas contra la versión exacta que uses (ver `docs/LICENCIAS.md`).
+Control Herbal incluye o utiliza los siguientes componentes de código abierto. Cada uno conserva su propia licencia. Las licencias indicadas corresponden a lo declarado por cada proyecto; confírmalas contra la versión exacta que uses (ver [`docs/legal/LICENCIAS.md`](docs/legal/LICENCIAS.md)).
 
 Apache License 2.0
 - AndroidX: core-ktx, appcompat, constraintlayout, lifecycle, activity-compose, room, work, glance, test (junit, espresso)

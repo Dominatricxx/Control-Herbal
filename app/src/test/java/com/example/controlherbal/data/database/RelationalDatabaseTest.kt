@@ -1,9 +1,9 @@
-package com.example.controlherbal.data.database
+package com.example.controlherbal.database
 
 import com.example.controlherbal.common.security.SecurityUtils
-import com.example.controlherbal.data.database.entity.PlantCatalogEntity
-import com.example.controlherbal.data.database.entity.UserEntity
-import com.example.controlherbal.data.database.entity.UserPlantEntity
+import com.example.controlherbal.database.entity.PlantCatalogEntity
+import com.example.controlherbal.database.entity.UserEntity
+import com.example.controlherbal.database.entity.UserPlantEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

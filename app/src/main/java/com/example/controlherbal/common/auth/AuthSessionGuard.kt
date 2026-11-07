@@ -3,7 +3,7 @@ package com.example.controlherbal.common.auth
 import android.app.Activity
 import android.content.Intent
 import com.example.controlherbal.common.security.SecureLogger
-import com.example.controlherbal.ui.activities.main.SplashActivity
+import com.example.controlherbal.frontend.activities.main.SplashActivity
 
 /** Barrera en pantallas internas: sin sesión Firebase autenticada, vuelve al splash. */
 object AuthSessionGuard {

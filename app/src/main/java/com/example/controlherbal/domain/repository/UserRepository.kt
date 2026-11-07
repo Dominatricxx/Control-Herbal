@@ -1,6 +1,6 @@
 package com.example.controlherbal.domain.repository
 
-import com.example.controlherbal.data.database.entity.UserEntity
+import com.example.controlherbal.database.entity.UserEntity
 
 /**
  * Perfil de usuario local + sincronización a `/users/{uid}`.

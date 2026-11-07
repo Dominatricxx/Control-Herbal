@@ -28,6 +28,9 @@
             android:id="@+id/nav_animated_dashboard"
             android:title="Dashboard Dinámico" />
         <item
+            android:id="@+id/nav_calendar"
+            android:title="Calendario de Tareas" />
+        <item
             android:id="@+id/nav_privacy"
             android:title="@string/privacy_title" />
         <item
