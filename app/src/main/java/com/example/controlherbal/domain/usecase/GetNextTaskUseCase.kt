@@ -1,9 +1,16 @@
 package com.example.controlherbal.domain.usecase
 
+import com.example.controlherbal.data.database.PlantTask
 import com.example.controlherbal.domain.repository.PlantTaskRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Calendar
+
+data class NextTask(
+    val task: PlantTask,
+    val isOverdue: Boolean,
+    val daysUntil: Int
+)
 
 class GetNextTaskUseCase(
     private val repository: PlantTaskRepository

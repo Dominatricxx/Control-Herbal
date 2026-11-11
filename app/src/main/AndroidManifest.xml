@@ -41,14 +41,14 @@
 
         <!-- Servicio de monitoreo en segundo plano -->
         <service
-            android:name=".data.sync.SensorForegroundService"
+            android:name=".backend.sync.SensorForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
         <!-- Punto de entrada principal (Launcher) -->
         <activity
-            android:name=".ui.activities.main.SplashActivity"
+            android:name=".frontend.activities.main.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.ControlHerbal">
             <intent-filter>
@@ -58,76 +58,94 @@
         </activity>
 
         <!-- Consentimiento y documentos legales (no exportadas) -->
-        <activity android:name=".ui.activities.privacy.ConsentActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
-        <activity android:name=".ui.activities.privacy.LegalActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
-        <activity android:name=".ui.activities.privacy.PrivacyActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
+        <activity android:name=".frontend.activities.privacy.ConsentActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
+        <activity android:name=".frontend.activities.privacy.LegalActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
+        <activity android:name=".frontend.activities.privacy.PrivacyActivity" android:exported="false" android:theme="@style/Theme.ControlHerbal" />
 
         <!-- Acceso con cuenta autorizada (no exportada: solo se abre desde la propia app) -->
         <activity
-            android:name=".ui.activities.auth.LoginActivity"
+            android:name=".frontend.activities.auth.LoginActivity"
             android:exported="false"
             android:theme="@style/Theme.ControlHerbal" />
 
         <activity
-            android:name=".ui.activities.auth.MfaEnrollActivity"
+            android:name=".frontend.activities.auth.MfaEnrollActivity"
             android:exported="false"
             android:theme="@style/Theme.ControlHerbal" />
 
         <activity
-            android:name=".ui.activities.auth.ChangePasswordActivity"
+            android:name=".frontend.activities.auth.ChangePasswordActivity"
             android:exported="false"
             android:theme="@style/Theme.ControlHerbal" />
 
         <!-- Actividades internas no exportadas para prevenir Intent Redirection -->
         <activity
-            android:name=".ui.activities.main.MainActivity"
+            android:name=".frontend.activities.main.MainActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.activities.main.SectionHostActivity"
+            android:name=".frontend.activities.main.SectionHostActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ui.activities.plant.HistoryActivity"
+            android:name=".frontend.activities.plant.HistoryActivity"
             android:exported="false"
             android:label="Historial de Sensores"
-            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
-            android:name=".ui.activities.plant.PlantSetupActivity"
+            android:name=".frontend.activities.plant.PlantSetupActivity"
             android:exported="false"
             android:label="Configuración de Planta" />
 
         <activity
-            android:name=".ui.activities.plant.ComparisonActivity"
+            android:name=".frontend.activities.plant.ComparisonActivity"
             android:exported="false"
             android:label="Comparador de Plantas"
-            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
-            android:name=".ui.activities.plant.ChatActivity"
+            android:name=".frontend.activities.plant.ChatActivity"
             android:exported="false"
             android:label="Asistente Herbal AI"
-            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
-            android:name=".ui.activities.plant.AnimatedDashboardActivity"
+            android:name=".frontend.activities.plant.AnimatedDashboardActivity"
             android:exported="false"
             android:label="Dashboard Dinámico"
-            android:parentActivityName=".ui.activities.main.SectionHostActivity" />
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
-            android:name=".ui.activities.plant.CalendarActivity"
+            android:name=".frontend.activities.plant.CalendarActivity"
             android:exported="false"
             android:label="Calendario de Cuidado"
-            android:parentActivityName=".ui.activities.main.MainActivity" />
+            android:parentActivityName=".frontend.activities.main.MainActivity" />
+
+        <activity
+            android:name=".frontend.activities.plant.SettingsActivity"
+            android:exported="false"
+            android:label="Configuración"
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
+
+        <activity
+            android:name=".frontend.activities.plant.AccessibilityActivity"
+            android:exported="false"
+            android:label="Accesibilidad"
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
+
+        <activity
+            android:name=".frontend.activities.privacy.TermsDocumentsActivity"
+            android:exported="false"
+            android:label="Términos y documentos"
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <!-- Receivers para Widgets de Pantalla de Inicio -->
         <receiver
-            android:name=".ui.widget.HerbalWidgetSummaryReceiver"
+            android:name=".frontend.widget.HerbalWidgetSummaryReceiver"
             android:exported="true"
             android:label="Resumen Herbal">
             <intent-filter>
@@ -139,7 +157,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.HerbalWidgetStatusReceiver"
+            android:name=".frontend.widget.HerbalWidgetStatusReceiver"
             android:exported="true"
             android:label="Estado Herbal">
             <intent-filter>
@@ -151,7 +169,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.HerbalWidgetAlertReceiver"
+            android:name=".frontend.widget.HerbalWidgetAlertReceiver"
             android:exported="true"
             android:label="Alerta Herbal (Mini)">
             <intent-filter>

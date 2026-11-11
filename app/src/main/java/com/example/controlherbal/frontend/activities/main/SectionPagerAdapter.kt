@@ -14,8 +14,8 @@ internal class SectionPagerAdapter(
 
     override fun createFragment(position: Int): Fragment = when (position) {
         0 -> DashboardSectionFragment()
-        1 -> HistorySectionFragment.newInstance(historyType)
-        2 -> ComparisonSectionFragment()
-        else -> PrivacySectionFragment()
+        1 -> MyPlantsSectionFragment()
+        2 -> CalendarSectionFragment()
+        else -> ProfileSectionFragment()
     }
 }

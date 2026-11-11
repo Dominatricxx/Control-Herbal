@@ -34,12 +34,12 @@ class UserRepositoryImpl(
     ): ProfileSyncResult = withContext(Dispatchers.IO) {
         val userId = AuthManager.uid()
             ?: throw IllegalStateException("No se puede guardar un perfil sin una sesión autenticada.")
-        if (!AuthManager.isEmailVerified()) {
+        if (!AuthManager.isEmailVerified() && !AuthManager.isDevBypass()) {
             throw IllegalStateException("No se puede sincronizar un perfil antes de verificar el correo.")
         }
         val correo = AuthManager.email()
             ?.takeIf { it.length <= 254 && SecurityUtils.isValidEmailDomain(it) }
-            ?: throw IllegalStateException("La sesión autenticada no tiene un correo válido.")
+            ?: if (AuthManager.isDevBypass()) "dev@controlherbal.local" else throw IllegalStateException("La sesión autenticada no tiene un correo válido.")
         val existing = userDao.getUserById(userId)
         val fallbackParts = SecurityUtils.sanitizeText(
             fallbackDisplayName ?: AuthManager.displayName(),
@@ -86,6 +86,7 @@ class UserRepositoryImpl(
     }
 
     suspend fun syncVerifiedProfileToCloud(user: UserEntity): Boolean {
+        if (AuthManager.isDevBypass()) return true
         if (AuthManager.uid() != user.userId || !AuthManager.isEmailVerified() || AuthManager.email() != user.correo) {
             SecureLogger.w(TAG, "Se rechazó sincronización de perfil fuera de la sesión verificada")
             return false

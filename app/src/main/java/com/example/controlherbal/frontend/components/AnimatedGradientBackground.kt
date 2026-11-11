@@ -138,6 +138,7 @@ fun AnimatedGradientBackground(
  */
 @Composable
 fun MainContentScreen(
+    modifier: Modifier = Modifier,
     temp: Double = 0.0,
     hum: Double = 0.0,
     soil: Double = 0.0,
@@ -155,7 +156,6 @@ fun MainContentScreen(
     onWateringClick: () -> Unit = {},
     onPanelClick: () -> Unit = {},
     onSensorsClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
     val locale = Locale.getDefault()

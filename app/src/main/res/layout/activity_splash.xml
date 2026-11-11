@@ -60,4 +60,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Botón flotante de bypass para desarrolladores en la esquina inferior derecha -->
+    <TextView
+        android:id="@+id/btnDevBypass"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DEV"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:background="#99000000"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:elevation="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="24dp"
+        android:layout_marginEnd="20dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

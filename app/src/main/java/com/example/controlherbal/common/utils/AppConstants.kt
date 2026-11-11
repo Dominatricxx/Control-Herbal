@@ -52,4 +52,7 @@ object AppConstants {
     const val HISTORY_DIARIO = "DIARIO"
     const val HISTORY_SEMANAL = "SEMANAL"
     const val HISTORY_MENSUAL = "MENSUAL"
+
+    // Feature Flag for Hero Dashboard Redesign
+    const val ENABLE_HERO_DASHBOARD = true
 }

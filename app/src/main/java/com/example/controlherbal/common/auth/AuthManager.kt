@@ -35,13 +35,22 @@ object AuthManager {
 
     private val auth: FirebaseAuth get() = FirebaseAuth.getInstance()
 
-    fun isSignedIn(): Boolean = auth.currentUser != null
-    fun uid(): String? = auth.currentUser?.uid
-    fun email(): String? = auth.currentUser?.email
-    fun displayName(): String? = auth.currentUser?.displayName
+    private var devBypassActive = false
+
+    fun enableDevBypass() {
+        devBypassActive = true
+    }
+
+    fun isDevBypass(): Boolean = devBypassActive
+
+    fun isSignedIn(): Boolean = devBypassActive || auth.currentUser != null
+    fun uid(): String? = if (devBypassActive) "dev_bypass_user_id" else auth.currentUser?.uid
+    fun email(): String? = if (devBypassActive) "dev@controlherbal.local" else auth.currentUser?.email
+    fun displayName(): String? = if (devBypassActive) "Dev Bypass User" else auth.currentUser?.displayName
 
     /** ¿Hay sesión pero sin segundo factor TOTP enrolado? Entonces solo puede ir a la pantalla de enrolamiento. */
     fun needsMfaEnrollment(): Boolean {
+        if (devBypassActive) return false
         val user = auth.currentUser ?: return false
         return user.multiFactor.enrolledFactors.none { it.factorId == TOTP }
     }
@@ -51,6 +60,7 @@ object AuthManager {
      * Si faltara, el usuario vería fallos silenciosos de permisos; así se detecta y se explica.
      */
     suspend fun sessionHasTotpClaim(): Boolean {
+        if (devBypassActive) return true
         val user = auth.currentUser ?: return false
         val token = user.getIdToken(false).awaitResult().getOrNull() ?: return false
         val firebase = token.claims["firebase"] as? Map<*, *>
@@ -58,6 +68,7 @@ object AuthManager {
     }
 
     fun signOut() {
+        devBypassActive = false
         auth.signOut()
     }
 

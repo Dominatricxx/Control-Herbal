@@ -1,5 +1,6 @@
 package com.example.controlherbal.frontend.components
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -21,7 +22,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 
 /**
  * Individual progress ring Composable drawn with Canvas.
@@ -30,13 +31,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * - Color: evaluated dynamically from the animated percentage via colorFor.
  * - Icon: centered, native vector colors (#F2F2F7 with #3A3A40 details via tint = Color.Unspecified), scaling with ring size (35.2%).
  */
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun HerbalRing(
+    modifier: Modifier = Modifier,
     percentage: Float,
     colorFor: (Float) -> Color,
-    icon: ImageVector,
-    animate: Boolean = true,
-    modifier: Modifier = Modifier
+    painter: Painter,
+    animate: Boolean = true
 ) {
     val targetPercentage = percentage.coerceIn(0f, 100f)
     var currentPercentage by remember { mutableFloatStateOf(if (animate) 0f else targetPercentage) }
@@ -65,8 +67,6 @@ fun HerbalRing(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        val ringMaxWidth = maxWidth
-
         Canvas(modifier = Modifier.fillMaxSize()) {
             val diameter = size.minDimension
             // Proportional stroke width based on reference container 190x190 (ring diameter ~77, stroke 10)
@@ -99,10 +99,10 @@ fun HerbalRing(
 
         // 3. Center Icon (scaling with 35.2% of ring width, native vector colors)
         Icon(
-            imageVector = icon,
+            painter = painter,
             contentDescription = null,
             tint = Color.Unspecified,
-            modifier = Modifier.size(ringMaxWidth * 0.352f)
+            modifier = Modifier.size(maxWidth * 0.352f)
         )
     }
 }

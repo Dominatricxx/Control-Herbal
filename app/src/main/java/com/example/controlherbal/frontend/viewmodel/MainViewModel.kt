@@ -85,4 +85,27 @@ class MainViewModel(
             loadData()
         }
     }
+
+    fun updateLiveMetrics(temp: Double, hum: Double, light: Double, soil: Double, irh: Double, seq: Double, somb: Double) {
+        val currentState = _uiState.value
+        if (currentState is MainUiState.Success) {
+            val plantId = currentState.plant?.id ?: 0
+            val newReading = SensorReading(
+                timestamp = System.currentTimeMillis(),
+                plantId = plantId,
+                temperature = temp,
+                humidity = hum,
+                light = light,
+                soilMoisture = soil,
+                irh = irh,
+                seq = seq,
+                somb = somb,
+                action = "FirebaseSync"
+            )
+            _uiState.value = currentState.copy(
+                readings = currentState.readings + newReading,
+                lastReading = newReading
+            )
+        }
+    }
 }

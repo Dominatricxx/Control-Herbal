@@ -13,6 +13,7 @@ import com.example.controlherbal.frontend.activities.auth.ChangePasswordActivity
 import com.example.controlherbal.frontend.activities.main.SectionHostActivity
 import com.example.controlherbal.frontend.activities.main.SplashActivity
 import com.example.controlherbal.frontend.activities.plant.AnimatedDashboardActivity
+import com.example.controlherbal.frontend.activities.plant.CalendarActivity
 import com.example.controlherbal.frontend.activities.plant.ChatActivity
 
 /**
@@ -46,7 +47,7 @@ object NavigationDrawerHandler {
             R.id.nav_animated_dashboard ->
                 activity.startActivity(Intent(activity, AnimatedDashboardActivity::class.java))
             R.id.nav_calendar ->
-                activity.startActivity(Intent(activity, com.example.controlherbal.ui.activities.plant.CalendarActivity::class.java))
+                activity.startActivity(Intent(activity, CalendarActivity::class.java))
             R.id.nav_privacy ->
                 if (activity is SectionHostActivity) activity.selectPage(3)
                 else activity.startActivity(SectionHostActivity.intent(activity, 3))

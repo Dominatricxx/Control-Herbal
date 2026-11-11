@@ -1,23 +1,26 @@
 package com.example.controlherbal.common.legal
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.auth.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.frontend.activities.main.*
-import com.example.controlherbal.frontend.activities.auth.*
-import com.example.controlherbal.frontend.activities.privacy.*
-import com.example.controlherbal.frontend.activities.plant.*
-import com.example.controlherbal.frontend.style.*
-
 import android.app.Activity
 import android.content.Context
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.controlherbal.common.utils.AppConstants
+import com.example.controlherbal.frontend.theme.ControlHerbalTheme
 
 /**
  * AiConsent: aviso y consentimiento explícito antes de enviar fotos o texto a un servicio
- * de IA de terceros (Google, vía Firebase AI Logic). Se pide una sola vez y es revocable
- * borrando los datos de la app.
+ * de IA de terceros (Google, vía Firebase AI Logic).
  */
 object AiConsent {
 
@@ -38,23 +41,91 @@ object AiConsent {
             onGranted()
             return
         }
-        AlertDialog.Builder(activity)
-            .setTitle("Uso de inteligencia artificial")
-            .setMessage(
-                "Si aceptas, esta función enviará a Google (servicio Gemini, mediante Firebase AI Logic) " +
-                    "las fotos que tomes aquí y el texto que escribas en el asistente, junto con el tipo de planta. " +
-                    "No se envía el nombre que le diste a la planta ni tu correo.\n\n" +
-                    "Evita fotografiar personas, documentos o información privada y no escribas datos personales.\n\n" +
-                    "La IA puede equivocarse. Nunca decidas consumir una planta ni tratar a una persona o animal " +
-                    "basándote en sus respuestas.\n\n" +
-                    "Puedes retirar este permiso en Menú, Privacidad y accesibilidad."
-            )
-            .setPositiveButton("Acepto") { _, _ ->
-                prefs(activity).edit().putBoolean(AppConstants.KEY_AI_CONSENT_GRANTED, true).apply()
-                onGranted()
+
+        var dialog: AlertDialog? = null
+        val composeView = ComposeView(activity).apply {
+            setContent {
+                ControlHerbalTheme {
+                    AlertDialog(
+                        onDismissRequest = {
+                            dialog?.dismiss()
+                            onDenied?.invoke()
+                        },
+                        containerColor = Color(0xFF252527),
+                        shape = RoundedCornerShape(24.dp),
+                        title = {
+                            Text(
+                                text = "Uso de inteligencia artificial",
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                color = Color.White
+                            )
+                        },
+                        text = {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.verticalScroll(rememberScrollState())
+                            ) {
+                                Text(
+                                    text = "Si aceptas, esta función enviará a Google (servicio Gemini, mediante Firebase AI Logic) " +
+                                            "las fotos que tomes aquí y el texto que escribas en el asistente, junto con el tipo de planta. " +
+                                            "No se envía el nombre que le diste a la planta ni tu correo.",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    lineHeight = 20.sp
+                                )
+                                Text(
+                                    text = "Evita fotografiar personas, documentos o información privada y no escribas datos personales.",
+                                    color = Color(0xFFCCCCCC),
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp
+                                )
+                                Text(
+                                    text = "La IA puede equivocarse. Nunca decidas consumir una planta ni tratar a una persona o animal basándote en sus respuestas.",
+                                    color = Color(0xFFCCCCCC),
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp
+                                )
+                                Text(
+                                    text = "Puedes retirar este permiso en Menú, Privacidad e IA.",
+                                    color = Color(0xFFA5D6A7),
+                                    fontSize = 13.sp
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    prefs(activity).edit().putBoolean(AppConstants.KEY_AI_CONSENT_GRANTED, true).apply()
+                                    dialog?.dismiss()
+                                    onGranted()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF288B46))
+                            ) {
+                                Text("ACEPTO", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    dialog?.dismiss()
+                                    onDenied?.invoke()
+                                }
+                            ) {
+                                Text("CANCELAR", color = Color(0xFFCCCCCC))
+                            }
+                        }
+                    )
+                }
             }
-            .setNegativeButton("Cancelar") { _, _ -> onDenied?.invoke() }
-            .setOnCancelListener { onDenied?.invoke() }
-            .show()
+        }
+
+        dialog = AlertDialog.Builder(activity)
+            .setView(composeView)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
     }
 }

@@ -10,20 +10,22 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil.ImageLoader
 import coil.compose.SubcomposeAsyncImage
+import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 
 /**
- * Componente reutilizable para renderizar un avatar de usuario dinámico desde https://blobatar.dev/
- * utilizando Coil (SubcomposeAsyncImage) con forma circular y manejo robusto de estados (carga y error).
+ * Componente reutilizable para renderizar el auténtico avatar SVG desde https://blobatar.dev/
+ * utilizando Coil con SvgDecoder. Carga el SVG oficial de Blobatar con 100% de fidelidad.
  */
 @Composable
 fun UserAvatar(
@@ -32,15 +34,25 @@ fun UserAvatar(
     size: Dp = 48.dp,
     contentDescription: String? = null
 ) {
-    val sanitizedSeed = seed.ifBlank { "default_user" }
-    val avatarUrl = "https://blobatar.dev/avatar/$sanitizedSeed"
+    val cleanSeed = seed.replace("[", "").replace("]", "").trim().ifBlank { "default_user" }
+    val avatarUrl = "https://blobatar.dev/avatar/$cleanSeed"
+    val context = LocalContext.current
+
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
 
     SubcomposeAsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
+        model = ImageRequest.Builder(context)
             .data(avatarUrl)
             .crossfade(true)
             .build(),
-        contentDescription = contentDescription ?: "Avatar de $sanitizedSeed",
+        imageLoader = imageLoader,
+        contentDescription = contentDescription ?: "Avatar de $cleanSeed",
         modifier = modifier
             .size(size)
             .clip(CircleShape)
@@ -74,12 +86,4 @@ fun UserAvatar(
             }
         }
     )
-}
-
-@Preview(name = "User Avatar Preview", showBackground = true)
-@Composable
-fun UserAvatarPreview() {
-    MaterialTheme {
-        UserAvatar(seed = "herbal_architect_2025", size = 64.dp)
-    }
 }

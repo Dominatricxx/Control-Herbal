@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         UserPlantEntity::class,
         PlantTask::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class SensorDatabase : RoomDatabase() {

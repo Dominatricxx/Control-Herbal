@@ -10,6 +10,8 @@ import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -29,6 +31,7 @@ import com.example.controlherbal.backend.sync.SensorForegroundService
 import com.example.controlherbal.domain.logic.PredictiveTheorem
 import com.example.controlherbal.domain.usecase.ExecuteWateringUseCase
 import com.example.controlherbal.frontend.activities.plant.PlantSetupActivity
+import com.example.controlherbal.frontend.components.HeroDashboardScreen
 import com.example.controlherbal.frontend.controller.WateringController
 import com.example.controlherbal.frontend.helper.ChartManager
 import com.example.controlherbal.frontend.presenter.SensorDashboardPresenter
@@ -63,44 +66,64 @@ class DashboardSectionFragment : Fragment() {
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View =
-        inflater.inflate(R.layout.activity_main, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View {
+        return if (AppConstants.ENABLE_HERO_DASHBOARD) {
+            ComposeView(requireContext()).apply {
+                setContent {
+                    MaterialTheme {
+                        HeroDashboardScreen(
+                            viewModel = viewModel,
+                            onPlantNameClick = { showPlantSelection() },
+                            onWateringClick = { plant?.let { watering.showWateringDialog(requireActivity(), it, ioScope) { reloadChart() } } ?: toast("Configura una planta antes de regar") },
+                            onDataControlClick = { showDataControls() },
+                            isDark = true
+                        )
+                    }
+                }
+            }
+        } else {
+            inflater.inflate(R.layout.activity_main, container, false)
+        }
+    }
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val appContainer = (requireActivity().application as ControlHerbalApp).appContainer
         db = appContainer.database
         plantRepository = appContainer.plantRepository as PlantRepositoryImpl
         watering = WateringController(ExecuteWateringUseCase(appContainer.sensorDataRepository))
-        view.findViewById<View>(R.id.btnMenu)?.setOnClickListener { (activity as? SectionHostActivity)?.openDrawer() }
-        presenter = SensorDashboardPresenter(
-            requireContext(),
-            view.findViewById(R.id.tvAlerta),
-            view.findViewById(R.id.tvConnectionStatus),
-            view.findViewById(R.id.tvConnectionState),
-            view.findViewById(R.id.tvTemp),
-            view.findViewById(R.id.tvHum),
-            view.findViewById(R.id.tvLuz),
-            view.findViewById(R.id.tvSoil),
-            view.findViewById(R.id.tvIRH),
-            view.findViewById(R.id.tvSeq),
-            view.findViewById(R.id.tvSomb)
-        )
-        chart = view.findViewById(R.id.combinedChart)
-        checks = listOf(R.id.cbTemp, R.id.cbHum, R.id.cbSoil, R.id.cbLuz, R.id.cbIRH).map(view::findViewById)
-        checks.forEach { it.setOnCheckedChangeListener { _, _ -> reloadChart() } }
-        view.findViewById<View>(R.id.btnConnect).setOnClickListener { presenter.showLinkingState(); ensureSync().startListening() }
-        view.findViewById<View>(R.id.btnWatering).setOnClickListener {
-            plant?.let { watering.showWateringDialog(requireActivity(), it, ioScope) { reloadChart() } }
-                ?: toast("Configura una planta antes de regar")
+        
+        if (!AppConstants.ENABLE_HERO_DASHBOARD) {
+            view.findViewById<View>(R.id.btnMenu)?.setOnClickListener { (activity as? SectionHostActivity)?.openDrawer() }
+            presenter = SensorDashboardPresenter(
+                requireContext(),
+                view.findViewById(R.id.tvAlerta),
+                view.findViewById(R.id.tvConnectionStatus),
+                view.findViewById(R.id.tvConnectionState),
+                view.findViewById(R.id.tvTemp),
+                view.findViewById(R.id.tvHum),
+                view.findViewById(R.id.tvLuz),
+                view.findViewById(R.id.tvSoil),
+                view.findViewById(R.id.tvIRH),
+                view.findViewById(R.id.tvSeq),
+                view.findViewById(R.id.tvSomb)
+            )
+            chart = view.findViewById(R.id.combinedChart)
+            checks = listOf(R.id.cbTemp, R.id.cbHum, R.id.cbSoil, R.id.cbLuz, R.id.cbIRH).map(view::findViewById)
+            checks.forEach { it.setOnCheckedChangeListener { _, _ -> reloadChart() } }
+            view.findViewById<View>(R.id.btnConnect).setOnClickListener { presenter.showLinkingState(); ensureSync().startListening() }
+            view.findViewById<View>(R.id.btnWatering).setOnClickListener {
+                plant?.let { watering.showWateringDialog(requireActivity(), it, ioScope) { reloadChart() } }
+                    ?: toast("Configura una planta antes de regar")
+            }
+            view.findViewById<View>(R.id.btnAddPlant).setOnClickListener {
+                startActivity(Intent(requireContext(), PlantSetupActivity::class.java))
+            }
+            view.findViewById<View>(R.id.tvPlantNameAndEmoji).setOnClickListener { showPlantSelection() }
+            view.findViewById<View>(R.id.btnEditNameIcon).setOnClickListener { editPlantName() }
+            view.findViewById<View>(R.id.btnDeletePlant).setOnClickListener { deletePlant() }
+            view.findViewById<View>(R.id.btnDataControl).setOnClickListener { showDataControls() }
+            view.findViewById<View>(R.id.btnClearAiDiagnosis).setOnClickListener { clearDiagnosis() }
         }
-        view.findViewById<View>(R.id.btnAddPlant).setOnClickListener {
-            startActivity(Intent(requireContext(), PlantSetupActivity::class.java))
-        }
-        view.findViewById<View>(R.id.tvPlantNameAndEmoji).setOnClickListener { showPlantSelection() }
-        view.findViewById<View>(R.id.btnEditNameIcon).setOnClickListener { editPlantName() }
-        view.findViewById<View>(R.id.btnDeletePlant).setOnClickListener { deletePlant() }
-        view.findViewById<View>(R.id.btnDataControl).setOnClickListener { showDataControls() }
-        view.findViewById<View>(R.id.btnClearAiDiagnosis).setOnClickListener { clearDiagnosis() }
 
         // Recolección segura de StateFlow usando repeatOnLifecycle (UDF / MVI)
         viewLifecycleOwner.lifecycleScope.launch {
@@ -115,20 +138,22 @@ class DashboardSectionFragment : Fragment() {
                                 return@collect
                             }
                             plant?.let { currentPlant ->
-                                requireView().findViewById<TextView>(R.id.tvPlantNameAndEmoji).text = currentPlant.name
-                                requireView().findViewById<View>(R.id.layoutPlantInfo).isVisible = true
-                                currentPlant.aiDiagnosis?.takeIf(String::isNotBlank)?.let { diagnosis ->
-                                    requireView().findViewById<View>(R.id.cardAiDiagnosis).isVisible = true
-                                    requireView().findViewById<TextView>(R.id.tvAiDiagnosisTitle).text = "Diagnóstico guardado"
-                                    requireView().findViewById<TextView>(R.id.tvAiDiagnosisBody).text = diagnosis
+                                if (!AppConstants.ENABLE_HERO_DASHBOARD) {
+                                    requireView().findViewById<TextView>(R.id.tvPlantNameAndEmoji).text = currentPlant.name
+                                    requireView().findViewById<View>(R.id.layoutPlantInfo).isVisible = true
+                                    currentPlant.aiDiagnosis?.takeIf(String::isNotBlank)?.let { diagnosis ->
+                                        requireView().findViewById<View>(R.id.cardAiDiagnosis).isVisible = true
+                                        requireView().findViewById<TextView>(R.id.tvAiDiagnosisTitle).text = "Diagnóstico guardado"
+                                        requireView().findViewById<TextView>(R.id.tvAiDiagnosisBody).text = diagnosis
+                                    }
+                                    state.lastReading?.let { reading ->
+                                        presenter.updateMetrics(
+                                            reading.temperature, reading.humidity, reading.light, reading.soilMoisture,
+                                            reading.irh, reading.seq, reading.somb
+                                        )
+                                    } ?: presenter.showDisconnectedState()
+                                    reloadChart()
                                 }
-                                state.lastReading?.let { reading ->
-                                    presenter.updateMetrics(
-                                        reading.temperature, reading.humidity, reading.light, reading.soilMoisture,
-                                        reading.irh, reading.seq, reading.somb
-                                    )
-                                } ?: presenter.showDisconnectedState()
-                                reloadChart()
                                 startSensorService()
                                 ensureSync().startListening()
                             }
@@ -163,11 +188,14 @@ class DashboardSectionFragment : Fragment() {
         if (sync == null) sync = FirebaseSensorSyncManager(
             onReadingReceived = { temp, hum, light, soil, result ->
                 activity?.runOnUiThread {
-                    presenter.updateMetrics(temp, hum, light, soil, result.irh, result.seq, result.somb)
-                    reloadChart()
+                    if (!AppConstants.ENABLE_HERO_DASHBOARD) {
+                        presenter.updateMetrics(temp, hum, light, soil, result.irh, result.seq, result.somb)
+                        reloadChart()
+                    }
+                    viewModel.updateLiveMetrics(temp, hum, light, soil, result.irh, result.seq, result.somb)
                 }
             },
-            onDisconnected = { activity?.runOnUiThread { presenter.showDisconnectedState() } }
+            onDisconnected = { activity?.runOnUiThread { if (!AppConstants.ENABLE_HERO_DASHBOARD) presenter.showDisconnectedState() } }
         )
         return sync!!
     }
@@ -214,8 +242,11 @@ class DashboardSectionFragment : Fragment() {
         plant = selected
         withContext(Dispatchers.Main) {
             if (isAdded) {
-                view?.findViewById<TextView>(R.id.tvPlantNameAndEmoji)?.text = selected.name
-                reloadChart()
+                if (!AppConstants.ENABLE_HERO_DASHBOARD) {
+                    view?.findViewById<TextView>(R.id.tvPlantNameAndEmoji)?.text = selected.name
+                    reloadChart()
+                }
+                viewModel.loadData()
             }
         }
     }
@@ -229,7 +260,7 @@ class DashboardSectionFragment : Fragment() {
                 if (newName.isNotBlank()) ioScope.launch {
                     db.plantDao().update(current.copy(name = newName))
                     plant = current.copy(name = newName)
-                    requireView().findViewById<TextView>(R.id.tvPlantNameAndEmoji).text = newName
+                    viewModel.loadData()
                 }
             }.setNegativeButton(android.R.string.cancel, null).show()
     }
@@ -247,7 +278,7 @@ class DashboardSectionFragment : Fragment() {
                     db.plantDao().deselectAll()
                     db.plantDao().update(remaining.first().copy(isSelected = true))
                     plant = remaining.first()
-                    reloadChart()
+                    viewModel.loadData()
                 }
             } }.setNegativeButton(android.R.string.cancel, null).show()
     }
@@ -262,7 +293,7 @@ class DashboardSectionFragment : Fragment() {
                         .setPositiveButton("Eliminar") { _, _ ->
                             plant?.let { current -> ioScope.launch {
                                 db.sensorDao().deleteAllByPlantId(current.id)
-                                reloadChart()
+                                viewModel.loadData()
                             } }
                         }.setNegativeButton(android.R.string.cancel, null).show()
                 }
@@ -303,7 +334,7 @@ class DashboardSectionFragment : Fragment() {
                     progress.dismiss()
                     if (importProgress === progress) importProgress = null
                     toast(if (imported > 0) "Importados $imported registros" else "No se encontraron registros válidos")
-                    reloadChart()
+                    viewModel.loadData()
                 }
             }
         }.addOnFailureListener {
@@ -318,7 +349,7 @@ class DashboardSectionFragment : Fragment() {
         ioScope.launch {
             db.plantDao().update(selected.copy(aiDiagnosis = null, aiRecommendation = null))
             plant = selected.copy(aiDiagnosis = null, aiRecommendation = null)
-            requireView().findViewById<View>(R.id.cardAiDiagnosis).isVisible = false
+            viewModel.loadData()
         }
     }
 

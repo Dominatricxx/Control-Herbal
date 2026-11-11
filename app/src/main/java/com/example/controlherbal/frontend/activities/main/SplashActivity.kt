@@ -22,6 +22,7 @@ import com.example.controlherbal.R
 import com.example.controlherbal.common.auth.AuthManager
 import com.example.controlherbal.common.auth.BackupCodesClient
 import com.example.controlherbal.common.auth.PostAuthRouter
+import com.example.controlherbal.common.dev.DevBypass
 import com.example.controlherbal.common.security.LoginThrottle
 import com.example.controlherbal.common.security.PasswordPolicy
 import com.example.controlherbal.common.security.PwnedPasswords
@@ -77,8 +78,13 @@ class SplashActivity : AppCompatActivity() {
 
         setupBackgroundVideo()
         val reveal = View.OnClickListener { if (!isLoginVisible) showGlassLoginWindow() }
-        findViewById<View>(R.id.splashRoot).setOnClickListener(reveal)
+        val splashRoot = findViewById<View>(R.id.splashRoot)
+        splashRoot.setOnClickListener(reveal)
         videoView.setOnClickListener(reveal)
+        tvTapToContinue.setOnClickListener(reveal)
+
+        DevBypass.setup(findViewById(R.id.btnDevBypass), this, lifecycleScope)
+
         setupGlassLoginWebView()
     }
 

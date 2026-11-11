@@ -40,6 +40,7 @@ fun HerbalStatusWidget(
         sun = sun,
         plant = plant,
         temperature = temperature,
+        hasData = true,
         modifier = modifier,
         dimmed = false,
         animate = true
@@ -48,39 +49,41 @@ fun HerbalStatusWidget(
 
 /**
  * Herbal Status Widget component containing a 2x2 grid of progress rings (Water, Sun, Plant, Temperature).
- * iPhone translucent glass style container with rounded corners (19% / radius 36 relative to 190).
- * NOTE: Draws NO background of its own other than the translucent fill (Color(0x6B787A86)) and
- * 1dp white border at 22% opacity, allowing whatever app background is behind to show through.
+ * If hasData is false or values are null, displays gray ring tracks without color arcs and "--" representations.
  */
 @Composable
 fun HerbalStatusWidget(
-    water: Float,
-    sun: Float,
-    plant: Float,
-    temperature: Float,
+    water: Float?,
+    sun: Float?,
+    plant: Float?,
+    temperature: Float?,
     modifier: Modifier = Modifier,
     dimmed: Boolean = false,
-    animate: Boolean = true
+    animate: Boolean = true,
+    hasData: Boolean = true
 ) {
-    val realTemp = temperature / 100f * (TEMP_MAX_C - TEMP_MIN_C) + TEMP_MIN_C
-    val contentDesc = String.format(
-        Locale.getDefault(),
-        "Agua %.0f %%, luz %.0f %%, planta %.0f %%, temperatura %.1f °C",
-        water, sun, plant, realTemp
-    )
+    val realTemp = if (hasData && temperature != null) {
+        temperature / 100f * (TEMP_MAX_C - TEMP_MIN_C) + TEMP_MIN_C
+    } else 0.0
+
+    val contentDesc = if (hasData) {
+        String.format(
+            Locale.getDefault(),
+            "Agua %.0f %%, luz %.0f %%, planta %.0f %%, temperatura %.1f °C",
+            water ?: 0f, sun ?: 0f, plant ?: 0f, realTemp
+        )
+    } else "Sin datos de sensores"
 
     BoxWithConstraints(
         modifier = modifier
             .aspectRatio(1.0f)
             .graphicsLayer(alpha = if (dimmed) 0.6f else 1f)
             .clip(RoundedCornerShape(19))
-            .background(Color(0x6B787A86)) // rgba(120,122,134) with 42% opacity
+            .background(Color(0x6B787A86))
             .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(19))
             .semantics { contentDescription = contentDesc }
     ) {
         val containerWidthPx = with(LocalDensity.current) { maxWidth.toPx() }
-        // Proportional sizing based on 190x190 reference dimensions:
-        // Ring size = 77, outer padding = 13.5, inner gap = 9
         val ringSizeDp = with(LocalDensity.current) { (containerWidthPx * (77f / 190f)).toDp() }
         val paddingDp = with(LocalDensity.current) { (containerWidthPx * (13.5f / 190f)).toDp() }
         val spacingDp = with(LocalDensity.current) { (containerWidthPx * (9f / 190f)).toDp() }
@@ -92,45 +95,45 @@ fun HerbalStatusWidget(
             verticalArrangement = Arrangement.spacedBy(spacingDp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top row: Water & Sun
+            // Top row: Water & Sun (Using PNG tileset assets)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacingDp, Alignment.CenterHorizontally)
             ) {
                 HerbalRing(
-                    percentage = water,
+                    percentage = if (hasData && water != null) water else 0f,
                     colorFor = ::waterColor,
-                    icon = HerbalIcons.WaterDrop,
+                    painter = HerbalImageTileset.getPainter("humedad"),
                     modifier = Modifier.size(ringSizeDp),
-                    animate = animate
+                    animate = animate && hasData
                 )
                 HerbalRing(
-                    percentage = sun,
+                    percentage = if (hasData && sun != null) sun else 0f,
                     colorFor = ::sunColor,
-                    icon = HerbalIcons.Sun,
+                    painter = HerbalImageTileset.getPainter("sol"),
                     modifier = Modifier.size(ringSizeDp),
-                    animate = animate
+                    animate = animate && hasData
                 )
             }
 
-            // Bottom row: Plant & Temperature
+            // Bottom row: Plant & Temperature (Using PNG tileset assets)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacingDp, Alignment.CenterHorizontally)
             ) {
                 HerbalRing(
-                    percentage = plant,
+                    percentage = if (hasData && plant != null) plant else 0f,
                     colorFor = ::plantColor,
-                    icon = HerbalIcons.Plant,
+                    painter = HerbalImageTileset.getPainter("suelo"),
                     modifier = Modifier.size(ringSizeDp),
-                    animate = animate
+                    animate = animate && hasData
                 )
                 HerbalRing(
-                    percentage = temperature,
+                    percentage = if (hasData && temperature != null) temperature else 0f,
                     colorFor = ::temperatureColor,
-                    icon = HerbalIcons.Thermometer,
+                    painter = HerbalImageTileset.getPainter("temperatura"),
                     modifier = Modifier.size(ringSizeDp),
-                    animate = animate
+                    animate = animate && hasData
                 )
             }
         }

@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 /**
  * PlantCatalogEntity: Representa la tabla T3 'plantas' (Catálogo Botánico Maestro).
- * Sin emojis ni campos innecesarios.
+ * Incluye cuidados, tips e imagenUrl para fotos reales por especie.
  */
 @Entity(tableName = "plantas")
 data class PlantCatalogEntity(
@@ -23,5 +23,8 @@ data class PlantCatalogEntity(
     val humMin: Double = 30.0,
     val humMax: Double = 70.0,
     val sueloMin: Double = 20.0,
-    val sueloMax: Double = 60.0
+    val sueloMax: Double = 60.0,
+    val cuidados: String? = null,
+    val tips: String? = null,
+    val imagenUrl: String? = null
 )

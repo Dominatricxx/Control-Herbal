@@ -9,7 +9,7 @@ fun String.asBuildConfigString(): String =
 
 android {
     namespace = "com.example.controlherbal.wear"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.controlherbal.wear"
@@ -18,10 +18,6 @@ android {
         versionCode = 2
         versionName = "2.0"
 
-        // Cuenta de SOLO LECTURA ("viewer") para el reloj. Se lee de gradle.properties de usuario
-        // (~/.gradle/gradle.properties) o de variables de entorno; nunca se versiona.
-        // Atención: todo lo embebido en un APK es extraíble; por eso esta cuenta solo
-        // tiene permiso de lectura sobre /sensor (ver firebase/database.rules.json).
         val viewerEmail = (project.findProperty("herbal.viewerEmail") as String?) ?: System.getenv("HERBAL_VIEWER_EMAIL") ?: ""
         val viewerPassword = (project.findProperty("herbal.viewerPassword") as String?) ?: System.getenv("HERBAL_VIEWER_PASSWORD") ?: ""
         buildConfigField("String", "VIEWER_EMAIL", viewerEmail.asBuildConfigString())

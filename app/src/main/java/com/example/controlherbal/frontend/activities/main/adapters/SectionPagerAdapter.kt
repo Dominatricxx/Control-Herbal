@@ -3,10 +3,10 @@ package com.example.controlherbal.frontend.activities.main.adapters
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.example.controlherbal.frontend.activities.main.SectionHostActivity
-import com.example.controlherbal.frontend.activities.main.fragments.ComparisonSectionFragment
+import com.example.controlherbal.frontend.activities.main.fragments.CalendarSectionFragment
 import com.example.controlherbal.frontend.activities.main.fragments.DashboardSectionFragment
-import com.example.controlherbal.frontend.activities.main.fragments.HistorySectionFragment
-import com.example.controlherbal.frontend.activities.main.fragments.PrivacySectionFragment
+import com.example.controlherbal.frontend.activities.main.fragments.MyPlantsSectionFragment
+import com.example.controlherbal.frontend.activities.main.fragments.ProfileSectionFragment
 
 /**
  * Adaptador de ViewPager2 para gestionar las cuatro secciones principales de la app.
@@ -19,8 +19,8 @@ internal class SectionPagerAdapter(
 
     override fun createFragment(position: Int): Fragment = when (position) {
         0 -> DashboardSectionFragment()
-        1 -> HistorySectionFragment.newInstance(historyType)
-        2 -> ComparisonSectionFragment()
-        else -> PrivacySectionFragment()
+        1 -> MyPlantsSectionFragment()
+        2 -> CalendarSectionFragment()
+        else -> ProfileSectionFragment()
     }
 }

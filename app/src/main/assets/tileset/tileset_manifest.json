@@ -1,0 +1,20 @@
+{
+  "tileset_name": "ControlHerbal_Icon_Tileset",
+  "grid": {
+    "rows": 2,
+    "columns": 5,
+    "total_icons": 10
+  },
+  "icons": [
+    { "id": "humedad", "row": 0, "col": 0, "description": "Water drop icon for soil moisture" },
+    { "id": "sol", "row": 0, "col": 1, "description": "Sun icon for light hours" },
+    { "id": "suelo", "row": 0, "col": 2, "description": "Sprout / soil icon for plant status" },
+    { "id": "temperatura", "row": 0, "col": 3, "description": "Thermometer icon for temperature" },
+    { "id": "irh", "row": 0, "col": 4, "description": "Shield with leaf icon for IRH health index" },
+    { "id": "inicio", "row": 1, "col": 0, "description": "House icon for home/dashboard navigation" },
+    { "id": "plantas", "row": 1, "col": 1, "description": "Potted plant icon for plants collection" },
+    { "id": "agregar", "row": 1, "col": 2, "description": "Green circle plus icon for adding new items" },
+    { "id": "calendario", "row": 1, "col": 3, "description": "Calendar icon for schedule/history" },
+    { "id": "perfil", "row": 1, "col": 4, "description": "User profile icon for settings/account" }
+  ]
+}

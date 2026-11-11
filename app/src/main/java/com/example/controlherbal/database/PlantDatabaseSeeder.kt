@@ -7,7 +7,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * PlantDatabaseSeeder: Organiza y siembra el Catálogo Botánico Maestro (Tabla 3 'plantas'),
- * correlacionando estrictamente cada planta por ID con su categoría, nombre científico y tipo de ambiente.
+ * correlacionando estrictamente cada planta por ID con su categoría, nombre científico, tipo de ambiente,
+ * cuidados, tips y URL de imagen transparente.
  */
 object PlantDatabaseSeeder {
 
@@ -53,7 +54,10 @@ object PlantDatabaseSeeder {
                         humMin = t.humMin,
                         humMax = t.humMax,
                         sueloMin = t.sueloMin,
-                        sueloMax = t.sueloMax
+                        sueloMax = t.sueloMax,
+                        cuidados = plant.cuidados,
+                        tips = plant.tips,
+                        imagenUrl = plant.imagenUrl
                     )
                 )
             }

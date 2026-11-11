@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
@@ -85,8 +86,10 @@ class SectionHostActivity : AppCompatActivity() {
         val background = ComposeView(this).apply {
             setContent {
                 ControlHerbalTheme {
-                    AnimatedGradientBackground(
-                        modifier = androidx.compose.ui.Modifier.fillMaxSize()
+                    androidx.compose.foundation.layout.Box(
+                        modifier = androidx.compose.ui.Modifier
+                            .fillMaxSize()
+                            .background(androidx.compose.ui.graphics.Color(0xFF1C1C1E))
                     )
                 }
             }
@@ -111,31 +114,25 @@ class SectionHostActivity : AppCompatActivity() {
         }
         val pageCard = CardView(this).apply {
             radius = dp(28).toFloat()
-            cardElevation = dp(8).toFloat()
-            setCardBackgroundColor(android.graphics.Color.WHITE)
+            cardElevation = 0f
+            setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
             clipToPadding = true
             clipChildren = true
         }
         pageCard.addView(pager, ViewGroup.LayoutParams(-1, -1))
         content.addView(pageCard, LinearLayout.LayoutParams(-1, 0, 1f).apply {
-            leftMargin = dp(24)
-            rightMargin = dp(24)
-            bottomMargin = dp(24)
+            leftMargin = dp(8)
+            rightMargin = dp(8)
+            bottomMargin = dp(8)
         })
         val bottomBar = ComposeView(this).apply {
             setContent {
-                val tabs = listOf(
-                    Triple("Panel", Icons.Default.Home, "Panel principal"),
-                    Triple("Sensores", Icons.Default.Search, "Historial"),
-                    Triple("Comparar", Icons.Default.Star, "Comparador"),
-                    Triple("Privacidad", Icons.Default.Person, "Privacidad")
-                )
                 ControlHerbalTheme {
-                    GooeyBottomBar(
-                        tabs = tabs,
+                    com.example.controlherbal.frontend.components.HerbalNavBar(
                         selectedTab = selectedPage,
                         onTabSelected = { index -> pager.setCurrentItem(index, true) },
-                        selectionProgress = pageProgress
+                        onAddClick = { startActivity(Intent(this@SectionHostActivity, com.example.controlherbal.frontend.activities.plant.PlantSetupActivity::class.java)) },
+                        isDark = true
                     )
                 }
             }
@@ -195,6 +192,11 @@ class SectionHostActivity : AppCompatActivity() {
             val plantCount = SensorDatabase.getInstance(this@SectionHostActivity).plantDao().getPlantCount()
             nav.menu.findItem(R.id.nav_plants).isVisible = plantCount >= 2
             nav.menu.findItem(R.id.nav_comparison).isVisible = plantCount >= 2
+        }
+        lifecycleScope.launch {
+            com.example.controlherbal.common.accessibility.StatusPalette.paletteState.collect {
+                com.example.controlherbal.common.accessibility.StatusPalette.applyToWindow(window, this@SectionHostActivity)
+            }
         }
         pager.setCurrentItem(intent.getIntExtra(EXTRA_SECTION, 0).coerceIn(0, 3), false)
     }
