@@ -4,7 +4,7 @@ import android.content.Context
 import com.example.controlherbal.common.security.SecureLogger
 import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.example.controlherbal.backend.domain.logic.PredictiveTheorem
 import kotlin.math.exp
 import kotlin.random.Random
 

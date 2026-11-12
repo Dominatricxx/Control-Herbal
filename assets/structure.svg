@@ -94,20 +94,20 @@
   <text class="nm" x="60" y="83" font-weight="700" fill="#1f2328">app/</text><text class="cm" x="440" y="83" fill="#59636e">App Android</text>
   <text class="nm" x="90" y="115" font-weight="700" fill="#1f2328">src/main/</text><text class="cm" x="440" y="115" fill="#59636e">Código fuente y recursos principales</text>
   <text class="nm" x="120" y="147" font-weight="700" fill="#1f2328">java/com/example/controlherbal/</text><text class="cm" x="440" y="147" fill="#59636e">Paquete principal de la app</text>
-  <text class="nm" x="150" y="179" font-weight="700" fill="#1f2328">ai/</text><text class="cm" x="440" y="179" fill="#59636e">HerbalAI: modelo TFLite y aprendizaje</text>
+  <text class="nm" x="150" y="179" font-weight="700" fill="#1f2328">backend/ai/</text><text class="cm" x="440" y="179" fill="#59636e">IA y carga segura del modelo TFLite</text>
   <text class="nm" x="150" y="211" font-weight="700" fill="#1f2328">common/</text><text class="cm" x="440" y="211" fill="#59636e">Constantes, utilidades de seguridad y logger</text>
-  <text class="nm" x="150" y="243" font-weight="700" fill="#1f2328">data/database/</text><text class="cm" x="440" y="243" fill="#59636e">Room: plantas, lecturas y DAOs</text>
-  <text class="nm" x="150" y="275" font-weight="700" fill="#1f2328">data/sync/</text><text class="cm" x="440" y="275" fill="#59636e">Servicio foreground y workers</text>
-  <text class="nm" x="150" y="307" font-weight="700" fill="#1f2328">domain/logic/</text><text class="cm" x="440" y="307" fill="#59636e">PredictiveTheorem: métricas de estrés</text>
-  <text class="nm" x="150" y="339" font-weight="700" fill="#1f2328">ui/activities/</text><text class="cm" x="440" y="339" fill="#59636e">Dashboard, chat, historial y configuración</text>
-  <text class="nm" x="150" y="371" font-weight="700" fill="#1f2328">ui/theme/</text><text class="cm" x="440" y="371" fill="#59636e">Paleta, tipografía y tema</text>
-  <text class="nm" x="150" y="403" font-weight="700" fill="#1f2328">ui/viewmodel/</text><text class="cm" x="440" y="403" fill="#59636e">SensorViewModel: estado en vivo y análisis</text>
-  <text class="nm" x="150" y="435" font-weight="700" fill="#1f2328">ui/widget/</text><text class="cm" x="440" y="435" fill="#59636e">Widgets de estado y alertas</text>
+  <text class="nm" x="150" y="243" font-weight="700" fill="#1f2328">database/</text><text class="cm" x="440" y="243" fill="#59636e">Room: entidades, DAOs y base local</text>
+  <text class="nm" x="150" y="275" font-weight="700" fill="#1f2328">backend/sync/</text><text class="cm" x="440" y="275" fill="#59636e">Servicios y workers de sincronización</text>
+  <text class="nm" x="150" y="307" font-weight="700" fill="#1f2328">backend/domain/</text><text class="cm" x="440" y="307" fill="#59636e">Contratos, casos de uso y lógica</text>
+  <text class="nm" x="150" y="339" font-weight="700" fill="#1f2328">frontend/activities/</text><text class="cm" x="440" y="339" fill="#59636e">Pantallas y navegación Android</text>
+  <text class="nm" x="150" y="371" font-weight="700" fill="#1f2328">frontend/theme/</text><text class="cm" x="440" y="371" fill="#59636e">Paleta, tipografía y tema</text>
+  <text class="nm" x="150" y="403" font-weight="700" fill="#1f2328">frontend/viewmodel/</text><text class="cm" x="440" y="403" fill="#59636e">Estado y presentación de datos</text>
+  <text class="nm" x="150" y="435" font-weight="700" fill="#1f2328">frontend/widget/</text><text class="cm" x="440" y="435" fill="#59636e">Widgets de estado y alertas</text>
   <text class="nm" x="120" y="467" font-weight="700" fill="#1f2328">res/</text><text class="cm" x="440" y="467" fill="#59636e">Layouts, drawables, valores y menús</text>
   <text class="nm" x="120" y="499" font-weight="400" fill="#1f2328">AndroidManifest.xml</text><text class="cm" x="440" y="499" fill="#59636e">Manifiesto de la app</text>
   <text class="nm" x="60" y="531" font-weight="700" fill="#1f2328">wear/</text><text class="cm" x="440" y="531" fill="#59636e">App Wear OS</text>
   <text class="nm" x="60" y="563" font-weight="700" fill="#1f2328">desktop/</text><text class="cm" x="440" y="563" fill="#59636e">App de escritorio (Compose JVM)</text>
-  <text class="nm" x="60" y="595" font-weight="700" fill="#1f2328">common/</text><text class="cm" x="440" y="595" fill="#59636e">Librería Android compartida (Room)</text>
+  <text class="nm" x="60" y="595" font-weight="700" fill="#1f2328">firebase/</text><text class="cm" x="440" y="595" fill="#59636e">Funciones API, reglas y pruebas de datos</text>
   <text class="nm" x="60" y="627" font-weight="700" fill="#1f2328">firmware/</text><text class="cm" x="440" y="627" fill="#59636e">Código del microcontrolador</text>
   <text class="nm" x="90" y="659" font-weight="400" fill="#1f2328">ControlHerbal.ino</text><text class="cm" x="440" y="659" fill="#59636e">ESP32: sensores + IRH + Firebase</text>
   <text class="nm" x="60" y="691" font-weight="700" fill="#1f2328">ml/</text><text class="cm" x="440" y="691" fill="#59636e">Pipeline de entrenamiento de IA</text>
@@ -123,10 +123,10 @@
   <text class="nm" x="90" y="1011" font-weight="400" fill="#1f2328">ci.yml</text><text class="cm" x="440" y="1011" fill="#59636e">Build de Docker + validaciones</text>
   <text class="nm" x="90" y="1043" font-weight="400" fill="#1f2328">update-langs-chart.yml</text><text class="cm" x="440" y="1043" fill="#59636e">Actualiza el gráfico de lenguajes</text>
   <text class="nm" x="60" y="1075" font-weight="700" fill="#1f2328">assets/</text><text class="cm" x="440" y="1075" fill="#59636e">Diagramas SVG y gráfico de lenguajes</text>
-  <text class="nm" x="60" y="1107" font-weight="700" fill="#1f2328">capturas/</text><text class="cm" x="440" y="1107" fill="#59636e">Capturas Android · Wear OS · Desktop</text>
-  <text class="nm" x="60" y="1139" font-weight="700" fill="#1f2328">docs/screenshots/</text><text class="cm" x="440" y="1139" fill="#59636e">Capturas de la documentación</text>
+  <text class="nm" x="60" y="1107" font-weight="700" fill="#1f2328">docs/</text><text class="cm" x="440" y="1107" fill="#59636e">Arquitectura, guías y capturas</text>
+  <text class="nm" x="60" y="1139" font-weight="700" fill="#1f2328">legal/</text><text class="cm" x="440" y="1139" fill="#59636e">Documentos legales fuente</text>
   <text class="nm" x="60" y="1171" font-weight="700" fill="#1f2328">output/</text><text class="cm" x="440" y="1171" fill="#59636e">Modelo .tflite generado por Docker</text>
   <text class="nm" x="60" y="1203" font-weight="700" fill="#1f2328">gradle/</text><text class="cm" x="440" y="1203" fill="#59636e">Wrapper y catálogo de versiones</text>
   <text class="nm" x="60" y="1235" font-weight="400" fill="#1f2328">build.gradle.kts</text><text class="cm" x="440" y="1235" fill="#59636e">Configuración del build</text>
-  <text class="nm" x="60" y="1267" font-weight="400" fill="#1f2328">settings.gradle.kts</text><text class="cm" x="440" y="1267" fill="#59636e">Módulos: app · wear · desktop · common</text>
+  <text class="nm" x="60" y="1267" font-weight="400" fill="#1f2328">settings.gradle.kts</text>  <text class="cm" x="440" y="1267" fill="#59636e">Módulos Gradle: app · wear · desktop</text>
 </svg>

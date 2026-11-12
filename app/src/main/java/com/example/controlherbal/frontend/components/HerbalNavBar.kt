@@ -1,14 +1,27 @@
 package com.example.controlherbal.frontend.components
 
+import android.app.Activity
 import android.content.Intent
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.example.controlherbal.database.Plant
+import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.frontend.activities.plant.PlantSetupActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+sealed class PlantActionState {
+    object None : PlantActionState()
+    data class Menu(val plant: Plant) : PlantActionState()
+    data class EditName(val plant: Plant) : PlantActionState()
+    data class ConfirmDelete(val plant: Plant) : PlantActionState()
+}
 
 /**
  * Production-ready HerbalNavBar utilizing HerbalLiquidNavBar with fluid droplet physics,
- * smooth tab transitions, and the pop-up menu for "Nueva planta" and "Editar planta",
- * using exact PNG tileset icons (tile_inicio, tile_plantas, tile_calendario, tile_perfil, tile_agregar).
+ * smooth tab transitions, and the pop-up menu for "Nueva planta" and "Editar planta" (Edit name & Delete with confirmation).
  */
 @Composable
 fun HerbalNavBar(
@@ -18,8 +31,12 @@ fun HerbalNavBar(
     modifier: Modifier = Modifier,
     isDark: Boolean = true
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
+    val db = remember { SensorDatabase.getInstance(context) }
     var agregarSeleccionado by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    var actionDialogState by remember { mutableStateOf<PlantActionState>(PlantActionState.None) }
 
     val items = listOf(
         HerbalNavItem("inicio", "Inicio"),
@@ -40,9 +57,68 @@ fun HerbalNavBar(
         },
         onEditarPlanta = {
             agregarSeleccionado = false
-            onAddClick()
+            scope.launch(Dispatchers.IO) {
+                val plant = db.plantDao().getSelectedPlant() ?: db.plantDao().getAll().firstOrNull()
+                withContext(Dispatchers.Main) {
+                    if (plant == null) {
+                        context.startActivity(Intent(context, PlantSetupActivity::class.java))
+                    } else {
+                        actionDialogState = PlantActionState.Menu(plant)
+                    }
+                }
+            }
         },
         modifier = modifier,
         colors = if (isDark) HerbalNavColors.Oscuro else HerbalNavColors.Claro
     )
+
+    // Render Compose Dialogs matching exact dark aesthetics
+    when (val state = actionDialogState) {
+        is PlantActionState.Menu -> {
+            PlantActionsMenuDialog(
+                plant = state.plant,
+                onDismiss = { actionDialogState = PlantActionState.None; agregarSeleccionado = false },
+                onEditClick = { actionDialogState = PlantActionState.EditName(state.plant) },
+                onDeleteClick = { actionDialogState = PlantActionState.ConfirmDelete(state.plant) }
+            )
+        }
+        is PlantActionState.EditName -> {
+            PlantEditNameDialog(
+                plant = state.plant,
+                onDismiss = { actionDialogState = PlantActionState.None; agregarSeleccionado = false },
+                onSave = { newName ->
+                    scope.launch(Dispatchers.IO) {
+                        db.plantDao().update(state.plant.copy(name = newName))
+                        withContext(Dispatchers.Main) {
+                            actionDialogState = PlantActionState.None
+                            agregarSeleccionado = false
+                            (context as? Activity)?.recreate()
+                        }
+                    }
+                }
+            )
+        }
+        is PlantActionState.ConfirmDelete -> {
+            PlantDeleteConfirmDialog(
+                plant = state.plant,
+                onDismiss = { actionDialogState = PlantActionState.None; agregarSeleccionado = false },
+                onConfirm = {
+                    scope.launch(Dispatchers.IO) {
+                        db.sensorDao().deleteAllByPlantId(state.plant.id)
+                        db.plantDao().delete(state.plant)
+                        val remaining = db.plantDao().getAll()
+                        remaining.firstOrNull()?.let {
+                            db.plantDao().update(it.copy(isSelected = true))
+                        }
+                        withContext(Dispatchers.Main) {
+                            actionDialogState = PlantActionState.None
+                            agregarSeleccionado = false
+                            (context as? Activity)?.recreate()
+                        }
+                    }
+                }
+            )
+        }
+        else -> {}
+    }
 }

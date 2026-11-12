@@ -12,7 +12,7 @@ import com.example.controlherbal.frontend.style.*
 
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.example.controlherbal.backend.domain.logic.PredictiveTheorem
 
 /**
  * AppImports: Contenedor unificado de definiciones de tipos, alias y modelo central.

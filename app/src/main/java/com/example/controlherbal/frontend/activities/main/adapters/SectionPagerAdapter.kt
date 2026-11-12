@@ -9,7 +9,11 @@ import com.example.controlherbal.frontend.activities.main.fragments.MyPlantsSect
 import com.example.controlherbal.frontend.activities.main.fragments.ProfileSectionFragment
 
 /**
- * Adaptador de ViewPager2 para gestionar las cuatro secciones principales de la app.
+ * Adaptador de ViewPager2 para gestionar las cuatro secciones principales de la app en la barra inferior:
+ * 0 -> Inicio (Dashboard)
+ * 1 -> Plantas (MyPlants)
+ * 2 -> Calendario (Calendar)
+ * 3 -> Perfil (Profile)
  */
 internal class SectionPagerAdapter(
     activity: SectionHostActivity,

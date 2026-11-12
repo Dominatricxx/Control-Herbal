@@ -32,4 +32,3 @@ rootProject.name = "ControlHerbal"
 include(":app")
 include(":wear")
 include(":desktop")
-include(":common")

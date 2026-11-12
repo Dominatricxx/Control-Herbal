@@ -14,7 +14,9 @@ import com.example.controlherbal.R
 /**
  * Tileset Loader utility that maps icon keys to the exact user-provided raster PNG icon assets
  * stored in res/drawable (tile_humedad, tile_sol, tile_suelo, tile_temperatura,
- * tile_irh, tile_inicio, tile_plantas, tile_agregar, tile_calendario, tile_perfil).
+ * tile_irh, tile_inicio, tile_plantas, tile_agregar, tile_calendario, tile_perfil,
+ * tile_accesibilidad, tile_configuracion, tile_privacidad, tile_terminos,
+ * tile_comparar_plantas, tile_registros, tile_nube, tile_sol_nube).
  */
 object HerbalImageTileset {
 
@@ -31,6 +33,14 @@ object HerbalImageTileset {
             "agregar", "add" -> R.drawable.tile_agregar
             "calendario", "calendar" -> R.drawable.tile_calendario
             "perfil", "user" -> R.drawable.tile_perfil
+            "accesibilidad", "accessibility" -> R.drawable.tile_accesibilidad
+            "configuracion", "settings" -> R.drawable.tile_configuracion
+            "privacidad", "privacy" -> R.drawable.tile_privacidad
+            "terminos", "terms" -> R.drawable.tile_terminos
+            "comparar", "comparison" -> R.drawable.tile_comparar_plantas
+            "registros", "history" -> R.drawable.tile_registros
+            "nube", "cloud" -> R.drawable.tile_nube
+            "sol_nube", "partly_cloudy" -> R.drawable.tile_sol_nube
             else -> R.drawable.tile_sol
         }
     }

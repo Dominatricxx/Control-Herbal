@@ -20,7 +20,7 @@ import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.example.controlherbal.backend.domain.logic.PredictiveTheorem
 import com.github.mikephil.charting.charts.CombinedChart
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet

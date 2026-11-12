@@ -23,7 +23,7 @@ import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.common.auth.AuthManager
 import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.database.Plant
-import com.example.controlherbal.domain.usecase.ExecuteWateringUseCase
+import com.example.controlherbal.backend.domain.usecase.ExecuteWateringUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

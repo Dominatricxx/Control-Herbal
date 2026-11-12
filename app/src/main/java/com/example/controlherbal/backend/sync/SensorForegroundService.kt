@@ -1,15 +1,5 @@
 package com.example.controlherbal.backend.sync
 
-import com.example.controlherbal.common.security.*
-import com.example.controlherbal.common.auth.*
-import com.example.controlherbal.common.legal.*
-import com.example.controlherbal.common.accessibility.*
-import com.example.controlherbal.common.utils.*
-import com.example.controlherbal.frontend.activities.main.*
-import com.example.controlherbal.frontend.activities.auth.*
-import com.example.controlherbal.frontend.activities.privacy.*
-import com.example.controlherbal.frontend.activities.plant.*
-import com.example.controlherbal.frontend.style.*
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -29,7 +19,7 @@ import com.example.controlherbal.common.security.SecureLogger
 import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.example.controlherbal.backend.domain.logic.PredictiveTheorem
 import com.example.controlherbal.frontend.activities.main.MainActivity
 import com.example.controlherbal.frontend.widget.HerbalWidgetManager
 import com.google.firebase.database.DataSnapshot

@@ -25,11 +25,11 @@ import com.example.controlherbal.common.utils.AppConstants
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.database.repository.PlantRepositoryImpl
+import com.example.controlherbal.backend.repository.PlantRepositoryImpl
 import com.example.controlherbal.backend.sync.FirebaseSensorSyncManager
 import com.example.controlherbal.backend.sync.SensorForegroundService
-import com.example.controlherbal.domain.logic.PredictiveTheorem
-import com.example.controlherbal.domain.usecase.ExecuteWateringUseCase
+import com.example.controlherbal.backend.domain.logic.PredictiveTheorem
+import com.example.controlherbal.backend.domain.usecase.ExecuteWateringUseCase
 import com.example.controlherbal.frontend.activities.main.SectionHostActivity
 import com.example.controlherbal.frontend.activities.plant.PlantSetupActivity
 import com.example.controlherbal.frontend.components.HeroDashboardScreen

@@ -34,6 +34,9 @@ import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.frontend.components.AnimatedGradientBackground
 import com.example.controlherbal.frontend.components.GooeyBottomBar
 import com.example.controlherbal.frontend.theme.ControlHerbalTheme
+import com.example.controlherbal.frontend.activities.main.adapters.SectionPagerAdapter
+import com.example.controlherbal.frontend.activities.main.fragments.DashboardSectionFragment
+import com.example.controlherbal.frontend.activities.main.fragments.HistorySectionFragment
 import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.launch
 
@@ -131,7 +134,11 @@ class SectionHostActivity : AppCompatActivity() {
                     com.example.controlherbal.frontend.components.HerbalNavBar(
                         selectedTab = selectedPage,
                         onTabSelected = { index -> pager.setCurrentItem(index, true) },
-                        onAddClick = { startActivity(Intent(this@SectionHostActivity, com.example.controlherbal.frontend.activities.plant.PlantSetupActivity::class.java)) },
+                        onAddClick = {
+                            com.example.controlherbal.frontend.helper.PlantActionHelper.showEditOrDeletePlantDialog(this@SectionHostActivity) {
+                                recreate()
+                            }
+                        },
                         isDark = true
                     )
                 }

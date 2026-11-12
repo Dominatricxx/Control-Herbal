@@ -5,4 +5,4 @@ issue público**: usa *Security → Report a vulnerability* en GitHub o escribe 
 Intentaremos responder en un plazo de 7 días.
 
 La guía de despliegue seguro (roles, reglas de Firebase, App Check, secretos) está en
-[`docs/security/SEGURIDAD.md`](docs/security/SEGURIDAD.md).
+[`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).

@@ -15,11 +15,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.domain.repository.PlantRepository
-import com.example.controlherbal.domain.repository.SensorDataRepository
-import com.example.controlherbal.domain.usecase.ExecuteWateringUseCase
-import com.example.controlherbal.domain.usecase.GetSelectedPlantUseCase
-import com.example.controlherbal.domain.usecase.GetSensorHistoryUseCase
+import com.example.controlherbal.backend.domain.repository.PlantRepository
+import com.example.controlherbal.backend.domain.repository.SensorDataRepository
+import com.example.controlherbal.backend.domain.usecase.ExecuteWateringUseCase
+import com.example.controlherbal.backend.domain.usecase.GetSelectedPlantUseCase
+import com.example.controlherbal.backend.domain.usecase.GetSensorHistoryUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

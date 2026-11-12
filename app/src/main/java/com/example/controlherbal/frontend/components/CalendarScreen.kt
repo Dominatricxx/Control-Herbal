@@ -27,8 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.controlherbal.data.database.PlantTask
-import com.example.controlherbal.data.database.TaskStatus
+import com.example.controlherbal.database.entity.PlantTask
+import com.example.controlherbal.database.entity.TaskStatus
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import kotlinx.coroutines.Dispatchers

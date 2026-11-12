@@ -12,7 +12,7 @@ import androidx.work.workDataOf
 import com.example.controlherbal.common.auth.AuthManager
 import com.example.controlherbal.common.security.SecureLogger
 import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.repository.UserRepositoryImpl
+import com.example.controlherbal.backend.repository.UserRepositoryImpl
 
 class ProfileSyncWorker(
     appContext: Context,

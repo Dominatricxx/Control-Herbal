@@ -5,8 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.controlherbal.data.database.PlantTask
-import com.example.controlherbal.data.database.PlantTaskDao
+import com.example.controlherbal.database.entity.PlantTask
+import com.example.controlherbal.database.dao.PlantTaskDao
 import com.example.controlherbal.database.dao.PlantCatalogDao
 import com.example.controlherbal.database.dao.UserDao
 import com.example.controlherbal.database.entity.PlantCatalogEntity

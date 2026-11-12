@@ -29,7 +29,7 @@ import com.example.controlherbal.common.security.PwnedPasswords
 import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.common.security.SecureLogger
 import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.repository.UserRepositoryImpl
+import com.example.controlherbal.backend.repository.UserRepositoryImpl
 import com.example.controlherbal.frontend.components.CodePrompt
 import com.example.controlherbal.frontend.helper.ParallaxVideoHelper
 import kotlinx.coroutines.launch

@@ -22,7 +22,7 @@ import com.example.controlherbal.common.security.LoginThrottle
 import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.common.security.SecureLogger
 import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.repository.UserRepositoryImpl
+import com.example.controlherbal.backend.repository.UserRepositoryImpl
 import com.example.controlherbal.frontend.activities.main.SplashActivity
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.zxing.BarcodeFormat

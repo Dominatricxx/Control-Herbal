@@ -21,7 +21,7 @@ import com.example.controlherbal.common.security.SecurityUtils
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
-import com.example.controlherbal.domain.logic.PredictiveTheorem
+import com.example.controlherbal.backend.domain.logic.PredictiveTheorem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

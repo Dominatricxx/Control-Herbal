@@ -2,10 +2,10 @@ package com.example.controlherbal.common.di
 
 import android.content.Context
 import com.example.controlherbal.database.SensorDatabase
-import com.example.controlherbal.database.repository.PlantRepositoryImpl
-import com.example.controlherbal.database.repository.SensorDataRepositoryImpl
-import com.example.controlherbal.domain.repository.PlantRepository
-import com.example.controlherbal.domain.repository.SensorDataRepository
+import com.example.controlherbal.backend.repository.PlantRepositoryImpl
+import com.example.controlherbal.backend.repository.SensorDataRepositoryImpl
+import com.example.controlherbal.backend.domain.repository.PlantRepository
+import com.example.controlherbal.backend.domain.repository.SensorDataRepository
 
 /**
  * AppContainer: Contenedor de Inyección de Dependencias manual (Service Locator).

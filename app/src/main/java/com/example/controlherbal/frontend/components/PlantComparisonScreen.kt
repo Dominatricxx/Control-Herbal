@@ -1,5 +1,6 @@
 package com.example.controlherbal.frontend.components
 
+import android.content.Intent
 import android.view.ViewGroup
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -29,6 +30,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import com.example.controlherbal.database.SensorReading
+import com.example.controlherbal.frontend.activities.plant.PlantSetupActivity
 import com.example.controlherbal.frontend.helper.ChartManager
 import com.github.mikephil.charting.charts.CombinedChart
 import kotlinx.coroutines.Dispatchers
@@ -37,8 +39,8 @@ import java.util.Locale
 
 /**
  * Production-ready PlantComparisonScreen matching the exact design mockup aesthetics.
- * Compares two plants side-by-side with plant dropdown selectors, focus toggle, comparative line chart,
- * centered side-by-side metrics table using exact PNG tilesets, and interactive ModalBottomSheet for "Filtros".
+ * Compares two plants side-by-side when >= 2 plants exist, or shows the empty state card ("Aún no puedes comparar")
+ * with "+ Agregar planta" button when < 2 plants are registered.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,6 +113,9 @@ fun PlantComparisonScreen(
             plant2?.let { readingsPlant2 = db.sensorDao().getLast2000Asc(it.id) }
         }
     }
+
+    val needsMorePlants = allPlants.size < 2
+    val headerSubtitle = if (needsMorePlants) "Necesitas 2 plantas registradas" else "Compara dos plantas lado a lado"
 
     val latest1 = readingsPlant1.lastOrNull()
     val latest2 = readingsPlant2.lastOrNull()
@@ -205,247 +210,327 @@ fun PlantComparisonScreen(
                         color = Color.White
                     )
                     Text(
-                        text = "Compara dos plantas lado a lado",
+                        text = headerSubtitle,
                         fontSize = 13.sp,
                         color = Color(0xFFCCCCCC)
                     )
                 }
             }
 
-            // 2. PLANT SELECTORS ROW (Two Dropdown Selector Cards Side-by-Side)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Selector Card for Plant 1
+            if (needsMorePlants) {
+                // 2A. EMPTY STATE CARD WHEN < 2 PLANTS REGISTERED
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(28.dp),
                     modifier = Modifier
-                        .weight(1f)
-                        .clickable { showPlant1Dialog = true }
+                        .fillMaxWidth()
+                        .padding(top = 24.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp, vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
+                        // Sprout icon
+                        Icon(
+                            imageVector = HerbalIcons.Plant,
+                            contentDescription = "Aún no puedes comparar",
+                            tint = Color.White,
+                            modifier = Modifier.size(64.dp)
+                        )
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Surface(
-                                    color = Color(0xFF288B46),
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(20.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("1", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                Text(
-                                    text = "PLANTA 1",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFCCCCCC)
-                                )
-                            }
-                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Seleccionar", tint = Color.White, modifier = Modifier.size(18.dp))
+                            Text(
+                                text = "Aún no puedes comparar",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "Registra al menos dos plantas para ver sus lecturas lado a lado.",
+                                fontSize = 13.sp,
+                                color = Color(0xFFCCCCCC),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 18.sp
+                            )
                         }
 
-                        Text(
-                            text = plant1?.name ?: "Seleccionar Plant 1",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color.White,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "${plant1?.environment ?: "Interior"} · ${plant1?.type ?: "Especia"}",
-                            fontSize = 12.sp,
-                            color = Color(0xFFCCCCCC),
-                            maxLines = 1
-                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Button(
+                            onClick = {
+                                context.startActivity(Intent(context, PlantSetupActivity::class.java))
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF458C4F)),
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                        ) {
+                            Text(
+                                text = "+ Agregar planta",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
+            } else {
+                // 2B. FULL COMPARISON UI WHEN >= 2 PLANTS REGISTERED
 
-                // Selector Card for Plant 2
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { showPlant2Dialog = true }
+                // Plant Selectors Row (Two Dropdown Selector Cards Side-by-Side)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    // Selector Card for Plant 1
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showPlant1Dialog = true }
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Surface(
-                                    color = Color(0xFF288B46),
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(20.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("2", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                Text(
-                                    text = "PLANTA 2",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFCCCCCC)
-                                )
-                            }
-                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Seleccionar", tint = Color.White, modifier = Modifier.size(18.dp))
-                        }
-
-                        Text(
-                            text = plant2?.name ?: "Seleccionar Plant 2",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color.White,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "${plant2?.environment ?: "Interior"} · ${plant2?.type ?: "Especia"}",
-                            fontSize = 12.sp,
-                            color = Color(0xFFCCCCCC),
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-
-            // 3. CARD 1: COMPARACIÓN DE LECTURAS (Chart & Focus Controls)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Comparación de lecturas",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
-                            color = Color.White
-                        )
-
-                        // Interactive Filtros Button opening ModalBottomSheet
-                        Surface(
-                            color = Color(0xFF38383B),
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.clickable { showFilterSheet = true }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.Default.FilterList, contentDescription = "Filtros", tint = Color.White, modifier = Modifier.size(16.dp))
-                                Text("Filtros", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Surface(
-                                    color = Color(0xFF288B46),
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(18.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("$activeSelectedCount", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Focus Segmented Control
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "ENFOQUE",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFCCCCCC)
-                        )
-
-                        Surface(
-                            color = Color(0xFF38383B),
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                val focusOptions = listOf(Pair("Ambas", 0), Pair("— Planta 1", 1), Pair("--- Planta 2", 2))
-                                focusOptions.forEach { (label, modeIndex) ->
-                                    val isSelected = focusMode == modeIndex
                                     Surface(
-                                        color = if (isSelected) Color(0xFF458C4F) else Color.Transparent,
-                                        shape = RoundedCornerShape(16.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { focusMode = modeIndex }
+                                        color = Color(0xFF288B46),
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(20.dp)
                                     ) {
-                                        Text(
-                                            text = label,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text("1", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text(
+                                        text = "PLANTA 1",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFCCCCCC)
+                                    )
+                                }
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Seleccionar", tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+
+                            Text(
+                                text = plant1?.name ?: "Seleccionar Plant 1",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = Color.White,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "${plant1?.environment ?: "Interior"} · ${plant1?.type ?: "Especia"}",
+                                fontSize = 12.sp,
+                                color = Color(0xFFCCCCCC),
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    // Selector Card for Plant 2
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showPlant2Dialog = true }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Surface(
+                                        color = Color(0xFF288B46),
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text("2", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text(
+                                        text = "PLANTA 2",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFCCCCCC)
+                                    )
+                                }
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Seleccionar", tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+
+                            Text(
+                                text = plant2?.name ?: "Seleccionar Plant 2",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = Color.White,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "${plant2?.environment ?: "Interior"} · ${plant2?.type ?: "Especia"}",
+                                fontSize = 12.sp,
+                                color = Color(0xFFCCCCCC),
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
+                // 3. CARD 1: COMPARACIÓN DE LECTURAS (Chart & Focus Controls)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
+                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Comparación de lecturas",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                color = Color.White
+                            )
+
+                            // Interactive Filtros Button opening ModalBottomSheet
+                            Surface(
+                                color = Color(0xFF38383B),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.clickable { showFilterSheet = true }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.FilterList, contentDescription = "Filtros", tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Text("Filtros", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Surface(
+                                        color = Color(0xFF288B46),
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(18.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text("$activeSelectedCount", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Focus Segmented Control
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "ENFOQUE",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFCCCCCC)
+                            )
+
+                            Surface(
+                                color = Color(0xFF38383B),
+                                shape = RoundedCornerShape(20.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    val focusOptions = listOf(Pair("Ambas", 0), Pair("— Planta 1", 1), Pair("--- Planta 2", 2))
+                                    focusOptions.forEach { (label, modeIndex) ->
+                                        val isSelected = focusMode == modeIndex
+                                        Surface(
+                                            color = if (isSelected) Color(0xFF458C4F) else Color.Transparent,
+                                            shape = RoundedCornerShape(16.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clickable { focusMode = modeIndex }
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.padding(vertical = 8.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = "Mostrando: $activeMetricsText",
+                                fontSize = 12.sp,
+                                color = Color(0xFFCCCCCC),
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+
+                        // Chart Container
+                        val activeReadings = when (focusMode) {
+                            1 -> readingsPlant1
+                            2 -> readingsPlant2
+                            else -> readingsPlant1
+                        }
+
+                        if (activeReadings.isNotEmpty()) {
+                            AndroidView(
+                                factory = { ctx ->
+                                    CombinedChart(ctx).apply {
+                                        layoutParams = ViewGroup.LayoutParams(
+                                            ViewGroup.LayoutParams.MATCH_PARENT,
+                                            (200 * ctx.resources.displayMetrics.density).toInt()
+                                        )
+                                        ChartManager.setupCombinedChart(
+                                            chart = this,
+                                            readings = activeReadings,
+                                            showTemp = filterTemp,
+                                            showHum = filterHum,
+                                            showSoil = filterSoil,
+                                            showLight = filterLight,
+                                            showIrh = filterIrh
                                         )
                                     }
-                                }
-                            }
-                        }
-
-                        Text(
-                            text = "Mostrando: $activeMetricsText",
-                            fontSize = 12.sp,
-                            color = Color(0xFFCCCCCC),
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-
-                    // Chart Container
-                    val activeReadings = when (focusMode) {
-                        1 -> readingsPlant1
-                        2 -> readingsPlant2
-                        else -> readingsPlant1
-                    }
-
-                    if (activeReadings.isNotEmpty()) {
-                        AndroidView(
-                            factory = { ctx ->
-                                CombinedChart(ctx).apply {
-                                    layoutParams = ViewGroup.LayoutParams(
-                                        ViewGroup.LayoutParams.MATCH_PARENT,
-                                        (200 * ctx.resources.displayMetrics.density).toInt()
-                                    )
+                                },
+                                update = { chart ->
                                     ChartManager.setupCombinedChart(
-                                        chart = this,
+                                        chart = chart,
                                         readings = activeReadings,
                                         showTemp = filterTemp,
                                         showHum = filterHum,
@@ -453,184 +538,173 @@ fun PlantComparisonScreen(
                                         showLight = filterLight,
                                         showIrh = filterIrh
                                     )
-                                }
-                            },
-                            update = { chart ->
-                                ChartManager.setupCombinedChart(
-                                    chart = chart,
-                                    readings = activeReadings,
-                                    showTemp = filterTemp,
-                                    showHum = filterHum,
-                                    showSoil = filterSoil,
-                                    showLight = filterLight,
-                                    showIrh = filterIrh
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Sin lecturas suficientes para comparar",
-                                color = Color(0xFFCCCCCC),
-                                fontSize = 14.sp
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Sin lecturas suficientes para comparar",
+                                    color = Color(0xFFCCCCCC),
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            // 4. CARD 2: ÚLTIMA LECTURA (Centered Cell Layout & Exact PNG Tilesets tile_*.png)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                // 4. CARD 2: ÚLTIMA LECTURA (Centered Cell Layout & Exact PNG Tilesets tile_*.png)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
+                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Última lectura",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color.White
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Column 1: Plant 1 Metrics
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            // Centered Header Plant 1
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                            ) {
-                                Surface(color = Color(0xFF288B46), shape = CircleShape, modifier = Modifier.size(20.dp)) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("1", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "[${plant1?.name ?: "Planta 1"}]",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color.White,
-                                    maxLines = 1,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-
-                            HorizontalDivider(color = Color(0xFF38383B), thickness = 1.dp)
-
-                            // Metric Rows Plant 1 (Exact PNG Tileset Drawables tile_*.png)
-                            ComparisonMetricRow("temperatura", "Temp.", temp1Str, "°C")
-                            ComparisonMetricRow("humedad", "Hum. ambiente", hum1Str, "%")
-                            ComparisonMetricRow("suelo", "Hum. tierra", soil1Str, "%")
-                            ComparisonMetricRow("sol", "Luz", light1Str, "%")
-                            ComparisonMetricRow("sol", "Seq.", seq1Str, "h")
-                            ComparisonMetricRow("sol", "Somb.", somb1Str, "h")
-
-                            // IRH Metric & Status Badge Plant 1 (tile_irh.png)
-                            ComparisonMetricRow("irh", "IRH", irh1Str, "", showDivider = false)
-
-                            Surface(
-                                color = statusColor1,
-                                shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(top = 4.dp)
-                            ) {
-                                Text(
-                                    text = statusText1,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-
-                        // Thin Central Vertical Divider
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(380.dp)
-                                .background(Color(0xFF38383B))
+                        Text(
+                            text = "Última lectura",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color.White
                         )
 
-                        // Column 2: Plant 2 Metrics
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // Centered Header Plant 2
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
+                            // Column 1: Plant 1 Metrics
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Surface(color = Color(0xFF288B46), shape = CircleShape, modifier = Modifier.size(20.dp)) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("2", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                // Centered Header Plant 1
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp)
+                                ) {
+                                    Surface(color = Color(0xFF288B46), shape = CircleShape, modifier = Modifier.size(20.dp)) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text("1", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
                                     }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "[${plant1?.name ?: "Planta 1"}]",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "[${plant2?.name ?: "Planta 2"}]",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color.White,
-                                    maxLines = 1,
-                                    textAlign = TextAlign.Center
-                                )
+
+                                HorizontalDivider(color = Color(0xFF38383B), thickness = 1.dp)
+
+                                // Metric Rows Plant 1 (Exact PNG Tileset Drawables tile_*.png)
+                                ComparisonMetricRow("temperatura", "Temp.", temp1Str, "°C")
+                                ComparisonMetricRow("humedad", "Hum. ambiente", hum1Str, "%")
+                                ComparisonMetricRow("suelo", "Hum. tierra", soil1Str, "%")
+                                ComparisonMetricRow("sol", "Luz", light1Str, "%")
+                                ComparisonMetricRow("sol", "Seq.", seq1Str, "h")
+                                ComparisonMetricRow("sol", "Somb.", somb1Str, "h")
+
+                                // IRH Metric & Status Badge Plant 1 (tile_irh.png)
+                                ComparisonMetricRow("irh", "IRH", irh1Str, "", showDivider = false)
+
+                                Surface(
+                                    color = statusColor1,
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.CenterHorizontally)
+                                        .padding(top = 4.dp)
+                                ) {
+                                    Text(
+                                        text = statusText1,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                    )
+                                }
                             }
 
-                            HorizontalDivider(color = Color(0xFF38383B), thickness = 1.dp)
-
-                            // Metric Rows Plant 2 (Exact PNG Tileset Drawables tile_*.png)
-                            ComparisonMetricRow("temperatura", "Temp.", temp2Str, "°C")
-                            ComparisonMetricRow("humedad", "Hum. ambiente", hum2Str, "%")
-                            ComparisonMetricRow("suelo", "Hum. tierra", soil2Str, "%")
-                            ComparisonMetricRow("sol", "Luz", light2Str, "%")
-                            ComparisonMetricRow("sol", "Seq.", seq2Str, "h")
-                            ComparisonMetricRow("sol", "Somb.", somb2Str, "h")
-
-                            // IRH Metric & Status Badge Plant 2 (tile_irh.png)
-                            ComparisonMetricRow("irh", "IRH", irh2Str, "", showDivider = false)
-
-                            Surface(
-                                color = statusColor2,
-                                shape = RoundedCornerShape(16.dp),
+                            // Thin Central Vertical Divider
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(top = 4.dp)
+                                    .width(1.dp)
+                                    .height(380.dp)
+                                    .background(Color(0xFF38383B))
+                            )
+
+                            // Column 2: Plant 2 Metrics
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(
-                                    text = statusText2,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                                )
+                                // Centered Header Plant 2
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp)
+                                ) {
+                                    Surface(color = Color(0xFF288B46), shape = CircleShape, modifier = Modifier.size(20.dp)) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text("2", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "[${plant2?.name ?: "Planta 2"}]",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+
+                                HorizontalDivider(color = Color(0xFF38383B), thickness = 1.dp)
+
+                                // Metric Rows Plant 2 (Exact PNG Tileset Drawables tile_*.png)
+                                ComparisonMetricRow("temperatura", "Temp.", temp2Str, "°C")
+                                ComparisonMetricRow("humedad", "Hum. ambiente", hum2Str, "%")
+                                ComparisonMetricRow("suelo", "Hum. tierra", soil2Str, "%")
+                                ComparisonMetricRow("sol", "Luz", light2Str, "%")
+                                ComparisonMetricRow("sol", "Seq.", seq2Str, "h")
+                                ComparisonMetricRow("sol", "Somb.", somb2Str, "h")
+
+                                // IRH Metric & Status Badge Plant 2 (tile_irh.png)
+                                ComparisonMetricRow("irh", "IRH", irh2Str, "", showDivider = false)
+
+                                Surface(
+                                    color = statusColor2,
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.CenterHorizontally)
+                                        .padding(top = 4.dp)
+                                ) {
+                                    Text(
+                                        text = statusText2,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -857,7 +931,7 @@ fun PlantComparisonScreen(
 
 /**
  * Filter Chip Item matching exact proposal mockup:
- * Dark background (#252527), green border when selected (#458C4F), green checkmark (✓ #81C784).
+ * Dark background (#252527), green border when selected (#458C4F).
  */
 @Composable
 fun FilterChipItem(

@@ -59,9 +59,13 @@ En Android, las secciones Panel, Historial, Comparación y Privacidad comparten 
 
 ## Documentación
 
-Consulta el [índice de documentación](docs/README.md) para encontrar guías de seguridad, privacidad,
-accesibilidad, licencias y despliegue. Los documentos legales que se muestran en la app están en
-[`legal/`](legal/).
+Consulta el [índice de documentación](docs/README.md) para encontrar guías de arquitectura,
+seguridad, privacidad, accesibilidad, licencias y despliegue. Los documentos legales que se muestran
+en la app están en [`legal/`](legal/).
+
+La estructura de código sigue tres áreas principales: interfaz en `frontend`, lógica e integraciones
+en `backend` y persistencia en `database`. Consulta la [guía de arquitectura](docs/ARCHITECTURE.md)
+para los límites y la correlación entre Android, Firebase, firmware y herramientas.
 
 ---
 
@@ -121,7 +125,7 @@ docker compose -f deploy/docker-compose.yml run --rm trainer
 ```
 
 Para más detalle sobre secretos, roles y configuración de Firebase, consulta
-[`docs/security/SEGURIDAD.md`](docs/security/SEGURIDAD.md).
+[`SECURITY.md`](SECURITY.md).
 
 ### 3. Apps (Android / Wear OS / Desktop)
 Abre el proyecto en **Android Studio** y selecciona el módulo que quieras correr (`app`, `wear` o `desktop`).

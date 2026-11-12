@@ -1,52 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.controlherbal">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permisos de red, sensores y notificaciones -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Minimización de datos: la app NO declara CAMERA (la foto la toma la app de cámara del sistema
-         vía ACTION_IMAGE_CAPTURE), ni ubicación, contactos, micrófono, almacenamiento ni identificadores. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <!-- Evita que SDKs transitivos añadan el ID de publicidad -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
-
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
 
     <application
         android:name=".ControlHerbalApp"
         android:allowBackup="false"
-        android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ControlHerbal"
-        android:usesCleartextTraffic="false"
-        tools:targetApi="34">
-        <!-- Sin analítica ni publicidad: se desactivan explícitamente por si un SDK transitivo las incluyera -->
-        <meta-data android:name="firebase_analytics_collection_deactivated" android:value="true" />
-        <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
-        <meta-data android:name="google_analytics_ssaid_collection_enabled" android:value="false" />
-        <meta-data android:name="firebase_crashlytics_collection_enabled" android:value="false" />
+        android:theme="@style/Theme.ControlHerbal">
 
-        <!-- Servicio de monitoreo en segundo plano -->
-        <service
-            android:name=".backend.sync.SensorForegroundService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
-        <!-- Punto de entrada principal (Launcher) -->
         <activity
             android:name=".frontend.activities.main.SplashActivity"
             android:exported="true"
@@ -82,65 +55,83 @@
         <activity
             android:name=".frontend.activities.main.MainActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".frontend.activities.main.SectionHostActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".frontend.activities.plant.HistoryActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Historial de Sensores"
             android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".frontend.activities.plant.PlantSetupActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Configuración de Planta" />
 
         <activity
             android:name=".frontend.activities.plant.ComparisonActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Comparador de Plantas"
             android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".frontend.activities.plant.ChatActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Asistente Herbal AI"
             android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".frontend.activities.plant.AnimatedDashboardActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Dashboard Dinámico"
             android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".frontend.activities.plant.CalendarActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Calendario de Cuidado"
             android:parentActivityName=".frontend.activities.main.MainActivity" />
 
         <activity
             android:name=".frontend.activities.plant.SettingsActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Configuración"
             android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".frontend.activities.plant.AccessibilityActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Accesibilidad"
             android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <activity
             android:name=".frontend.activities.privacy.TermsDocumentsActivity"
             android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
             android:label="Términos y documentos"
+            android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
+
+        <activity
+            android:name=".frontend.activities.privacy.UserProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ControlHerbal"
+            android:label="Mi perfil"
             android:parentActivityName=".frontend.activities.main.SectionHostActivity" />
 
         <!-- Receivers para Widgets de Pantalla de Inicio -->
@@ -153,43 +144,9 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/herbal_widget_summary_info" />
+                android:resource="@xml/herbal_widget_info" />
         </receiver>
-
-        <receiver
-            android:name=".frontend.widget.HerbalWidgetStatusReceiver"
-            android:exported="true"
-            android:label="Estado Herbal">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/herbal_widget_status_info" />
-        </receiver>
-
-        <receiver
-            android:name=".frontend.widget.HerbalWidgetAlertReceiver"
-            android:exported="true"
-            android:label="Alerta Herbal (Mini)">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/herbal_widget_alert_info" />
-        </receiver>
-
-        <!-- FileProvider Seguro -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
 
     </application>
+
 </manifest>

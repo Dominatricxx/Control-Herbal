@@ -1,13 +1,16 @@
 package com.example.controlherbal.frontend.components
 
 import android.content.Context
-import android.content.res.Resources
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +18,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,34 +37,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.example.controlherbal.common.utils.PlantCategoriesCatalog
 import com.example.controlherbal.database.Plant
 import com.example.controlherbal.database.SensorDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-fun getPlantPhotoForCategory(category: String?, plantName: String?): String {
-    for ((_, plants) in PlantCategoriesCatalog.categoriesMap) {
-        val match = plants.find { it.name.equals(plantName, ignoreCase = true) }
-        val url = match?.imagenUrl
-        if (!url.isNullOrBlank()) return url
-    }
-
-    return when (category?.lowercase()) {
-        "flores" -> "https://upload.wikimedia.org/wikipedia/commons/7/7b/Red_rose_transparent.png"
-        "hierbas y especias", "hierbas", "especias" -> "https://upload.wikimedia.org/wikipedia/commons/8/87/Basil_leaves_transparent.png"
-        "medicinales" -> "https://upload.wikimedia.org/wikipedia/commons/9/91/Aloe_Vera_transparent.png"
-        "huerto y frutales", "huerto", "frutales" -> "https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_transparent.png"
-        "suculentas y otros", "suculentas" -> "https://upload.wikimedia.org/wikipedia/commons/5/5e/Succulent_transparent.png"
-        else -> "https://upload.wikimedia.org/wikipedia/commons/7/7b/Red_rose_transparent.png"
-    }
-}
-
-/**
- * Extracted plant item fields parsed from database Plant.type
- */
 data class DisplayPlantDetails(
     val plant: Plant,
     val category: String,
@@ -68,13 +51,13 @@ data class DisplayPlantDetails(
     val environment: String
 )
 
-fun parsePlantForDisplay(plant: Plant): DisplayPlantDetails {
+fun parseDisplayPlantDetails(plant: Plant): DisplayPlantDetails {
     val rawType = plant.type
     var category = "FLORES"
-    var typeName = plant.name
-    var scientificName = "Especie botánica"
+    var typeName = "Planta"
+    var scientificName = plant.name
 
-    if (!rawType.isNullOrBlank()) {
+    if (rawType.isNotBlank()) {
         if (rawType.contains("Categoría:")) {
             val parts = rawType.split("|")
             category = parts.getOrNull(0)?.substringAfter("Categoría:")?.trim()?.uppercase() ?: "FLORES"
@@ -114,12 +97,13 @@ fun getLocalPlantDrawableId(context: Context, scientificName: String?): Int {
     }
 }
 
-enum class SortOrderOption { NEWEST, OLDEST, NAME_AZ }
+enum class SortOrderOption {
+    NEWEST, OLDEST, NAME_AZ
+}
 
 /**
- * Production-ready MyPlantsScreen matching the exact design mockup.
- * Displays user's registered plants with real-time text search, filtering modal,
- * and auto-populated botanical species data.
+ * Production-ready MyPlantsScreen matching exact mockup aesthetics.
+ * Supports toggle button between full-width vertical list view and 2-column grid view.
  */
 @Composable
 fun MyPlantsScreen(
@@ -134,6 +118,7 @@ fun MyPlantsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
+    var isGridView by remember { mutableStateOf(false) }
 
     var selectedSortOrder by remember { mutableStateOf(SortOrderOption.NEWEST) }
     var selectedCategoryFilter by remember { mutableStateOf("TODAS") }
@@ -144,7 +129,6 @@ fun MyPlantsScreen(
         withContext(Dispatchers.IO) {
             val plants = db.plantDao().getAll()
             if (plants.isEmpty()) {
-                // Seed sample plant if database is empty so user immediately sees registered cards
                 val defaultPlant = Plant(
                     name = "Áloe Vera",
                     type = "Categoría: Medicinales | Tipo: Áloe Vera (Aloe barbadensis)",
@@ -158,25 +142,22 @@ fun MyPlantsScreen(
     }
 
     val displayPlants = remember(rawPlantsList, searchQuery, selectedSortOrder, selectedCategoryFilter, selectedEnvFilter) {
-        var list = rawPlantsList.map { parsePlantForDisplay(it) }
+        var list = rawPlantsList.map { parseDisplayPlantDetails(it) }
 
-        // Filter by text search (custom name or scientific name)
+        // Search query
         if (searchQuery.isNotBlank()) {
             val q = searchQuery.trim().lowercase()
             list = list.filter {
-                it.plant.name.lowercase().contains(q) ||
-                        it.scientificName.lowercase().contains(q) ||
-                        it.typeName.lowercase().contains(q) ||
-                        it.category.lowercase().contains(q)
+                it.plant.name.lowercase().contains(q) || it.scientificName.lowercase().contains(q) || it.typeName.lowercase().contains(q)
             }
         }
 
-        // Filter by category
+        // Category filter
         if (selectedCategoryFilter != "TODAS") {
-            list = list.filter { it.category.contains(selectedCategoryFilter, ignoreCase = true) }
+            list = list.filter { it.category.equals(selectedCategoryFilter, ignoreCase = true) }
         }
 
-        // Filter by environment
+        // Environment filter
         if (selectedEnvFilter != "TODOS") {
             list = list.filter { it.environment.contains(selectedEnvFilter, ignoreCase = true) }
         }
@@ -202,7 +183,7 @@ fun MyPlantsScreen(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. TOP HEADER: Title "Mis plantas", Subtext "[N] plantas registradas", Search & Filter Buttons
+            // 1. TOP HEADER: Title "Mis plantas", Subtext "[N] plantas registradas", View Mode Toggle, Search & Filter
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,9 +208,26 @@ fun MyPlantsScreen(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Grid / List view mode toggle button
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF38383B))
+                            .clickable { isGridView = !isGridView },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                            contentDescription = "Cambiar vista",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
                     // Compare plants button
                     Box(
                         modifier = Modifier
@@ -304,7 +302,7 @@ fun MyPlantsScreen(
                 )
             }
 
-            // 2. REGISTERED PLANT CARDS LIST
+            // 2. REGISTERED PLANT CARDS LIST OR GRID
             if (displayPlants.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -320,21 +318,43 @@ fun MyPlantsScreen(
                     )
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    items(displayPlants, key = { it.plant.id }) { item ->
-                        RegisteredPlantCard(
-                            item = item,
-                            onSelectPlant = { selectedPlant ->
-                                scope.launch(Dispatchers.IO) {
-                                    db.plantDao().deselectAll()
-                                    db.plantDao().update(selectedPlant.copy(isSelected = true))
-                                    rawPlantsList = db.plantDao().getAll()
+                if (isGridView) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(displayPlants, key = { it.plant.id }) { item ->
+                            RegisteredPlantGridCard(
+                                item = item,
+                                onSelectPlant = { selectedPlant ->
+                                    scope.launch(Dispatchers.IO) {
+                                        db.plantDao().deselectAll()
+                                        db.plantDao().update(selectedPlant.copy(isSelected = true))
+                                        rawPlantsList = db.plantDao().getAll()
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(displayPlants, key = { it.plant.id }) { item ->
+                            RegisteredPlantCard(
+                                item = item,
+                                onSelectPlant = { selectedPlant ->
+                                    scope.launch(Dispatchers.IO) {
+                                        db.plantDao().deselectAll()
+                                        db.plantDao().update(selectedPlant.copy(isSelected = true))
+                                        rawPlantsList = db.plantDao().getAll()
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -359,7 +379,7 @@ fun MyPlantsScreen(
 }
 
 /**
- * Plant presentation card matching the exact design mockup.
+ * Full-width Vertical Plant Card matching exact mockup aesthetics.
  */
 @Composable
 fun RegisteredPlantCard(
@@ -367,161 +387,126 @@ fun RegisteredPlantCard(
     onSelectPlant: (Plant) -> Unit
 ) {
     val context = LocalContext.current
-    val plant = item.plant
-
-    val validLocalDrawableId = remember(item.scientificName, plant.name) {
-        getLocalPlantDrawableId(context, item.scientificName)
-    }
-
-    val categoryPhotoUrl: String = remember(item.category, item.typeName) {
-        getPlantPhotoForCategory(item.category, item.typeName)
-    }
+    val drawableId = getLocalPlantDrawableId(context, item.scientificName)
+    val isSelected = item.plant.isSelected
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
+        border = if (isSelected) BorderStroke(2.dp, Color(0xFF288B46)) else null,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelectPlant(plant) }
+            .clickable { onSelectPlant(item.plant) }
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Top Photo Box ("Foto de la planta") with dashed/subtle border styling
+            // Top Photo Placeholder Box with Camera icon
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF1E1E20))
-                    .border(
-                        width = 1.dp,
-                        color = Color(0xFF444448),
-                        shape = RoundedCornerShape(20.dp)
-                    ),
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(18.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (validLocalDrawableId != 0) {
+                if (drawableId != 0) {
                     Image(
-                        painter = painterResource(id = validLocalDrawableId),
-                        contentDescription = "Foto de ${plant.name}",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
-                    )
-                } else if (categoryPhotoUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = categoryPhotoUrl,
-                        contentDescription = "Foto de ${plant.name}",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
+                        painter = painterResource(id = drawableId),
+                        contentDescription = item.typeName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 } else {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Foto de la planta",
-                            tint = Color.White,
+                            contentDescription = "Foto",
+                            tint = Color.White.copy(alpha = 0.9f),
                             modifier = Modifier.size(32.dp)
                         )
                         Text(
                             text = "Foto de la planta",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color.White
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
 
-            // Category, Custom Plant Name, Scientific Name
+            // Plant Details Column
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "[${item.category}]",
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = Color(0xFFA5D6A7)
+                    color = Color(0xFFCCCCCC),
+                    maxLines = 1
                 )
-
                 Text(
-                    text = plant.name,
+                    text = "[${item.plant.name}]",
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 26.sp,
+                    fontSize = 20.sp,
                     color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-
                 Text(
                     text = "[${item.scientificName}]",
+                    fontFamily = FontFamily.Serif,
                     fontStyle = FontStyle.Italic,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     color = Color(0xFFCCCCCC),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Divider Line
-            HorizontalDivider(
-                color = Color(0xFF38383B),
-                thickness = 1.dp
-            )
+            HorizontalDivider(color = Color(0xFF38383B), thickness = 1.dp)
 
-            // Bottom Row: Tipo & Environment Icon
+            // Bottom Row: TIPO + Environment Icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column {
                     Text(
                         text = "TIPO",
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = Color(0xFFAAAAAA)
+                        color = Color(0xFFCCCCCC)
                     )
                     Text(
                         text = "[${item.typeName}]",
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                // Environment Circle Icon
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF38383B)),
                     contentAlignment = Alignment.Center
                 ) {
-                    val envLower = item.environment.lowercase()
-                    when {
-                        envLower.contains("luz") || envLower.contains("sol") -> {
-                            Icon(
-                                imageVector = HerbalIcons.Sun,
-                                contentDescription = "Luz / Sol",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        envLower.contains("sombra") -> {
-                            Text("🌥️", fontSize = 16.sp)
-                        }
-                        else -> {
-                            Text("⛅", fontSize = 16.sp)
-                        }
-                    }
+                    HerbalImageTileset.TilesetIcon(
+                        iconName = "sol",
+                        contentDescription = "Ambiente",
+                        size = 20.dp
+                    )
                 }
             }
         }
@@ -529,130 +514,162 @@ fun RegisteredPlantCard(
 }
 
 /**
- * Filter modal dialog to filter plants by registration date, category, type, or environment.
+ * Grid Card (Cuadrícula).
  */
+@Composable
+fun RegisteredPlantGridCard(
+    item: DisplayPlantDetails,
+    onSelectPlant: (Plant) -> Unit
+) {
+    val context = LocalContext.current
+    val drawableId = getLocalPlantDrawableId(context, item.scientificName)
+    val isSelected = item.plant.isSelected
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF252527)),
+        shape = RoundedCornerShape(24.dp),
+        border = if (isSelected) BorderStroke(2.dp, Color(0xFF288B46)) else null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelectPlant(item.plant) }
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (drawableId != 0) {
+                    Image(
+                        painter = painterResource(id = drawableId),
+                        contentDescription = item.typeName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Foto",
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Foto de la\nplanta",
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "[${item.category}]",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFCCCCCC),
+                    maxLines = 1
+                )
+                Text(
+                    text = "[${item.plant.name}]",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "[${item.scientificName}]",
+                    fontFamily = FontFamily.Serif,
+                    fontStyle = FontStyle.Italic,
+                    fontSize = 11.sp,
+                    color = Color(0xFFCCCCCC),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            HorizontalDivider(color = Color(0xFF38383B), thickness = 1.dp)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "TIPO",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFCCCCCC)
+                    )
+                    Text(
+                        text = "[${item.typeName}]",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF38383B)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    HerbalImageTileset.TilesetIcon(
+                        iconName = "sol",
+                        contentDescription = "Ambiente",
+                        size = 18.dp
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun PlantFilterModalDialog(
     currentSortOrder: SortOrderOption,
     currentCategory: String,
     currentEnv: String,
     onDismiss: () -> Unit,
-    onApply: (sort: SortOrderOption, category: String, environment: String) -> Unit
+    onApply: (SortOrderOption, String, String) -> Unit
 ) {
-    var tempSort by remember { mutableStateOf(currentSortOrder) }
-    var tempCategory by remember { mutableStateOf(currentCategory) }
-    var tempEnv by remember { mutableStateOf(currentEnv) }
-
-    val categoriesOptions = listOf("TODAS", "FLORES", "HIERBAS Y ESPECIAS", "MEDICINALES", "HUERTO Y FRUTALES", "SUCULENTAS Y OTROS")
-    val envOptions = listOf("TODOS", "Luz", "Sombra", "Híbrido")
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Color(0xFF252527),
         shape = RoundedCornerShape(24.dp),
-        title = {
-            Text(
-                text = "Filtrar Mis Plantas",
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color.White
-            )
-        },
+        title = { Text("Filtrar y ordenar", color = Color.White, fontWeight = FontWeight.Bold) },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // 1. Sort Order
-                Text("Ordenar por Fecha de Registro:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Surface(
-                        color = if (tempSort == SortOrderOption.NEWEST) Color(0xFF288B46) else Color(0xFF38383B),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { tempSort = SortOrderOption.NEWEST }
-                    ) {
-                        Text("Más recientes", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 8.dp))
-                    }
-                    Surface(
-                        color = if (tempSort == SortOrderOption.OLDEST) Color(0xFF288B46) else Color(0xFF38383B),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { tempSort = SortOrderOption.OLDEST }
-                    ) {
-                        Text("Más antiguas", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 8.dp))
-                    }
-                }
-
-                // 2. Category Filter
-                Text("Filtrar por Categoría:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    categoriesOptions.chunked(2).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            row.forEach { cat ->
-                                val isSelected = cat == tempCategory
-                                Surface(
-                                    color = if (isSelected) Color(0xFF288B46) else Color(0xFF38383B),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { tempCategory = cat }
-                                ) {
-                                    Text(
-                                        text = cat,
-                                        color = Color.White,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 3. Environment Filter
-                Text("Filtrar por Ambiente:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    envOptions.forEach { env ->
-                        val isSelected = env == tempEnv
-                        Surface(
-                            color = if (isSelected) Color(0xFF288B46) else Color(0xFF38383B),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { tempEnv = env }
-                        ) {
-                            Text(
-                                text = env,
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            )
-                        }
-                    }
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Opciones de filtrado y ordenamiento de plantas.", color = Color(0xFFCCCCCC), fontSize = 14.sp)
             }
         },
         confirmButton = {
             Button(
-                onClick = { onApply(tempSort, tempCategory, tempEnv) },
+                onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF288B46))
             ) {
-                Text("Aplicar Filtros", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Restablecer", color = Color(0xFFCCCCCC))
+                Text("Cerrar", color = Color.White)
             }
         }
     )

@@ -21,7 +21,7 @@ import android.content.Context
  *
  * IMPORTANTE: es una defensa de la interfaz, no una frontera de seguridad: quien manipule el APK o borre los
  * datos de la app puede saltársela. Lo que de verdad detiene la fuerza bruta contra la cuenta es lo que impone
- * el servidor (limitación de Firebase Auth, reCAPTCHA y 2FA obligatorio; ver docs/security/SEGURIDAD.md).
+ * el servidor (limitación de Firebase Auth, reCAPTCHA y 2FA obligatorio; ver docs/SEGURIDAD.md).
  *
  * Mismos parámetros que firebase/functions/lib/limiter.js.
  */
